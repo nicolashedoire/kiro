@@ -53,7 +53,7 @@ fn take_flag(args: &mut Vec<String>, name: &str) -> bool {
 fn project_dir(args: &mut Vec<String>) -> PathBuf {
     take_option(args, "--project")
         .map(PathBuf::from)
-        .unwrap_or_else(|| std::env::current_dir().unwrap_or_default())
+        .unwrap_or_else(|| engine::current_dir().unwrap_or_default())
 }
 
 fn run(mut args: Vec<String>) -> ExitCode {
@@ -64,7 +64,7 @@ fn run(mut args: Vec<String>) -> ExitCode {
         return ExitCode::from(2);
     }
     let mut session = Session {
-        dir: std::env::current_dir().unwrap_or_default(),
+        dir: engine::current_dir().unwrap_or_default(),
     };
     let start = Instant::now();
     let reply = engine::run(&command, &mut session);
@@ -104,8 +104,16 @@ fn main() -> ExitCode {
                 paths: Vec::new(),
                 budget: 12_000,
             };
-            println!("{}", scout::scout(&project, &request));
-            ExitCode::SUCCESS
+            match scout::scout_result(&project, &request) {
+                Ok(answer) => {
+                    println!("{answer}");
+                    ExitCode::SUCCESS
+                }
+                Err(answer) => {
+                    println!("{answer}");
+                    ExitCode::from(1)
+                }
+            }
         }
         "mcp" => {
             let project = project_dir(&mut args);

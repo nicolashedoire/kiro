@@ -258,3 +258,21 @@ fn expanded_words_are_bounded_before_execution() {
     );
     assert_eq!(answers[0]["result"]["isError"], true);
 }
+
+#[test]
+fn scout_errors_remain_errors_even_when_the_answer_budget_is_zero() {
+    let fixture = Fixture::new("scout-status");
+    let request = json!({"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"scout","arguments":{"terms":["absent"],"paths":["missing-directory"],"budget":0}}});
+    let answers = mcp(&fixture, format!("{request}\n").into_bytes());
+    assert_eq!(answers[0]["result"]["isError"], true);
+    let output = Command::new(env!("CARGO_BIN_EXE_kiro"))
+        .args(["scout", "--project"])
+        .arg(fixture.0.join("missing-directory"))
+        .arg("absent")
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    assert!(String::from_utf8(output.stdout)
+        .unwrap()
+        .contains("incomplete"));
+}

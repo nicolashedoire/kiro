@@ -4,6 +4,8 @@
 //! not handle (chaining, redirection, substitution, variables), parsing returns `None` and the
 //! command is handed to the regular shell.
 
+use std::borrow::Cow;
+
 /// True when the process runs in a UTF-8 locale (`LC_ALL`, then `LC_CTYPE`, then `LANG`).
 /// Programs such as grep and cut count characters in that case, and bytes otherwise.
 pub fn locale_is_utf8() -> bool {
@@ -23,6 +25,59 @@ pub fn locale_is_utf8() -> bool {
 pub struct Word {
     pub text: String,
     pub glob: bool,
+}
+
+/// Remove shell comments only at the beginning of an unquoted word, keeping newlines.
+/// Quoted/escaped hashes and hashes inside a word remain literal.
+pub fn without_comments(command: &str) -> Option<Cow<'_, str>> {
+    if command.len() > crate::limits::MAX_COMMAND_BYTES {
+        return None;
+    }
+    let bytes = command.as_bytes();
+    let (mut single, mut double, mut word) = (false, false, false);
+    let mut out = String::new();
+    let mut copied = 0;
+    let mut i = 0;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'\\' if !single => {
+                if bytes.get(i + 1) != Some(&b'\n') {
+                    word = true;
+                }
+                i += 2;
+                continue;
+            }
+            b'\'' if !double => {
+                single = !single;
+                word = true;
+            }
+            b'"' if !single => {
+                double = !double;
+                word = true;
+            }
+            b'#' if !single && !double && !word => {
+                out.push_str(&command[copied..i]);
+                i = bytes[i..]
+                    .iter()
+                    .position(|b| *b == b'\n')
+                    .map_or(bytes.len(), |n| i + n);
+                copied = i;
+                continue;
+            }
+            b' ' | b'\t' | b'\n' | b';' | b'&' | b'|' | b'<' | b'>' | b'(' | b')'
+                if !single && !double =>
+            {
+                word = false
+            }
+            _ => word = true,
+        }
+        i += 1;
+    }
+    if copied == 0 {
+        return Some(Cow::Borrowed(command));
+    }
+    out.push_str(&command[copied..]);
+    Some(Cow::Owned(out))
 }
 
 /// Splits a simple command into words (single quotes, double quotes, backslash, leading `~`).
@@ -195,12 +250,13 @@ pub fn split_list(command: &str) -> Option<Vec<(Link, &str)>> {
         to: usize,
         command: &'a str,
         items: &mut Vec<(Link, &'a str)>,
-    ) {
+    ) -> bool {
         let text = command[from..to].trim();
-        if !text.is_empty() {
-            let link = if items.is_empty() { Link::First } else { link };
-            items.push((link, text));
+        if text.is_empty() {
+            return false;
         }
+        items.push((link, text));
+        true
     }
     let bytes = command.as_bytes();
     let (mut single, mut double) = (false, false);
@@ -222,19 +278,31 @@ pub fn split_list(command: &str) -> Option<Vec<(Link, &str)>> {
             let next = bytes.get(i + 1).copied();
             let previous = if i > 0 { bytes[i - 1] } else { b' ' };
             match b {
-                b';' | b'\n' => {
-                    push(link, start, i, command, &mut items);
+                b';' => {
+                    if !push(link, start, i, command, &mut items) {
+                        return None;
+                    }
                     link = Link::Always;
                     start = i + 1;
                 }
+                b'\n' => {
+                    if push(link, start, i, command, &mut items) {
+                        link = Link::Always;
+                    }
+                    start = i + 1;
+                }
                 b'&' if next == Some(b'&') => {
-                    push(link, start, i, command, &mut items);
+                    if !push(link, start, i, command, &mut items) {
+                        return None;
+                    }
                     link = Link::And;
                     start = i + 2;
                     i += 1;
                 }
                 b'|' if next == Some(b'|') => {
-                    push(link, start, i, command, &mut items);
+                    if !push(link, start, i, command, &mut items) {
+                        return None;
+                    }
                     link = Link::Or;
                     start = i + 2;
                     i += 1;
@@ -250,7 +318,10 @@ pub fn split_list(command: &str) -> Option<Vec<(Link, &str)>> {
     if single || double {
         return None;
     }
-    push(link, start, bytes.len(), command, &mut items);
+    if !push(link, start, bytes.len(), command, &mut items) && matches!(link, Link::And | Link::Or)
+    {
+        return None;
+    }
     Some(items)
 }
 

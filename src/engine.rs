@@ -12,13 +12,31 @@ use crate::builtins::{self, StageResult};
 use crate::grep::{self, Syntax};
 use crate::limits::{self, append, append_error};
 use crate::shell::{self, Link, Word};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::{Command, Stdio};
 
 /// The state kept from one command to the next.
 pub struct Session {
     /// The working directory. `cd` changes it; no shell is needed to remember it.
     pub dir: PathBuf,
+}
+
+/// Preserve a shell-provided logical PWD only when it identifies the actual current
+/// directory. std::env::current_dir alone resolves symlinks and loses `cd -L` semantics.
+pub fn current_dir() -> std::io::Result<PathBuf> {
+    use std::os::unix::fs::MetadataExt;
+    let physical = std::env::current_dir()?;
+    if let Some(pwd) = std::env::var_os("PWD") {
+        let logical = PathBuf::from(pwd);
+        if logical.is_absolute() && !logical.components().any(|c| c == Component::ParentDir) {
+            if let (Ok(a), Ok(b)) = (std::fs::metadata(&logical), std::fs::metadata(&physical)) {
+                if a.dev() == b.dev() && a.ino() == b.ino() {
+                    return Ok(logical);
+                }
+            }
+        }
+    }
+    Ok(physical)
 }
 
 /// The answer to a command line.
@@ -76,6 +94,24 @@ fn stage(words: &[Word], dir: &Path, stdin: Option<&[u8]>) -> StageResult {
     }
 }
 
+/// Keep the logical path, including symlink names, as the shells' default `cd -L` does.
+pub(crate) fn logical_directory(path: &Path) -> Option<PathBuf> {
+    let mut target = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::ParentDir => {
+                target.pop();
+            }
+            Component::CurDir => {}
+            part => target.push(part.as_os_str()),
+        }
+        if !target.is_dir() {
+            return None;
+        }
+    }
+    Some(target)
+}
+
 /// Runs `cd [dir]`. Returns `None` when the words are not a `cd` command.
 fn change_directory(words: &[Word], dir: &mut PathBuf) -> Option<StageResult> {
     if words.first()?.text != "cd" {
@@ -95,29 +131,28 @@ fn change_directory(words: &[Word], dir: &mut PathBuf) -> Option<StageResult> {
             &home
         }
     };
-    if wanted == "-" {
-        return Some(Err("cd -".to_string()));
+    if wanted.is_empty() || wanted.starts_with('-') {
+        return Some(Err("cd with an option or empty path".to_string()));
     }
-    let target = builtins::resolve(dir, wanted);
-    if !target.is_dir() {
-        let message = format!("cd: no such file or directory: {wanted}\n");
-        return Some(Ok((Vec::new(), message, 1)));
+    if !Path::new(wanted).is_absolute() && std::env::var_os("CDPATH").is_some_and(|v| !v.is_empty())
+    {
+        return Some(Err("cd with CDPATH".to_string()));
     }
+    let Some(target) = logical_directory(&builtins::resolve(dir, wanted)) else {
+        return Some(Err("cd destination cannot be resolved".to_string()));
+    };
     *dir = target;
     Some(Ok((Vec::new(), String::new(), 0)))
 }
 
-/// Runs one pipeline (`a | b | c`) or one `cd` inside the engine.
-fn pipeline(text: &str, dir: &mut PathBuf) -> StageResult {
-    if let Some(words) = shell::split_words(text.trim()) {
-        if let Some(result) = change_directory(&words, dir) {
-            return result;
-        }
-    }
+fn pipeline_stages(text: &str) -> Result<Vec<&str>, String> {
     let mut stages: Vec<&str> = Vec::new();
     let mut rest = text;
     loop {
         let (before, after) = shell::split_pipe(rest);
+        if before.trim().is_empty() {
+            return Err("empty pipeline stage".to_string());
+        }
         stages.push(before);
         if after.is_empty() {
             if before.len() != rest.len() {
@@ -127,36 +162,55 @@ fn pipeline(text: &str, dir: &mut PathBuf) -> StageResult {
         }
         rest = after;
     }
+    Ok(stages)
+}
+
+/// Parse only, without running a command or touching the session. This is also used on
+/// conditional branches that will not run: a shell rejects their malformed grammar too.
+fn parsed_stage(text: &str) -> Result<(Vec<Word>, bool, bool), String> {
+    let mut command = text.trim();
+    let (mut merge, mut discard) = (false, false);
+    let mut redirections = 0;
+    loop {
+        if let Some(shorter) = command.strip_suffix("2>&1") {
+            if !shorter.ends_with(char::is_whitespace) {
+                return Err("redirection without a separate file descriptor".to_string());
+            }
+            merge = true;
+            command = shorter.trim_end();
+        } else if let Some(shorter) = command.strip_suffix("2>/dev/null") {
+            if !shorter.ends_with(char::is_whitespace) {
+                return Err("redirection without a separate file descriptor".to_string());
+            }
+            discard = true;
+            command = shorter.trim_end();
+        } else {
+            break;
+        }
+        redirections += 1;
+    }
+    if redirections > 1 {
+        return Err("several redirections".to_string());
+    }
+    let words = shell::split_words(command).ok_or("shell syntax not handled")?;
+    if words.is_empty() {
+        return Err("empty command".to_string());
+    }
+    Ok((words, merge, discard))
+}
+
+/// Runs one pipeline (`a | b | c`) or one `cd` inside the engine.
+fn pipeline(text: &str, dir: &mut PathBuf) -> StageResult {
+    if let Some(words) = shell::split_words(text.trim()) {
+        if let Some(result) = change_directory(&words, dir) {
+            return result;
+        }
+    }
     let mut stream: Option<Vec<u8>> = None;
     let mut stderr = String::new();
     let mut code = 0;
-    for text in stages {
-        // `2>&1` and `2>/dev/null` are the two redirections the engine handles itself.
-        let mut command = text.trim();
-        let (mut merge, mut discard) = (false, false);
-        let mut redirections = 0;
-        loop {
-            if let Some(shorter) = command.strip_suffix("2>&1") {
-                if !shorter.ends_with(char::is_whitespace) {
-                    return Err("redirection without a separate file descriptor".to_string());
-                }
-                merge = true;
-                command = shorter.trim_end();
-            } else if let Some(shorter) = command.strip_suffix("2>/dev/null") {
-                if !shorter.ends_with(char::is_whitespace) {
-                    return Err("redirection without a separate file descriptor".to_string());
-                }
-                discard = true;
-                command = shorter.trim_end();
-            } else {
-                break;
-            }
-            redirections += 1;
-        }
-        if redirections > 1 {
-            return Err("several redirections".to_string());
-        }
-        let words = shell::split_words(command).ok_or("shell syntax not handled")?;
+    for text in pipeline_stages(text)? {
+        let (words, merge, discard) = parsed_stage(text)?;
         let (mut out, errors, status) = stage(&words, dir, stream.as_deref())?;
         if merge {
             if !out.is_empty() && !errors.is_empty() {
@@ -185,9 +239,15 @@ pub fn run_native(command: &str, session: &mut Session) -> Result<Reply, String>
     if command.len() > limits::MAX_COMMAND_BYTES {
         return Err("command exceeds 64 KiB".to_string());
     }
-    let items = shell::split_list(command).ok_or("background job or unbalanced quotes")?;
+    let command = shell::without_comments(command).ok_or("command exceeds 64 KiB")?;
+    let items = shell::split_list(&command).ok_or("unsupported or malformed shell syntax")?;
     if items.is_empty() {
         return Err("empty command".to_string());
+    }
+    for (_, text) in &items {
+        for stage in pipeline_stages(text)? {
+            parsed_stage(stage)?;
+        }
     }
     // Work on a copy of the directory, committed only when every item is covered.
     let mut dir = session.dir.clone();
@@ -233,6 +293,7 @@ fn fallback(command: &str, session: &Session, reason: String) -> Reply {
         .arg("-c")
         .arg(command)
         .current_dir(&session.dir)
+        .env("PWD", &session.dir)
         .stdin(Stdio::null())
         .output();
     match output {

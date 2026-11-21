@@ -9,7 +9,7 @@
 //! It is a text search and says so in its answer: code that does the same thing without the
 //! words is not listed.
 
-use regex::bytes::{RegexSet, RegexSetBuilder};
+use regex::bytes::{Regex, RegexBuilder, RegexSet, RegexSetBuilder};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::io::Read;
@@ -20,7 +20,7 @@ use std::time::{Duration, Instant};
 /// Files larger than this are skipped: generated or vendored, rarely what an agent wants.
 const MAX_FILE_BYTES: u64 = 400_000;
 /// Longer lines are clipped in the answer.
-const MAX_LINE_CHARS: usize = 200;
+const MAX_LINE_BYTES: usize = 200;
 /// At most this many terms are searched (one bit each in a `u64`).
 const MAX_TERMS: usize = 60;
 const MAX_TERM_BYTES: usize = 512;
@@ -308,7 +308,7 @@ fn project_files(dir: &Path, paths: &[String]) -> Result<Candidates, String> {
                     truncated: true,
                 });
             }
-            let Ok(entry) = entry else { continue };
+            let entry = entry.map_err(|error| format!("file discovery failed: {error}"))?;
             if entry.file_type().is_dir() && entry.depth() == 64 {
                 return Ok(Candidates {
                     paths: files,
@@ -341,39 +341,59 @@ fn project_files(dir: &Path, paths: &[String]) -> Result<Candidates, String> {
     })
 }
 
-/// Reads one file and returns its matching lines, or `None` when it has none.
+enum FileSearch {
+    /// A documented exclusion, such as generated content, binary data or a large file.
+    Skipped,
+    /// A text file was read and searched, with or without a match.
+    Read(Option<FileHits>),
+    /// This candidate could not be read; it is not evidence that the terms are absent.
+    Unreadable,
+}
+
+#[derive(Default)]
+struct ScanCounts {
+    read: usize,
+    skipped: usize,
+    errors: usize,
+}
+
+/// Reads one candidate. Resource exhaustion, expected exclusions and I/O failures remain
+/// distinct so that an unreadable file can never become a successful negative result.
 fn search_file(
     dir: &Path,
     path: &str,
     terms: &RegexSet,
     remaining_input: &mut usize,
-) -> Result<Option<FileHits>, ()> {
+) -> Result<FileSearch, ()> {
     if is_skipped(path) {
-        return Ok(None);
+        return Ok(FileSearch::Skipped);
     }
     let absolute = dir.join(path);
     let Ok(meta) = std::fs::metadata(&absolute) else {
-        return Ok(None);
+        return Ok(FileSearch::Unreadable);
     };
     if !meta.is_file() || meta.len() > MAX_FILE_BYTES {
-        return Ok(None);
+        return Ok(FileSearch::Skipped);
     }
     if meta.len() > *remaining_input as u64 {
         return Err(());
     }
     let Ok(bytes) = crate::limits::read_regular_file(&absolute) else {
-        return Ok(None);
+        return Ok(FileSearch::Unreadable);
     };
     if bytes.len() > *remaining_input {
         return Err(());
     }
     *remaining_input -= bytes.len();
     if bytes.len() as u64 > MAX_FILE_BYTES {
-        return Ok(None);
+        return Ok(FileSearch::Skipped);
     }
     let is_binary = bytes[..bytes.len().min(8192)].contains(&0);
-    if is_binary || !terms.is_match(&bytes) {
-        return Ok(None);
+    if is_binary {
+        return Ok(FileSearch::Skipped);
+    }
+    if !terms.is_match(&bytes) {
+        return Ok(FileSearch::Read(None));
     }
     let content: Vec<String> = String::from_utf8_lossy(&bytes)
         .lines()
@@ -391,13 +411,13 @@ fn search_file(
         })
         .collect();
     if hits.is_empty() {
-        return Ok(None);
+        return Ok(FileSearch::Read(None));
     }
-    Ok(Some(FileHits {
+    Ok(FileSearch::Read(Some(FileHits {
         path: path.to_string(),
         content,
         hits,
-    }))
+    })))
 }
 
 /// Charge allocations as well as text: many very short lines cost much more than their
@@ -504,21 +524,41 @@ fn enclosing(content: &[String], line: usize) -> Option<usize> {
     closest
 }
 
-fn clipped(line: &str) -> &str {
-    if line.len() <= MAX_LINE_CHARS {
-        return line;
+/// Prefer a window containing a match, rather than silently displaying only the start of
+/// a long line. Ellipses and a notice make omissions explicit, including other matches.
+fn clipped(line: &str, preview: &Regex) -> String {
+    if line.len() <= MAX_LINE_BYTES {
+        return line.to_string();
     }
-    let mut end = MAX_LINE_CHARS;
+    let focus = preview.find(line.as_bytes()).map_or(0, |hit| hit.start());
+    let mut start = focus
+        .saturating_sub(MAX_LINE_BYTES / 3)
+        .min(line.len().saturating_sub(MAX_LINE_BYTES));
+    while !line.is_char_boundary(start) {
+        start -= 1;
+    }
+    let mut end = (start + MAX_LINE_BYTES).min(line.len());
     while !line.is_char_boundary(end) {
         end -= 1;
     }
-    &line[..end]
+    let before = if start > 0 { "… " } else { "" };
+    let after = if end < line.len() { " …" } else { "" };
+    format!(
+        "{before}{}{after} [line clipped; read full line]",
+        &line[start..end]
+    )
 }
 
 /// Writes the chosen matching lines of a file: the line that opens their block, the line
 /// itself (marked `N:`), and the rest of the statement when it continues on more-indented
 /// lines (`retries: z` / `.array(…)` / `.max(2)`).
-fn write_lines(file: &FileHits, chosen: &[Hit], continuation: usize, out: &mut String) {
+fn write_lines(
+    file: &FileHits,
+    chosen: &[Hit],
+    continuation: usize,
+    preview: &Regex,
+    out: &mut String,
+) {
     let matching: HashSet<usize> = file.hits.iter().map(|hit| hit.line).collect();
     let mut last_header = None;
     let mut last_written: Option<usize> = None;
@@ -528,12 +568,12 @@ fn write_lines(file: &FileHits, chosen: &[Hit], continuation: usize, out: &mut S
         }
         if let Some(header) = enclosing(&file.content, hit.line) {
             if last_header != Some(header) && last_written.is_none_or(|written| header > written) {
-                let text = clipped(&file.content[header]);
+                let text = clipped(&file.content[header], preview);
                 out.push_str(&format!("{:>5}  {}\n", header + 1, text));
             }
             last_header = Some(header);
         }
-        let text = clipped(&file.content[hit.line]);
+        let text = clipped(&file.content[hit.line], preview);
         out.push_str(&format!("{:>5}: {}\n", hit.line + 1, text));
         last_written = Some(hit.line);
 
@@ -544,7 +584,7 @@ fn write_lines(file: &FileHits, chosen: &[Hit], continuation: usize, out: &mut S
                 break;
             }
             let mark = if matching.contains(&next) { ':' } else { ' ' };
-            let text = clipped(&file.content[next]);
+            let text = clipped(&file.content[next], preview);
             out.push_str(&format!("{:>5}{} {}\n", next + 1, mark, text));
             last_written = Some(next);
         }
@@ -556,14 +596,17 @@ fn write_lines(file: &FileHits, chosen: &[Hit], continuation: usize, out: &mut S
 fn render(
     terms: &[String],
     files: &[FileHits],
-    scanned: usize,
+    counts: &ScanCounts,
     scores: &Scores,
+    preview: &Regex,
     budget: usize,
 ) -> String {
     let mut out = format!(
-        "SCOUT - {} files mention these terms ({} files scanned)\n",
+        "SCOUT - {} files mention these terms ({} text files read; {} skipped; {} read errors)\n",
         files.len(),
-        scanned
+        counts.read,
+        counts.skipped,
+        counts.errors,
     );
     for (term, text) in terms.iter().enumerate() {
         let bit = 1u64 << term;
@@ -595,7 +638,7 @@ fn render(
             file.hits.len()
         );
         let best = scores.best_lines(file, LINES_PER_FILE);
-        write_lines(file, &best, CONTINUATION_LINES, &mut section);
+        write_lines(file, &best, CONTINUATION_LINES, preview, &mut section);
         if file.hits.len() > best.len() {
             let shown: HashSet<usize> = best.iter().map(|hit| hit.line).collect();
             let others: Vec<String> = file
@@ -631,7 +674,7 @@ fn render(
     for file in rest {
         let mut entry = format!("# {} ({} matching)\n", file.path, file.hits.len());
         let best = scores.best_lines(file, LINES_PER_PREVIEW);
-        write_lines(file, &best, CONTINUATION_LINES - 1, &mut entry);
+        write_lines(file, &best, CONTINUATION_LINES - 1, preview, &mut entry);
         if out.len() + entry.len() > budget {
             break;
         }
@@ -664,25 +707,34 @@ fn render(
 }
 
 /// Maps where the terms of the request live in the project rooted at `dir`.
+/// This compatibility view preserves the text of both complete and incomplete results.
+/// Clients needing the status independently of the display budget should use `scout_result`.
 pub fn scout(dir: &Path, request: &Request) -> String {
+    scout_result(dir, request).unwrap_or_else(|text| text)
+}
+
+/// Return `Ok` for a complete scan (including a complete negative result), or `Err` for
+/// invalid input, discovery failures and incomplete scans. An error retains any partial
+/// result text. Both variants respect the requested display budget, even when it is zero.
+pub fn scout_result(dir: &Path, request: &Request) -> Result<String, String> {
     let budget = request.budget.min(MAX_ANSWER_BYTES);
     if request.terms.len() > MAX_TERMS
         || request.terms.iter().any(|term| term.len() > MAX_TERM_BYTES)
         || request.terms.iter().map(String::len).sum::<usize>() > MAX_QUERY_BYTES
     {
-        return bounded_answer(
+        return Err(bounded_answer(
             "scout: too many or oversized terms (maximum 60 terms, 512 bytes each, 16 KiB total)"
                 .to_string(),
             budget,
-        );
+        ));
     }
     if request.paths.len() > MAX_PATHS
         || request.paths.iter().map(String::len).sum::<usize>() > MAX_QUERY_BYTES
     {
-        return bounded_answer(
+        return Err(bounded_answer(
             "scout: too many or oversized paths (maximum 128 paths, 16 KiB total)".to_string(),
             budget,
-        );
+        ));
     }
     let terms: Vec<String> = request
         .terms
@@ -691,32 +743,72 @@ pub fn scout(dir: &Path, request: &Request) -> String {
         .filter(|term| !term.is_empty())
         .collect();
     if terms.is_empty() {
-        return bounded_answer("scout: give at least one term".to_string(), budget);
+        return Err(bounded_answer(
+            "scout: give at least one term".to_string(),
+            budget,
+        ));
     }
     let Ok(set) = RegexSetBuilder::new(terms.iter().map(|term| regex::escape(term)))
         .case_insensitive(true)
         .build()
     else {
-        return bounded_answer("scout: unreadable terms".to_string(), budget);
+        return Err(bounded_answer(
+            "scout: unreadable terms".to_string(),
+            budget,
+        ));
+    };
+    let pattern = terms
+        .iter()
+        .map(|term| regex::escape(term))
+        .collect::<Vec<_>>()
+        .join("|");
+    let Ok(preview) = RegexBuilder::new(&pattern).case_insensitive(true).build() else {
+        return Err(bounded_answer(
+            "scout: unreadable terms".to_string(),
+            budget,
+        ));
     };
     let candidates = match project_files(dir, &request.paths) {
         Ok(candidates) => candidates,
-        Err(reason) => return bounded_answer(format!("scout: {reason}"), budget),
+        Err(reason) => {
+            return Err(bounded_answer(
+                format!("[search incomplete: {reason}]"),
+                budget,
+            ))
+        }
     };
     let mut found = Vec::new();
-    let mut scanned = 0;
+    let mut counts = ScanCounts::default();
+    let mut failed_paths = Vec::new();
     let mut remaining_input = crate::limits::MAX_INPUT_BYTES;
     let mut retained = 0;
     let mut limited = candidates.truncated;
     for path in &candidates.paths {
         let hit = match search_file(dir, path, &set, &mut remaining_input) {
-            Ok(hit) => hit,
+            Ok(FileSearch::Read(hit)) => {
+                counts.read += 1;
+                hit
+            }
+            Ok(FileSearch::Skipped) => {
+                counts.skipped += 1;
+                continue;
+            }
+            Ok(FileSearch::Unreadable) => {
+                counts.errors += 1;
+                if failed_paths.len() < 5 {
+                    let mut shown: String = path.chars().take(200).collect();
+                    if shown.len() < path.len() {
+                        shown.push('…');
+                    }
+                    failed_paths.push(shown);
+                }
+                continue;
+            }
             Err(()) => {
                 limited = true;
                 break;
             }
         };
-        scanned += 1;
         if let Some(hit) = hit {
             let bytes = retained_bytes(&hit);
             if bytes > MAX_RETAINED_BYTES - retained {
@@ -728,21 +820,45 @@ pub fn scout(dir: &Path, request: &Request) -> String {
         }
     }
     let mut answer = if found.is_empty() {
-        format!("scout: nothing found for {:?} in {} files", terms, scanned)
+        format!(
+            "scout: nothing found for {:?} in {} text files read ({} skipped; {} read errors)",
+            terms, counts.read, counts.skipped, counts.errors
+        )
     } else {
         let scores = Scores::new(terms.len(), &found);
         let ranked = rank(found, &scores);
-        render(&terms, &ranked, scanned, &scores, budget)
+        render(&terms, &ranked, &counts, &scores, &preview, budget)
     };
-    if limited {
-        // Place this before the result, so a small answer budget cannot hide the fact that
-        // the search was incomplete. No completeness claim is made for a limited scan.
+    let incomplete = limited || counts.errors > 0;
+    if incomplete {
+        // Put the warning before partial results. The Err status still carries the failure
+        // when the display budget is too small to show even this notice.
+        let mut reasons = Vec::new();
+        if limited {
+            reasons.push("resource limit reached; restrict paths".to_string());
+        }
+        if counts.errors > 0 {
+            reasons.push(format!(
+                "{} files could not be read; check file access",
+                counts.errors
+            ));
+        }
+        let details = if failed_paths.is_empty() {
+            String::new()
+        } else {
+            format!("Unreadable candidates (up to 5): {:?}\n", failed_paths)
+        };
         answer.insert_str(
             0,
-            "[search incomplete: resource limit reached; restrict paths]\n",
+            &format!("[search incomplete: {}]\n{details}", reasons.join("; ")),
         );
     }
-    bounded_answer(answer, budget)
+    let answer = bounded_answer(answer, budget);
+    if incomplete {
+        Err(answer)
+    } else {
+        Ok(answer)
+    }
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use kiro::scout::{scout, Request};
+use kiro::scout::{scout, scout_result, Request};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -119,6 +119,18 @@ fn large_scans_are_reported_as_incomplete() {
     let answer = ask(&fixture.0, 4000);
     assert!(answer.starts_with("[search incomplete:"), "{answer}");
     assert!(answer.len() <= 4000);
+    assert_eq!(
+        scout_result(
+            &fixture.0,
+            &Request {
+                terms: vec!["needle".to_string()],
+                paths: Vec::new(),
+                budget: 0,
+            }
+        ),
+        Err(String::new()),
+        "a resource-limited scan must retain its failure status even without display text"
+    );
 }
 
 #[test]
@@ -138,4 +150,221 @@ fn oversized_queries_are_refused_instead_of_silently_dropping_terms() {
             "{answer}"
         );
     }
+}
+
+#[test]
+fn unreadable_text_is_an_incomplete_scan_not_a_successful_negative() {
+    use std::os::unix::fs::PermissionsExt;
+    let fixture = Fixture::new("unreadable");
+    let secret = fixture.0.join("secret.rs");
+    std::fs::write(&secret, "pub const needle: u8 = 1;\n").unwrap();
+    std::fs::write(
+        fixture.0.join("readable.rs"),
+        "pub const unrelated: u8 = 2;\n",
+    )
+    .unwrap();
+    std::fs::set_permissions(&secret, std::fs::Permissions::from_mode(0o000)).unwrap();
+    if std::fs::read(&secret).is_ok() {
+        // Root and some privileged CI environments bypass these permission bits. Missing
+        // tracked files and broken links below still exercise an unconditional I/O failure.
+        std::fs::set_permissions(&secret, std::fs::Permissions::from_mode(0o600)).unwrap();
+        eprintln!("permission test skipped: this account can read mode-000 files");
+        return;
+    }
+    let answer = ask(&fixture.0, 4000);
+    let status = scout_result(
+        &fixture.0,
+        &Request {
+            terms: vec!["needle".to_string()],
+            paths: Vec::new(),
+            budget: 0,
+        },
+    );
+    std::fs::set_permissions(&secret, std::fs::Permissions::from_mode(0o600)).unwrap();
+    assert_eq!(
+        status,
+        Err(String::new()),
+        "a zero budget must not hide the failure status"
+    );
+    assert!(answer.starts_with("[search incomplete:"), "{answer}");
+    assert!(answer.contains("1 files could not be read"), "{answer}");
+    assert!(answer.contains("secret.rs"), "{answer}");
+    assert!(answer.contains("nothing found"), "{answer}");
+    assert!(
+        answer.contains("1 text files read (0 skipped; 1 read errors)"),
+        "{answer}"
+    );
+}
+
+#[test]
+fn missing_tracked_files_and_broken_links_are_reported_separately_from_matches() {
+    let fixture = Fixture::new("missing-tracked");
+    git(&fixture.0, &["init", "--quiet"]);
+    std::fs::write(fixture.0.join("readable.rs"), "pub const needle: u8 = 1;\n").unwrap();
+    std::fs::write(fixture.0.join("removed.rs"), "needle\n").unwrap();
+    std::os::unix::fs::symlink("no-such-target", fixture.0.join("broken.rs")).unwrap();
+    git(
+        &fixture.0,
+        &["add", "readable.rs", "removed.rs", "broken.rs"],
+    );
+    std::fs::remove_file(fixture.0.join("removed.rs")).unwrap();
+    let answer = ask(&fixture.0, 4000);
+    assert!(answer.starts_with("[search incomplete:"), "{answer}");
+    assert!(answer.contains("2 files could not be read"), "{answer}");
+    assert!(
+        answer.contains("removed.rs") && answer.contains("broken.rs"),
+        "{answer}"
+    );
+    assert!(
+        answer.contains("1 text files read; 0 skipped; 2 read errors"),
+        "{answer}"
+    );
+    assert!(answer.contains("## readable.rs"), "{answer}");
+    assert_eq!(
+        scout_result(
+            &fixture.0,
+            &Request {
+                terms: vec!["needle".to_string()],
+                paths: Vec::new(),
+                budget: 0,
+            }
+        ),
+        Err(String::new())
+    );
+}
+
+#[test]
+fn complete_absence_and_invalid_input_have_distinct_statuses_at_any_budget() {
+    let fixture = Fixture::new("result-status");
+    std::fs::write(
+        fixture.0.join("readable.rs"),
+        "pub const unrelated: u8 = 1;\n",
+    )
+    .unwrap();
+    for budget in [0, 4000] {
+        let complete = scout_result(
+            &fixture.0,
+            &Request {
+                terms: vec!["needle".to_string()],
+                paths: Vec::new(),
+                budget,
+            },
+        )
+        .expect("a complete negative result is successful");
+        assert!(complete.len() <= budget);
+        if budget > 0 {
+            assert!(complete.starts_with("scout: nothing found"), "{complete}");
+        }
+        assert!(scout_result(
+            &fixture.0,
+            &Request {
+                terms: Vec::new(),
+                paths: Vec::new(),
+                budget,
+            }
+        )
+        .is_err());
+        assert!(scout_result(
+            &fixture.0,
+            &Request {
+                terms: vec!["needle".to_string()],
+                paths: vec!["missing-root".to_string()],
+                budget,
+            }
+        )
+        .is_err());
+    }
+}
+
+#[test]
+fn documented_exclusions_are_counted_without_becoming_io_errors() {
+    let fixture = Fixture::new("skipped");
+    std::fs::write(
+        fixture.0.join("readable.rs"),
+        "pub const unrelated: u8 = 2;\n",
+    )
+    .unwrap();
+    std::fs::write(fixture.0.join("binary.dat"), b"\0needle\n").unwrap();
+    std::fs::write(fixture.0.join("generated.min.js"), "needle\n").unwrap();
+    std::fs::File::create(fixture.0.join("large.rs"))
+        .unwrap()
+        .set_len(400_001)
+        .unwrap();
+    let answer = ask(&fixture.0, 4000);
+    assert!(answer.starts_with("scout: nothing found"), "{answer}");
+    assert!(
+        answer.contains("1 text files read (3 skipped; 0 read errors)"),
+        "{answer}"
+    );
+    assert!(!answer.contains("incomplete"), "{answer}");
+}
+
+#[test]
+fn a_nonexistent_explicit_root_reports_discovery_failure() {
+    let fixture = Fixture::new("missing-root");
+    let answer = scout(
+        &fixture.0,
+        &Request {
+            terms: vec!["needle".to_string()],
+            paths: vec!["does-not-exist".to_string()],
+            budget: 4000,
+        },
+    );
+    assert!(answer.starts_with("[search incomplete:"), "{answer}");
+    assert!(!answer.contains("nothing found"), "{answer}");
+}
+
+#[test]
+fn long_line_previews_show_a_late_match_and_explicit_omissions() {
+    let fixture = Fixture::new("long-lines");
+    for (index, prefix) in ["x".repeat(600), "漢é💡".repeat(120)].iter().enumerate() {
+        std::fs::write(
+            fixture.0.join(format!("line-{index}.rs")),
+            format!("{prefix}NeEdLe{}\n", "界💡".repeat(100)),
+        )
+        .unwrap();
+    }
+    let answer = ask(&fixture.0, 6000);
+    let matching: Vec<_> = answer
+        .lines()
+        .filter(|line| line.starts_with("    1:"))
+        .collect();
+    assert_eq!(matching.len(), 2, "{answer}");
+    for line in matching {
+        assert!(line.contains("NeEdLe"), "{line}");
+        assert!(
+            line.contains('…') && line.contains("[line clipped; read full line]"),
+            "{line}"
+        );
+        assert!(!line.contains('\u{fffd}'), "{line}");
+    }
+    assert!(answer.len() <= 6000);
+}
+
+#[test]
+fn separated_matches_on_a_long_line_do_not_claim_the_whole_line_is_shown() {
+    let fixture = Fixture::new("separated-matches");
+    std::fs::write(
+        fixture.0.join("line.rs"),
+        format!("needle{}other-term\n", "x".repeat(600)),
+    )
+    .unwrap();
+    let answer = scout(
+        &fixture.0,
+        &Request {
+            terms: vec!["needle".to_string(), "other-term".to_string()],
+            paths: Vec::new(),
+            budget: 4000,
+        },
+    );
+    let line = answer
+        .lines()
+        .find(|line| line.starts_with("    1:"))
+        .unwrap();
+    assert!(line.contains("needle"), "{answer}");
+    assert!(line.contains("[line clipped; read full line]"), "{answer}");
+    assert!(
+        answer.contains("\"other-term\": 1 lines in 1 files"),
+        "{answer}"
+    );
 }

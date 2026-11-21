@@ -98,7 +98,7 @@ $ kiro run --stats "ls -la"
 [kiro] handed to the regular shell (ls -l), 2 programs started, 9.80 ms
 
 $ kiro scout "retry" "max attempts" "backoff"
-SCOUT - 7 files mention these terms (412 files scanned)
+SCOUT - 7 files mention these terms (412 text files read; 3 skipped; 0 read errors)
 …
 ```
 
@@ -170,6 +170,20 @@ their printed spelling. Use `src` instead of `src/`. Explicit program paths such
 `/custom/cat`, shell special parameters (`$$`, `$?`, etc.), multiple redirections, and
 `2>&1` combining both output and errors are also left to the shell.
 
+Shell comments are recognized outside quotes; quoted/escaped `#` stays literal. Lists
+and pipelines are checked before any branch runs, including branches skipped by `&&` or
+`||`. `cd` keeps logical navigation through symlinks, including across calls. Its options,
+`CDPATH`-dependent destinations and lookup failures are left to the shell.
+
+Locale-sensitive cases are deliberately restricted: native `wc -w` and default `wc`
+require ASCII input (`wc -l` and `wc -c` still accept other bytes). Native grep refuses
+directional word anchors and alphabetic backslash extensions such as `\<`, `\>`, `\A`,
+`\b` and `\w`. Case/word matching and bracket expressions on non-ASCII or NUL-containing data can be
+refused when equivalence with the BSD locale rules is not established. Literal Unicode
+searches remain available. `grep -m 0` and negated filename classes are also refused.
+Filename filters use an iterative matcher with a shared work budget instead of recursive
+backtracking; exhausting that budget returns a refusal.
+
 ## Limits
 
 - **macOS only.** The engine reproduces the BSD tools that ship with macOS. On Linux the GNU
@@ -189,6 +203,10 @@ their printed spelling. Use `src` instead of `src/`. Explicit program paths such
   content; files over 400,000 bytes are skipped. Answers are capped at 64 KiB of UTF-8 text,
   including notices for partial scans or truncated output. Repository `.gitignore` and
   `.git/info/exclude` apply; global Git ignore settings are deliberately not loaded.
+  Unreadable candidates are reported separately from documented exclusions, and are not
+  counted as successfully read. An incomplete scan returns CLI exit status 1 or MCP
+  `isError: true`, while retaining any partial answer. This status is preserved even with
+  a zero-sized answer budget. Long-line previews show a match window and mark omissions.
 - **Small evidence.** The historical live comparison is one code base, three search tasks,
   one model and five sessions per cell. No current general speedup is claimed.
 - **A text search.** `scout` finds words. Code that does the same thing without the words is
@@ -205,6 +223,11 @@ cargo clippy --all-targets -- -D warnings
 cargo test --locked --all-targets            # unit, differential and benchmark tests
 cargo run --release --locked --example replay -- --fixture
 ```
+
+Differential matrices cover file boundaries, line endings, C/UTF-8 locales, regex/options,
+filename filters, comments, conditional lists and logical directory traversal. Supported
+cases must execute natively and match stdout, stderr and exit status; expected refusals
+are counted separately, so shell fallback cannot disguise a compatibility failure.
 
 The layout and the design rules are described in [docs/architecture.md](docs/architecture.md).
 

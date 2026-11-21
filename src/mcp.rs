@@ -214,7 +214,7 @@ fn call(session: &mut Session, name: &str, arguments: &Value) -> Result<String, 
                 paths: strings(arguments, "paths"),
                 budget,
             };
-            Ok(scout::scout(&session.dir, &request))
+            scout::scout_result(&session.dir, &request)
         }
         other => Err(format!("unknown tool: {other}")),
     }
@@ -265,10 +265,18 @@ pub fn respond(session: &mut Session, message: &Value) -> Option<Value> {
 
 /// Server loop: reads messages on standard input, answers on standard output.
 pub fn serve(project: &Path) -> std::io::Result<()> {
+    let project = if project.is_absolute() {
+        project.to_path_buf()
+    } else {
+        engine::current_dir()?.join(project)
+    };
     let mut session = Session {
-        dir: project
-            .canonicalize()
-            .unwrap_or_else(|_| project.to_path_buf()),
+        dir: engine::logical_directory(&project).ok_or_else(|| {
+            std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "project directory cannot be resolved",
+            )
+        })?,
     };
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();

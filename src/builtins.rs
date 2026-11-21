@@ -104,6 +104,9 @@ fn address(text: &str) -> Option<Address> {
     if text == "$" {
         return Some(Address::Last);
     }
+    if text.is_empty() || !text.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
     text.parse::<usize>()
         .ok()
         .filter(|n| *n > 0)
@@ -177,6 +180,13 @@ pub(crate) fn sed(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
             };
             if inside {
                 append(&mut stdout, line)?;
+                // BSD sed treats each file's final partial line as a separate input line.
+                // It adds its missing newline when any later input line exists, even if
+                // the script does not print that later line. The final global line keeps
+                // its original termination, including when the following files are empty.
+                if n < total && !line.ends_with(b"\n") {
+                    append(&mut stdout, b"\n")?;
+                }
             }
         }
     }
@@ -208,18 +218,23 @@ fn count_and_files<'a>(
             files.push(a);
         }
         if let Some(v) = value {
-            let v = v.trim();
-            if let Some(rest) = v.strip_prefix('+') {
-                if program != "tail" {
-                    return Err("head +N".to_string());
+            from_start = program == "tail" && v.starts_with('+');
+            let digits = if let Some(rest) = v.strip_prefix('+') {
+                rest
+            } else if let Some(rest) = v.strip_prefix('-') {
+                if program == "head" {
+                    return Err("head with a negative line count".to_string());
                 }
-                from_start = true;
-                n = rest.parse().map_err(|_| "unreadable number")?;
+                rest
             } else {
-                n = v
-                    .trim_start_matches('-')
-                    .parse()
-                    .map_err(|_| "unreadable number")?;
+                v
+            };
+            if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+                return Err("unreadable line count".to_string());
+            }
+            n = digits.parse().map_err(|_| "unreadable line count")?;
+            if n > i64::MAX as usize || (program == "head" && n == 0) {
+                return Err("line count outside the supported range".to_string());
             }
         }
         i += 1;
@@ -316,13 +331,19 @@ pub(crate) fn wc(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageResu
     if !l && !w && !c {
         (l, w, c) = (true, true, true);
     }
-    let measure = |b: &[u8]| -> (usize, usize, usize) {
+    let measure = |b: &[u8]| -> Result<(usize, usize, usize), String> {
+        // BSD's iswspace classification depends on the active locale. Rust's Unicode
+        // whitespace table is not a replacement for it. Lines and bytes are locale-free;
+        // word counting stays native only for ASCII input, where the classifications agree.
+        if w && !b.is_ascii() {
+            return Err("wc word counts on non-ASCII input require the system locale".to_string());
+        }
         let lines = b.iter().filter(|x| **x == b'\n').count();
         let words = b
             .split(|x| matches!(x, b' ' | b'\n' | b'\t' | b'\r' | 0x0b | 0x0c))
             .filter(|m| !m.is_empty())
             .count();
-        (lines, words, b.len())
+        Ok((lines, words, b.len()))
     };
     let write = |(a, b, d): (usize, usize, usize),
                  name: Option<&str>,
@@ -348,7 +369,7 @@ pub(crate) fn wc(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageResu
     let (mut stdout, mut stderr, mut code) = (Vec::new(), String::new(), 0);
     if files.is_empty() {
         write(
-            measure(stdin.ok_or("wc with no file and no input")?),
+            measure(stdin.ok_or("wc with no file and no input")?)?,
             None,
             &mut stdout,
         )?;
@@ -358,7 +379,7 @@ pub(crate) fn wc(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageResu
     let mut read_bytes = 0;
     for f in &files {
         if let Some(bytes) = read_file("wc", dir, f, &mut stderr, &mut code, &mut read_bytes)? {
-            let m = measure(&bytes);
+            let m = measure(&bytes)?;
             total = (total.0 + m.0, total.1 + m.1, total.2 + m.2);
             write(m, Some(f), &mut stdout)?;
         }
@@ -387,14 +408,20 @@ pub(crate) fn echo(args: &[String]) -> StageResult {
 
 /// Parses a `cut` list such as `1-200`, `-5`, `3-`, `1,4-6` into inclusive 1-based ranges.
 fn cut_list(list: &str) -> Option<Vec<(usize, usize)>> {
+    let number = |text: &str| -> Option<usize> {
+        if text.is_empty() || !text.bytes().all(|b| b.is_ascii_digit()) {
+            return None;
+        }
+        text.parse().ok()
+    };
     let mut ranges = Vec::new();
     for part in list.split(',') {
         let range = match part.split_once('-') {
-            Some(("", end)) => (1, end.parse().ok()?),
-            Some((start, "")) => (start.parse().ok()?, usize::MAX),
-            Some((start, end)) => (start.parse().ok()?, end.parse().ok()?),
+            Some(("", end)) => (1, number(end)?),
+            Some((start, "")) => (number(start)?, usize::MAX),
+            Some((start, end)) => (number(start)?, number(end)?),
             None => {
-                let n = part.parse().ok()?;
+                let n = number(part)?;
                 (n, n)
             }
         };
@@ -415,6 +442,8 @@ pub(crate) fn cut(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
     let (mut chars, mut bytes_list, mut fields): (Option<String>, Option<String>, Option<String>) =
         (None, None, None);
     let mut delimiter = "\t".to_string();
+    let mut explicit_delimiter = false;
+    let mut selection_seen = false;
     let mut only_delimited = false;
     let mut files: Vec<&String> = Vec::new();
     let mut i = 0;
@@ -437,10 +466,21 @@ pub(crate) fn cut(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
                 args.get(i).cloned().ok_or("cut: missing value")?
             };
             match flag {
-                'c' => chars = Some(value),
-                'b' => bytes_list = Some(value),
-                'f' => fields = Some(value),
-                _ => delimiter = value,
+                'c' | 'b' | 'f' => {
+                    if selection_seen {
+                        return Err("cut with several selection options".to_string());
+                    }
+                    selection_seen = true;
+                    match flag {
+                        'c' => chars = Some(value),
+                        'b' => bytes_list = Some(value),
+                        _ => fields = Some(value),
+                    }
+                }
+                _ => {
+                    explicit_delimiter = true;
+                    delimiter = value;
+                }
             }
         } else {
             files.push(a);
@@ -455,68 +495,77 @@ pub(crate) fn cut(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
         .ok_or("cut without a list")?;
     let ranges = cut_list(list).ok_or("cut: unreadable list")?;
     let selected = |n: usize| ranges.iter().any(|(a, b)| *a <= n && n <= *b);
-    if fields.is_some() && delimiter.chars().count() != 1 {
+    if fields.is_none() && (explicit_delimiter || only_delimited) {
+        return Err("cut field options without -f".to_string());
+    }
+    if fields.is_some()
+        && (delimiter.chars().count() != 1 || (!shell::locale_is_utf8() && delimiter.len() != 1))
+    {
         return Err("cut: delimiter".to_string());
     }
     let (mut stderr, mut code) = (String::new(), 0);
-    let mut input: Vec<u8> = Vec::new();
+    let mut stdout = Vec::new();
     let mut read_bytes = 0;
+    // Every input file is processed independently. Concatenating raw bytes would merge a
+    // final partial line with the next file and drop selected columns from that next line.
+    let mut write_input = |input: &[u8]| -> Result<(), String> {
+        let lines = input
+            .split_inclusive(|b| *b == b'\n')
+            .map(|line| line.strip_suffix(b"\n").unwrap_or(line));
+        // The system tool copies a line that holds no delimiter as it is, so a last line without
+        // a newline stays without one. Every other line it writes ends with a newline.
+        let unterminated_last = match input.last() {
+            Some(b'\n') | None => None,
+            Some(_) => Some(input.iter().filter(|b| **b == b'\n').count()),
+        };
+        for (index, line) in lines.into_iter().enumerate() {
+            if fields.is_some() {
+                let text = std::str::from_utf8(line).map_err(|_| "cut: line is not UTF-8")?;
+                if !text.contains(delimiter.as_str()) {
+                    if !only_delimited {
+                        append(&mut stdout, line)?;
+                        if unterminated_last != Some(index) {
+                            append(&mut stdout, b"\n")?;
+                        }
+                    }
+                    continue;
+                }
+                let mut wrote = false;
+                for (k, field) in text.split(delimiter.as_str()).enumerate() {
+                    if selected(k + 1) {
+                        if wrote {
+                            append(&mut stdout, delimiter.as_bytes())?;
+                        }
+                        append(&mut stdout, field.as_bytes())?;
+                        wrote = true;
+                    }
+                }
+            } else if by_chars {
+                let text = std::str::from_utf8(line).map_err(|_| "cut: line is not UTF-8")?;
+                let mut encoded = [0; 4];
+                for (k, character) in text.chars().enumerate() {
+                    if selected(k + 1) {
+                        append(&mut stdout, character.encode_utf8(&mut encoded).as_bytes())?;
+                    }
+                }
+            } else {
+                for (k, b) in line.iter().enumerate() {
+                    if selected(k + 1) {
+                        append(&mut stdout, &[*b])?;
+                    }
+                }
+            }
+            append(&mut stdout, b"\n")?;
+        }
+        Ok(())
+    };
     if files.is_empty() {
-        input.extend_from_slice(stdin.ok_or("cut with no file and no input")?);
+        write_input(stdin.ok_or("cut with no file and no input")?)?;
     }
     for f in &files {
         if let Some(bytes) = read_file("cut", dir, f, &mut stderr, &mut code, &mut read_bytes)? {
-            input.extend(bytes);
+            write_input(&bytes)?;
         }
-    }
-    let lines = input
-        .split_inclusive(|b| *b == b'\n')
-        .map(|line| line.strip_suffix(b"\n").unwrap_or(line));
-    // The system tool copies a line that holds no delimiter as it is, so a last line without
-    // a newline stays without one. Every other line it writes ends with a newline.
-    let unterminated_last = match input.last() {
-        Some(b'\n') | None => None,
-        Some(_) => Some(input.iter().filter(|b| **b == b'\n').count()),
-    };
-    let mut stdout = Vec::new();
-    for (index, line) in lines.into_iter().enumerate() {
-        if fields.is_some() {
-            let text = std::str::from_utf8(line).map_err(|_| "cut: line is not UTF-8")?;
-            if !text.contains(delimiter.as_str()) {
-                if !only_delimited {
-                    append(&mut stdout, line)?;
-                    if unterminated_last != Some(index) {
-                        append(&mut stdout, b"\n")?;
-                    }
-                }
-                continue;
-            }
-            let mut wrote = false;
-            for (k, field) in text.split(delimiter.as_str()).enumerate() {
-                if selected(k + 1) {
-                    if wrote {
-                        append(&mut stdout, delimiter.as_bytes())?;
-                    }
-                    append(&mut stdout, field.as_bytes())?;
-                    wrote = true;
-                }
-            }
-        } else if by_chars {
-            let text = std::str::from_utf8(line).map_err(|_| "cut: line is not UTF-8")?;
-            let mut encoded = [0; 4];
-            for (k, character) in text.chars().enumerate() {
-                if selected(k + 1) {
-                    append(&mut stdout, character.encode_utf8(&mut encoded).as_bytes())?;
-                }
-            }
-        } else {
-            for (k, b) in line.iter().enumerate() {
-                if selected(k + 1) {
-                    append(&mut stdout, &[*b])?;
-                }
-            }
-        }
-        append(&mut stdout, b"\n")?;
     }
     Ok((stdout, stderr, code))
 }

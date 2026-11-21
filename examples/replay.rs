@@ -151,7 +151,10 @@ fn printing_sed(args: &[String]) -> bool {
 
 /// Scan every branch, including branches the native preflight might skip.
 fn is_safe_and_in_scope(command: &str) -> bool {
-    let Some(items) = shell::split_list(command) else {
+    let Some(command) = shell::without_comments(command) else {
+        return false;
+    };
+    let Some(items) = shell::split_list(&command) else {
         return false;
     };
     let mut uses_engine = false;

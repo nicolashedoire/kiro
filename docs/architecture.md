@@ -66,6 +66,14 @@ A command line goes through three levels:
 `cd` is handled by the engine itself: the working directory is part of the session, so no
 shell is needed to remember it between calls.
 
+Comments are stripped only at an unquoted word boundary, retaining newlines and quoted or
+escaped hashes. Every pipeline is parsed before conditional evaluation; malformed syntax
+in a skipped branch cannot become a successful result or commit a preceding `cd`.
+Native navigation follows logical `cd -L` semantics: symlink names remain in the session
+path and `..` removes a logical component. Startup honors `PWD` only if it identifies the
+actual current directory; CLI shell fallback receives the same logical `PWD`. Explicit
+`cd` options, `CDPATH`-dependent paths and failed directory lookups are refused.
+
 ### The rule: never approximate
 
 A command line is either run entirely inside the engine or not at all. As soon as one stage
@@ -110,11 +118,17 @@ matter, all covered by tests:
 - **Basic regular expressions.** `\|`, `\(`, `\+`, `\?` are operators; a bare `+ ? | ( ) {`
   is a literal. `$` is an anchor only at the very end or before `\)`: before `\|` the system
   `grep` takes it as a literal dollar sign. A `*` right after a leading `^` is a literal star.
-- **Locale.** In a UTF-8 locale `grep` and `cut` count characters; otherwise they count
-  bytes. `[^']{20,}` does not match the same lines in the two cases. The engine follows
-  `LC_ALL`, `LC_CTYPE`, `LANG` like the tools do.
-- **Missing final newline.** `sed -n '$p'` and `cut -f` on a line without a delimiter keep a
-  last line without its newline; `grep`, `head` and `cut -c` add one.
+- **Locale.** `LC_ALL`, `LC_CTYPE`, `LANG` select UTF-8 character or byte handling. This
+  does not reproduce all BSD collation/classification rules: grep refuses ambiguous
+  non-ASCII case/word/bracket matches and directional or alphabetic backslash extensions.
+  Literal Unicode searches remain supported. `wc -w` and default `wc` refuse non-ASCII
+  data; line and byte counts remain native. Refusals are distinct from zero matches.
+- **Missing final newline.** `sed` counts lines across files and terminates a partial line
+  when another global input line follows. `cut` processes each file independently; `-f`
+  on a line without a delimiter copies it unchanged. These boundaries have generated
+  differential coverage, including empty inputs and pipelines.
+- **Numeric options.** Unsupported zero, negative or malformed head counts are refused;
+  supported signed tail forms are checked against BSD rather than stripping arbitrary signs.
 - **Binary files.** `grep` prints `Binary file X matches` and `-I` skips them.
 - **Errors.** Messages and exit codes are those of the tools: `cat: f: No such file or
   directory` (1), `grep: f: No such file or directory` (2), `wc: f: open: No such file or
@@ -162,6 +176,12 @@ MCP accepts 128 commands per call, 64 KiB per command, and one JSON message per 
 unbounded read or an attempt to parse the remainder as another message. These are memory
 and enumeration bounds, not a wall-clock deadline for all filesystem operations.
 
+Filename filters are compiled once and matched iteratively, without recursive backtracking.
+One search shares a budget of two million matching operations across include, exclude and
+excluded-directory checks. An exhausted budget refuses the command; it cannot produce a
+successful incomplete listing. Ambiguous negated or locale-sensitive filename classes are
+also refused.
+
 ### `scout`
 
 Takes `terms` (plain text, case-insensitive) and optionally `paths` and `budget`. It answers
@@ -192,6 +212,24 @@ and depth 64. Input and stored matching content are each capped at 16 MiB; trans
 parsing, ranking and rendering allocations are additional. A partial scan is
 explicitly marked. The answer budget is a strict UTF-8 byte cap, at most 64 KiB, including
 any truncation notice. This limits work as well as presentation.
+
+Successful text reads, documented exclusions and I/O failures are counted separately. An
+unreadable candidate marks the scan incomplete, including when there are no matches; it is
+not counted as successfully read. `scout_result` returns `Err` for invalid requests or
+incomplete scans, keeping any bounded partial text in the error. The legacy `scout`
+string wrapper remains available. CLI exit status 1 and MCP `isError: true` expose this
+status independently of the answer budget, even when it is zero. Long-line previews center
+on a match and mark clipping with ellipses and a request to read the full line.
+
+## Differential coverage
+
+Generated matrices compare supported native forms with the actual macOS tools in both C
+and UTF-8 locales, across file boundaries, line endings, regex/options and filename filters.
+Shell matrices compare comments, quoted hashes, conditionals and logical directory changes
+with both `/bin/sh` and `/bin/zsh`. Nonportable/malformed lists are refused conservatively.
+Positive tests require native execution and exact stdout, stderr and exit status; refusals
+are counted separately. Subprocess regressions also verify MCP availability after the
+formerly exponential glob and truthful Scout error status with an empty output budget.
 
 ## Why batching is the point
 

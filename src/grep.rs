@@ -6,7 +6,10 @@
 
 use crate::limits::{self, ReadError, MAX_FILES, MAX_INPUT_BYTES, MAX_OUTPUT_BYTES};
 use regex::bytes::{Regex, RegexBuilder};
+use std::cell::Cell;
 use std::path::Path;
+
+const MAX_GLOB_WORK: usize = 2_000_000;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Syntax {
@@ -242,13 +245,36 @@ pub fn parse(args: &[String], syntax: Syntax) -> Result<Options, String> {
         o.patterns.push(operands.next().ok_or("no pattern")?);
     }
     o.paths = operands.collect();
+    if o.max_count == Some(0) {
+        return Err("zero max-count differs between grep implementations".to_string());
+    }
     if o.max_count.is_some() && (o.before > 0 || o.after > 0) {
         return Err("-m with context".to_string());
     }
     if o.only_matching && (o.before > 0 || o.after > 0 || o.invert) {
         return Err("-o with context or -v".to_string());
     }
+    validate_filename_patterns(&o)?;
     Ok(o)
+}
+
+fn validate_filename_patterns(o: &Options) -> Result<(), String> {
+    if o.include
+        .iter()
+        .chain(&o.exclude)
+        .chain(&o.exclude_dir)
+        .any(|p| {
+            p.contains("[!")
+                || p.contains("[^")
+                || p.contains("[[:")
+                || p.contains("[[.")
+                || p.contains("[[=")
+                || p.ends_with('\\')
+        })
+    {
+        return Err("unsupported filename-pattern class or escape".to_string());
+    }
+    Ok(())
 }
 
 /// Translates a POSIX basic regular expression into the regex engine's syntax.
@@ -286,7 +312,10 @@ fn from_basic(pattern: &str) -> Result<String, String> {
                     '}' => s.push('}'),
                     '+' => s.push('+'),
                     '?' => s.push('?'),
-                    '<' | '>' => s.push_str("\\b"),
+                    '<' | '>' => return Err("directional word boundary".to_string()),
+                    n if n.is_ascii_alphabetic() => {
+                        return Err("non-POSIX alphabetic escape".to_string())
+                    }
                     '1'..='9' => return Err("back-reference".to_string()),
                     other => {
                         s.push('\\');
@@ -323,7 +352,7 @@ fn from_basic(pattern: &str) -> Result<String, String> {
                 }
                 let class: String = c[start..=i].iter().collect();
                 if class == "[[:<:]]" || class == "[[:>:]]" {
-                    s.push_str("\\b");
+                    return Err("directional word boundary".to_string());
                 } else {
                     s.push_str(&class);
                 }
@@ -358,10 +387,9 @@ fn from_extended(pattern: &str) -> Result<String, String> {
     while i < c.len() {
         if c[i] == '\\' {
             match c.get(i + 1) {
-                Some('<') | Some('>') => {
-                    s.push_str("\\b");
-                    i += 2;
-                    continue;
+                Some('<') | Some('>') => return Err("directional word boundary".to_string()),
+                Some(n) if n.is_ascii_alphabetic() => {
+                    return Err("non-POSIX alphabetic escape".to_string())
                 }
                 Some('1'..='9') => return Err("back-reference".to_string()),
                 Some(n) => {
@@ -376,9 +404,7 @@ fn from_extended(pattern: &str) -> Result<String, String> {
         if c[i] == '[' {
             let rest: String = c[i..].iter().collect();
             if rest.starts_with("[[:<:]]") || rest.starts_with("[[:>:]]") {
-                s.push_str("\\b");
-                i += 7;
-                continue;
+                return Err("directional word boundary".to_string());
             }
             if let Some(end) = rest[1..].find(']') {
                 if rest[..end + 1].contains('\\') {
@@ -397,6 +423,9 @@ fn from_extended(pattern: &str) -> Result<String, String> {
 /// With `whole_file` the expression is meant to be run once over a whole file instead of line
 /// by line: `^` and `$` then match at every line boundary.
 fn build_regex(o: &Options, whole_file: bool) -> Result<Regex, String> {
+    if o.ignore_case && o.patterns.iter().any(|pattern| !pattern.is_ascii()) {
+        return Err("case folding of a non-ASCII pattern".to_string());
+    }
     let mut branches: Vec<String> = Vec::new();
     for pattern in &o.patterns {
         for part in pattern.split('\n') {
@@ -493,11 +522,19 @@ fn has_regex_extension(pattern: &str) -> bool {
         } else if c == ']' {
             bracket = false;
         }
+        if bracket
+            && matches!(
+                (c, chars.peek()),
+                ('&', Some('&')) | ('-', Some('-')) | ('~', Some('~'))
+            )
+        {
+            return true;
+        }
         if !bracket {
             if c == '(' && chars.peek() == Some(&'?') {
                 return true;
             }
-            if c == '?' && previous_quantifier {
+            if matches!(c, '?' | '+' | '*' | '{') && previous_quantifier {
                 return true;
             }
         }
@@ -527,45 +564,181 @@ impl LimitedOutput {
     }
 }
 
-/// File-name matching in the style of `fnmatch` (`*`, `?`, simple `[...]` classes).
-pub fn name_matches(pattern: &str, name: &str) -> bool {
-    fn go(p: &[char], n: &[char]) -> bool {
-        match p.first() {
-            None => n.is_empty(),
-            Some('*') => (0..=n.len()).any(|k| go(&p[1..], &n[k..])),
-            Some('?') => !n.is_empty() && go(&p[1..], &n[1..]),
-            Some('[') => {
-                let Some(end) = p.iter().skip(1).position(|c| *c == ']').map(|x| x + 1) else {
-                    return !n.is_empty() && n[0] == '[' && go(&p[1..], &n[1..]);
-                };
-                let Some(&c) = n.first() else { return false };
-                let (negated, class) = match p.get(1) {
-                    Some('!') | Some('^') => (true, &p[2..end]),
-                    _ => (false, &p[1..end]),
-                };
-                let mut inside = false;
-                let mut k = 0;
-                while k < class.len() {
-                    if k + 2 < class.len() && class[k + 1] == '-' {
-                        if class[k] <= c && c <= class[k + 2] {
-                            inside = true;
-                        }
-                        k += 3;
-                    } else {
-                        if class[k] == c {
-                            inside = true;
-                        }
-                        k += 1;
+/// A filename pattern is compiled once and matched without recursive backtracking.
+/// The retry position always advances through the name, so work is polynomial. Native
+/// searches additionally share one work budget across includes, excludes and directories.
+#[derive(Debug)]
+enum NameToken {
+    Star,
+    Any,
+    Literal(char),
+    Class {
+        negated: bool,
+        ranges: Vec<(char, char)>,
+    },
+}
+
+struct NamePattern(Vec<NameToken>);
+
+fn name_units(text: &str) -> Vec<char> {
+    if crate::shell::locale_is_utf8() {
+        text.chars().collect()
+    } else {
+        text.bytes().map(char::from).collect()
+    }
+}
+
+impl NamePattern {
+    fn new(pattern: &str) -> Self {
+        let chars = name_units(pattern);
+        let mut tokens = Vec::new();
+        let mut i = 0;
+        while i < chars.len() {
+            match chars[i] {
+                '*' => {
+                    if !matches!(tokens.last(), Some(NameToken::Star)) {
+                        tokens.push(NameToken::Star);
                     }
+                    i += 1;
                 }
-                inside != negated && go(&p[end + 1..], &n[1..])
+                '?' => {
+                    tokens.push(NameToken::Any);
+                    i += 1;
+                }
+                '\\' if i + 1 < chars.len() => {
+                    tokens.push(NameToken::Literal(chars[i + 1]));
+                    i += 2;
+                }
+                '[' => {
+                    let mut from = i + 1;
+                    let negated = matches!(chars.get(from), Some('!') | Some('^'));
+                    from += usize::from(negated);
+                    let mut end = from + usize::from(chars.get(from) == Some(&']'));
+                    while end < chars.len() && chars[end] != ']' {
+                        end += 1;
+                    }
+                    if end == chars.len() {
+                        tokens.push(NameToken::Literal('['));
+                        i += 1;
+                        continue;
+                    }
+                    let mut ranges = Vec::new();
+                    while from < end {
+                        if from + 2 < end && chars[from + 1] == '-' {
+                            ranges.push((chars[from], chars[from + 2]));
+                            from += 3;
+                        } else {
+                            ranges.push((chars[from], chars[from]));
+                            from += 1;
+                        }
+                    }
+                    tokens.push(NameToken::Class { negated, ranges });
+                    i = end + 1;
+                }
+                c => {
+                    tokens.push(NameToken::Literal(c));
+                    i += 1;
+                }
             }
-            Some(c) => n.first() == Some(c) && go(&p[1..], &n[1..]),
+        }
+        Self(tokens)
+    }
+
+    fn matches(&self, name: &str, work: &Cell<usize>) -> Result<bool, String> {
+        if crate::shell::locale_is_utf8()
+            && !name.is_ascii()
+            && self
+                .0
+                .iter()
+                .any(|token| matches!(token, NameToken::Class { .. }))
+        {
+            return Err("locale-sensitive filename bracket matching".to_string());
+        }
+        let name = name_units(name);
+        let (mut pattern_at, mut name_at) = (0, 0);
+        let mut star: Option<(usize, usize)> = None;
+        while name_at < name.len() {
+            spend_glob_work(work)?;
+            let matched = match self.0.get(pattern_at) {
+                Some(NameToken::Star) => {
+                    star = Some((pattern_at, name_at));
+                    pattern_at += 1;
+                    continue;
+                }
+                Some(NameToken::Any) => true,
+                Some(NameToken::Literal(c)) => *c == name[name_at],
+                Some(NameToken::Class { negated, ranges }) => {
+                    let mut inside = false;
+                    for (first, last) in ranges {
+                        spend_glob_work(work)?;
+                        inside |= *first <= name[name_at] && name[name_at] <= *last;
+                    }
+                    inside != *negated
+                }
+                None => false,
+            };
+            if matched {
+                pattern_at += 1;
+                name_at += 1;
+            } else if let Some((at, consumed)) = star {
+                let next = consumed + 1;
+                star = Some((at, next));
+                pattern_at = at + 1;
+                name_at = next;
+            } else {
+                return Ok(false);
+            }
+        }
+        while matches!(self.0.get(pattern_at), Some(NameToken::Star)) {
+            pattern_at += 1;
+        }
+        Ok(pattern_at == self.0.len())
+    }
+}
+
+fn spend_glob_work(work: &Cell<usize>) -> Result<(), String> {
+    let remaining = work
+        .get()
+        .checked_sub(1)
+        .ok_or("grep filename-pattern work limit exceeded")?;
+    work.set(remaining);
+    Ok(())
+}
+
+fn any_name_matches(
+    patterns: &[NamePattern],
+    name: &str,
+    work: &Cell<usize>,
+) -> Result<bool, String> {
+    for pattern in patterns {
+        if pattern.matches(name, work)? {
+            return Ok(true);
         }
     }
-    let p: Vec<char> = pattern.chars().collect();
-    let n: Vec<char> = name.chars().collect();
-    go(&p, &n)
+    Ok(false)
+}
+
+fn file_is_selected(
+    includes: &[NamePattern],
+    excludes: &[NamePattern],
+    path: &str,
+    work: &Cell<usize>,
+) -> Result<bool, String> {
+    let name = Path::new(path)
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy();
+    Ok(
+        (includes.is_empty() || any_name_matches(includes, &name, work)?)
+            && !any_name_matches(excludes, &name, work)?,
+    )
+}
+
+/// File-name matching in the style of `fnmatch` (`*`, `?`, simple `[...]` classes).
+pub fn name_matches(pattern: &str, name: &str) -> bool {
+    NamePattern::new(pattern)
+        .matches(name, &Cell::new(usize::MAX))
+        .unwrap_or(false)
 }
 
 fn is_binary(bytes: &[u8]) -> bool {
@@ -587,15 +760,15 @@ struct Search<'a> {
     done: bool,
     files: usize,
     input_bytes: usize,
+    refusal: Option<String>,
 }
 
 impl Search<'_> {
     fn prefix(&mut self, name: Option<&str>, line_number: usize, separator: u8) {
         if self.show_name {
-            if let Some(n) = name {
-                self.stdout.extend_from_slice(n.as_bytes());
-                self.stdout.push(separator);
-            }
+            self.stdout
+                .extend_from_slice(name.unwrap_or("(standard input)").as_bytes());
+            self.stdout.push(separator);
         }
         if self.o.line_numbers {
             self.stdout
@@ -608,6 +781,20 @@ impl Search<'_> {
         let (o, regex) = (self.o, self.regex);
         let binary = !o.binary_as_text && is_binary(bytes);
         if binary && o.skip_binary {
+            return;
+        }
+        // BSD's word predicates, case folding and bracket collation depend on libc's
+        // locale. Rust regex uses Unicode/ASCII tables instead. ASCII text is verified;
+        // refuse data where that difference can change a result, including NUL-sensitive
+        // POSIX bracket matching. Literal Unicode search remains supported.
+        if crate::shell::locale_is_utf8()
+            && (!bytes.is_ascii() || bytes.contains(&0))
+            && (o.word
+                || o.ignore_case
+                || (o.syntax != Syntax::Fixed && o.patterns.iter().any(|p| p.contains('['))))
+        {
+            self.refusal = Some("locale-sensitive matching on non-ASCII or NUL input".to_string());
+            self.done = true;
             return;
         }
         // A match inside a line is also a match in the whole file, so a file where the
@@ -716,7 +903,7 @@ impl Search<'_> {
                     .extend_from_slice(format!("{}\n", shown).as_bytes());
             }
         } else if o.count {
-            if self.show_name && name.is_some() {
+            if self.show_name {
                 self.stdout
                     .extend_from_slice(format!("{}:{}\n", shown, matched).as_bytes());
             } else {
@@ -746,6 +933,9 @@ impl Search<'_> {
     }
 
     fn check_output(&self) -> Result<(), String> {
+        if let Some(reason) = &self.refusal {
+            return Err(reason.clone());
+        }
         if self.stdout.exceeded || self.stderr.len() > MAX_OUTPUT_BYTES {
             Err("grep output-byte limit exceeded".to_string())
         } else {
@@ -774,6 +964,7 @@ impl Search<'_> {
 
 /// Runs the search. `stdin` is the text received from a pipeline (`… | grep pattern`).
 pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, String> {
+    validate_filename_patterns(o)?;
     let regex = build_regex(o, false)?;
     let whole_file = build_regex(o, true)?;
     let paths: Vec<String> = if o.recursive && o.paths.is_empty() {
@@ -795,6 +986,7 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
         done: false,
         files: 0,
         input_bytes: 0,
+        refusal: None,
     };
 
     if paths.is_empty() {
@@ -807,6 +999,11 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
         s.search(None, bytes);
         s.check_output()?;
     }
+    let includes: Vec<_> = o.include.iter().map(|p| NamePattern::new(p)).collect();
+    let excludes: Vec<_> = o.exclude.iter().map(|p| NamePattern::new(p)).collect();
+    let excluded_dirs: Vec<_> = o.exclude_dir.iter().map(|p| NamePattern::new(p)).collect();
+    let glob_work = Cell::new(MAX_GLOB_WORK);
+    let glob_failed = Cell::new(false);
     let mut visited = 0usize;
     for path in &paths {
         if s.done {
@@ -816,11 +1013,16 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
         let meta = match std::fs::metadata(&absolute) {
             Ok(m) => m,
             Err(err) => {
-                s.report(path, &err);
+                if file_is_selected(&includes, &excludes, path, &glob_work)? {
+                    s.report(path, &err);
+                }
                 continue;
             }
         };
         if !meta.is_dir() {
+            if !file_is_selected(&includes, &excludes, path, &glob_work)? {
+                continue;
+            }
             s.file(path, &absolute)?;
             continue;
         }
@@ -838,7 +1040,6 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
             return Err("recursive directory with a trailing slash".to_string());
         }
         let root = path.as_str();
-        let excluded = &o.exclude_dir;
         // No sorting: the system grep visits entries in directory order, and so do we, so that
         // `grep -r … | head` returns the same lines.
         let walker = walkdir::WalkDir::new(&absolute)
@@ -847,11 +1048,22 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
             .filter_entry(|x| {
                 x.depth() == 0
                     || !x.file_type().is_dir()
-                    || !excluded
-                        .iter()
-                        .any(|m| name_matches(m, &x.file_name().to_string_lossy()))
+                    || match any_name_matches(
+                        &excluded_dirs,
+                        &x.file_name().to_string_lossy(),
+                        &glob_work,
+                    ) {
+                        Ok(excluded) => !excluded,
+                        Err(_) => {
+                            glob_failed.set(true);
+                            false
+                        }
+                    }
             });
         for entry in walker {
+            if glob_failed.get() {
+                return Err("grep filename-pattern work limit exceeded".to_string());
+            }
             if s.done {
                 break;
             }
@@ -864,10 +1076,10 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
                 continue;
             }
             let name = x.file_name().to_string_lossy();
-            if !o.include.is_empty() && !o.include.iter().any(|m| name_matches(m, &name)) {
+            if !includes.is_empty() && !any_name_matches(&includes, &name, &glob_work)? {
                 continue;
             }
-            if o.exclude.iter().any(|m| name_matches(m, &name)) {
+            if any_name_matches(&excludes, &name, &glob_work)? {
                 continue;
             }
             let relative = x
@@ -878,6 +1090,9 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
                 .into_owned();
             let shown = format!("{}/{}", root, relative);
             s.file(&shown, x.path())?;
+        }
+        if glob_failed.get() {
+            return Err("grep filename-pattern work limit exceeded".to_string());
         }
     }
     s.check_output()?;
@@ -987,6 +1202,17 @@ mod tests {
         assert!(!name_matches("*.ts", "a.tsx"));
         assert!(name_matches("*.test.*", "a.test.ts"));
         assert!(name_matches("[ab]?.rs", "a1.rs"));
+    }
+
+    #[test]
+    fn filename_work_is_bounded_without_recursive_backtracking() {
+        let pattern = format!("{}b", "*a".repeat(30));
+        assert!(!name_matches(&pattern, &"a".repeat(30)));
+        assert!(name_matches(&pattern, &format!("{}b", "a".repeat(30))));
+        let error = NamePattern::new("*aaab")
+            .matches(&"a".repeat(100), &Cell::new(10))
+            .unwrap_err();
+        assert!(error.contains("work limit"));
     }
 
     #[test]
