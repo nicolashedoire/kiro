@@ -3,6 +3,18 @@
 The runners distinguish native command compatibility, MCP presentation and live agent
 behaviour. They do not establish a universal speedup or a semantic correctness score.
 
+## Current live comparison
+
+A new experiment on 21 November 2026 ran **30 real Claude Sonnet 4.6 sessions** on two public
+repositories with Kiro source `3c17a2e`: three tasks, five repetitions per condition. Median
+full-session wall time was 53.05 s with the system terminal and 36.39 s with Kiro MCP added.
+Required-path coverage was 15/15 versus 14/15; this is not semantic correctness. Every run
+is included, and manual source-based review identified explanation errors in both conditions.
+
+[View the charts, exact setup, pinned tasks and per-session data](benchmarks/2026-11-21-sonnet46/README.md).
+This is separate from both the command-only fixture below and the older private-corpus
+measurements retained at the end of this document.
+
 ## Reproduce the public command fixture
 
 This fixture is embedded in [`examples/replay.rs`](../examples/replay.rs). It creates a

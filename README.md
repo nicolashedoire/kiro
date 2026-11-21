@@ -50,6 +50,29 @@ Three rules hold it together:
 
 ## Results
 
+**Real AI sessions, measured on 21 November 2026.** Thirty fresh Claude Sonnet 4.6 sessions
+on three source-investigation tasks across Kiro and Fastify, five repetitions per setup
+and task. The same model/prompt used either the system terminal or the terminal plus Kiro MCP.
+
+![Measured end-to-end AI benchmark](assets/benchmarks/ai-benchmark-overview.png)
+
+Median elapsed time was **53.0 s with the terminal, 36.4 s with Kiro MCP** (31.4% lower in
+this sample). All required paths were returned in **15/15 terminal sessions and 14/15 Kiro
+sessions**. Path coverage is not a semantic-correctness score; manual review found explanation
+errors in both conditions. All sessions remain included. These results do not establish a
+universal speedup or remove the tool's experimental limitations.
+
+<details>
+<summary>See every task, session and reported model usage</summary>
+
+![Per-task AI session times](assets/benchmarks/ai-benchmark-tasks.png)
+
+![Reported model turns, tokens and cost](assets/benchmarks/ai-benchmark-effort.png)
+
+</details>
+
+[Method, pinned datasets, prompts, per-session data and reproduction scripts](docs/benchmarks/2026-11-21-sonnet46/README.md).
+
 The repository includes differential tests and a public, temporary benchmark fixture:
 
 ```sh

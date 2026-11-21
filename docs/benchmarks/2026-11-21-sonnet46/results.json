@@ -1,0 +1,2003 @@
+{
+  "metadata": {
+    "model": "claude-sonnet-4-6",
+    "effort": "medium",
+    "kiro_commit": "3c17a2ec4aa568e2e46ad636b06ee5381e00ee48",
+    "date": "2026-11-21",
+    "repetitions": 5,
+    "pilot": false,
+    "measurement_scope": "Complete Claude Code sessions; wall time includes process and MCP startup, model requests and tool execution.",
+    "baseline": "Claude Code with Bash only; independent searches may be batched.",
+    "kiro": "Same model and prompt, Bash plus Kiro run/scout over MCP; Bash fallback allowed.",
+    "permission_mode": "dontAsk; explicit tools allowed; OS denies writes to the project tree.",
+    "max_parallel": 4,
+    "filesystem_cache": "warm/shared",
+    "claude_code_version": "2.1.173",
+    "cost_scope": "Model cost reported by Claude Code, not a billing invoice.",
+    "quality_scope": "All required production paths present in parsed JSON; this is location recall, not semantic correctness.",
+    "limitations": [
+      "3 tasks on 2 public repositories; 5 sessions per task and condition.",
+      "Provider latency and prompt caching vary; exploratory single-machine comparison.",
+      "Kiro itself is one small test repository; Fastify is the larger external repository.",
+      "No claim about editing, tests, builds or general agent correctness."
+    ],
+    "repositories": [
+      {
+        "url": "https://github.com/nicolashedoire/kiro",
+        "commit": "3c17a2ec4aa568e2e46ad636b06ee5381e00ee48"
+      },
+      {
+        "url": "https://github.com/fastify/fastify",
+        "commit": "6de5abedb24424f0e8fa3612035d212d580f8d90"
+      }
+    ],
+    "datasets_unchanged": true,
+    "scoring_notes": "Required path coverage is not semantic correctness. Manual review found incorrect budget-zero descriptions even in some location-complete answers, in both conditions."
+  },
+  "tasks": [
+    {
+      "id": "kiro-incomplete-search-status",
+      "title": "Trace incomplete-search status propagation",
+      "prompt": "Investigate how this project distinguishes a search that encounters an unreadable candidate from a complete search with no matches, and how that distinction reaches both the command-line exit status and the MCP error indicator. Identify the production implementation files responsible for classifying candidate outcomes, constructing complete versus incomplete search results, and translating that status for the two front ends, including any compatibility entry point that discards status. Focus on status classification and propagation rather than generic low-level filesystem I/O helpers. Explain why each file matters and what must remain true when the answer-size budget is zero. This is a read-only investigation: do not modify files or run builds or tests. Exclude tests, examples, and documentation from your answer. Return only valid JSON with this shape: {\"files\":[{\"path\":\"repository-relative path\",\"reason\":\"specific role in the behavior\"}],\"summary\":\"brief explanation of the status propagation\"}.",
+      "expected_paths": [
+        "src/scout.rs",
+        "src/main.rs",
+        "src/mcp.rs"
+      ],
+      "ground_truth": [
+        {
+          "path": "src/scout.rs",
+          "symbol": "FileSearch; search_file; scout_result; scout",
+          "reason": "Classifies unreadable candidates separately from successful reads and documented exclusions, counts read errors, and returns Err for incomplete scans independently of the bounded answer text. A complete negative scan returns Ok. The compatibility scout wrapper retains text but discards the Result status."
+        },
+        {
+          "path": "src/main.rs",
+          "symbol": "main, scout command branch",
+          "reason": "Calls scout_result and exposes Ok as CLI exit status 0 and Err as exit status 1 while printing either complete or partial answer text."
+        },
+        {
+          "path": "src/mcp.rs",
+          "symbol": "call, scout tool branch; respond, tools/call branch",
+          "reason": "Passes scout_result through the tool call Result and converts Ok or Err into the MCP isError false or true indicator. The status remains available even if a zero answer budget makes the text empty."
+        }
+      ],
+      "repository": "https://github.com/nicolashedoire/kiro",
+      "source_commit": "3c17a2ec4aa568e2e46ad636b06ee5381e00ee48",
+      "dataset": "kiro"
+    },
+    {
+      "id": "validation-flow",
+      "title": "Request validation policy and formatter selection",
+      "prompt": "Inspect this Fastify checkout without modifying files, installing dependencies, starting servers or running tests. I need to understand the production implementation of request-body schema validation failures before response serialization. Find the minimal set of production source files directly responsible for: (1) choosing a route-level, instance-level or default schemaErrorFormatter, including the public instance customization entry point; (2) normalizing a validation failure to its default HTTP status and error code while retaining validation metadata; and (3) deciding whether attachValidation stops the request or attaches the error and continues to preHandler and the route handler. Explain the default behavior and where each decision is implemented. Exclude tests, documentation, generated validators, symbol declarations and generic reply/error-serialization plumbing. Do not infer behavior from names alone: verify it in source. Return only valid JSON with this shape: {\"files\":[{\"path\":\"repository-relative production path\",\"reason\":\"relevant functions and their verified responsibility\"}],\"summary\":\"a concise explanation of the flow and defaults\"}.",
+      "expected_paths": [
+        "fastify.js",
+        "lib/route.js",
+        "lib/context.js",
+        "lib/validation.js",
+        "lib/handle-request.js"
+      ],
+      "ground_truth": [
+        {
+          "path": "fastify.js",
+          "symbol": "fastify; setSchemaErrorFormatter; validateSchemaErrorFormatter",
+          "reason": "Lines 371-374 bind the constructor-level schemaErrorFormatter; lines 766-769 expose the instance setter with startup and formatter validation; lines 1020-1025 reject invalid or async formatter functions."
+        },
+        {
+          "path": "lib/route.js",
+          "symbol": "route / route-registration continuation",
+          "reason": "Lines 293-295 default attachValidation to false; lines 388-391 set the final route context attachValidation and choose route formatter before instance formatter/context fallback."
+        },
+        {
+          "path": "lib/context.js",
+          "symbol": "Context; defaultSchemaErrorFormatter",
+          "reason": "Lines 68-73 store attachValidation and choose route/instance/default formatter for the route context; lines 85-93 build the default FST_ERR_VALIDATION message from validator errors."
+        },
+        {
+          "path": "lib/validation.js",
+          "symbol": "validate; wrapValidationError",
+          "reason": "Lines 421-437 validate request body and support synchronous or async validation; lines 508-521 assign default statusCode 400/code FST_ERR_VALIDATION and preserve validation context/details."
+        },
+        {
+          "path": "lib/handle-request.js",
+          "symbol": "preValidationCallback; validationCompleted; preHandlerCallback",
+          "reason": "Lines 115-125 resolve validation including promises; lines 126-146 send the error and stop when attachValidation is false, otherwise attach request.validationError and continue to preHandler/handler."
+        }
+      ],
+      "repository": "https://github.com/fastify/fastify",
+      "source_commit": "6de5abedb24424f0e8fa3612035d212d580f8d90",
+      "dataset": "fastify"
+    },
+    {
+      "id": "shutdown-drain",
+      "title": "Graceful shutdown, load shedding and persistent connections",
+      "prompt": "Inspect this Fastify checkout without modifying files, installing dependencies, starting servers or running tests. Trace the production implementation of graceful shutdown for HTTP/1. Identify the minimal set of files that directly own these decisions: (1) marking the application/routes as closing and invoking preClose before closing the server; (2) deciding whether an already pipelined or keep-alive request receives HTTP 503 and Connection: close during draining, including the default and effect of return503OnClosing; and (3) selecting and performing idle versus forced connection closing, including capability detection and the legacy tracked-socket fallback when closeAllConnections is unavailable. Explain how the decisions connect. Exclude tests, documentation, generated configuration validators, symbol declarations and the internals of generic hook runners. Verify the behavior in source rather than guessing from names. Return only valid JSON with this shape: {\"files\":[{\"path\":\"repository-relative production path\",\"reason\":\"relevant functions and their verified responsibility\"}],\"summary\":\"a concise explanation of shutdown order, draining policy and connection handling\"}.",
+      "expected_paths": [
+        "fastify.js",
+        "lib/route.js",
+        "lib/server.js"
+      ],
+      "ground_truth": [
+        {
+          "path": "fastify.js",
+          "symbol": "fastify / preReady onClose callback",
+          "reason": "Lines 408-412 set closing state, close route admission and invoke preClose; lines 415-428 call closeIdleConnections or closeAllConnections or destroy the tracked legacy sockets; lines 436-448 close the server to stop accepting new connections."
+        },
+        {
+          "path": "lib/route.js",
+          "symbol": "buildRouting.setup; closeRoutes; routeHandler",
+          "reason": "Lines 110-121 default return503OnClosing to true and expose the closing flag; lines 488-511 set Connection: close for HTTP/1 and return 503 early when configured; lines 514-522 track keep-alive sockets for the legacy shutdown fallback."
+        },
+        {
+          "path": "lib/server.js",
+          "symbol": "createServer",
+          "reason": "Lines 126-138 detect closeAllConnections/closeIdleConnections capabilities, reject unsupported explicit idle mode, choose idle default where available and allocate a real tracking Set only for forced legacy closing; lines 140-146 return these capabilities and tracking state to the application."
+        }
+      ],
+      "repository": "https://github.com/fastify/fastify",
+      "source_commit": "6de5abedb24424f0e8fa3612035d212d580f8d90",
+      "dataset": "fastify"
+    }
+  ],
+  "runs": [
+    {
+      "task_id": "validation-flow",
+      "condition": "kiro",
+      "rep": 1,
+      "wall_seconds": 33.95523604199843,
+      "model_seconds": 33.106,
+      "turns": 5,
+      "tokens": 87926,
+      "usage": {
+        "input_tokens": 15,
+        "cache_creation_input_tokens": 17108,
+        "cache_read_input_tokens": 68672,
+        "output_tokens": 2131,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 17108,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 854,
+            "cache_read_input_tokens": 20583,
+            "cache_creation_input_tokens": 2498,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 2498
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1561326,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 5,
+      "required_paths_total": 5,
+      "returned_files": [
+        "fastify.js",
+        "lib/context.js",
+        "lib/handle-request.js",
+        "lib/route.js",
+        "lib/validation.js"
+      ],
+      "tools": {
+        "run": 4
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have all the information needed. Here is the result:\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"lib/context.js\",\n      \"reason\": \"Context constructor (lines 70-73) sets context.schemaErrorFormatter with the three-way priority: route-level schemaErrorFormatter arg > server[kSchemaErrorFormatter] > defaultSchemaErrorFormatter. defaultSchemaErrorFormatter (lines 85-95) is defined here: it concatenates Ajv error messages and returns a new FST_ERR_VALIDATION instance.\"\n    },\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"setSchemaErrorFormatter (lines 766-771) is the public instance-level customization entry point; it validates and binds the formatter to the instance via this[kSchemaErrorFormatter]. Line 177 initializes [kSchemaErrorFormatter] to null. Line 371-373 handles the constructor-option path for schemaErrorFormatter.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"Route registration sets opts.attachValidation = false (line 293-295) as the default. Lines 388-391 (inside the after() callback) re-apply the schemaErrorFormatter priority: opts.schemaErrorFormatter || this[kSchemaErrorFormatter] || context.schemaErrorFormatter, ensuring plugin-inherited instance formatters set after route definition still win over the Context constructor default.\"\n    },\n    {\n      \"path\": \"lib/validation.js\",\n      \"reason\": \"wrapValidationError (lines 310-323) normalizes the validation failure: if the result is already an Error it stamps statusCode=400 and code='FST_ERR_VALIDATION' only if absent; otherwise it calls schemaErrorFormatter(result, dataVar), then unconditionally stamps statusCode=400, code='FST_ERR_VALIDATION', attaches the raw errors array as error.validation, and sets error.validationContext to the failing part name ('body', 'params', etc.). validate() (lines 268-306) calls this for every request part.\"\n    },\n    {\n      \"path\": \"lib/handle-request.js\",\n      \"reason\": \"validationCompleted (lines 108-125) is where attachValidation branches: if attachValidation===false (the default) it calls reply.send(validationErr) immediately, terminating the request before preHandler; if attachValidation===true it assigns reply.request.validationError=validationErr and falls through to run the preHandler hook runner and then the route handler.\"\n    }\n  ],\n  \"summary\": \"After preValidation hooks run, preValidationCallback calls validate() (lib/validation.js), which runs each request part through its compiled validator. On failure, wrapValidationError builds the error: it calls the route's context.schemaErrorFormatter (resolved at Context construction time in lib/context.js as route-opt > instance[kSchemaErrorFormatter] > defaultSchemaErrorFormatter, and re-resolved in route.js after() to pick up late-bound instance formatters), then unconditionally stamps statusCode=400 and code='FST_ERR_VALIDATION', and attaches the raw Ajv errors array as error.validation and the failing part name as error.validationContext. Back in handle-request.js's validationCompleted, if attachValidation is false (the default set in lib/route.js) the error is sent immediately via reply.send(), short-circuiting preHandler and the route handler. If attachValidation is true the error is attached to request.validationError and execution continues normally through preHandler to the route handler.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "kiro",
+      "rep": 1,
+      "wall_seconds": 34.96748916600154,
+      "model_seconds": 34.087,
+      "turns": 7,
+      "tokens": 102557,
+      "usage": {
+        "input_tokens": 21,
+        "cache_creation_input_tokens": 8330,
+        "cache_read_input_tokens": 91999,
+        "output_tokens": 2207,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 8330,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 715,
+            "cache_read_input_tokens": 17840,
+            "cache_creation_input_tokens": 1265,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 1265
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1115777,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "src/main.rs",
+        "src/mcp.rs",
+        "src/scout.rs"
+      ],
+      "tools": {
+        "run": 5,
+        "scout": 1
+      },
+      "kiro_refusals": 2,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"src/scout.rs\",\n      \"reason\": \"Core status classification and propagation. The `FileSearch` enum (line 344) distinguishes `Unreadable` (I/O failure on a candidate \u2014 not evidence of absence) from `Read(None)` (successfully searched, no match) and `Skipped` (intentional exclusion). The scan loop (lines ~790\u2013820) counts errors into `ScanCounts.errors` and sets `limited` for resource exhaustion. `scout_result` (line 719) synthesises both flags into `incomplete`, prepends a '[search incomplete: \u2026]' notice, and returns `Err(answer)` for any incomplete scan or `Ok(answer)` for a fully clean scan \u2014 including a clean zero-match scan. `bounded_answer` (line 434) enforces the display budget on both variants, so an `Err` still propagates even when the budget is zero. `scout` (line 712) is the compatibility wrapper that calls `scout_result` and discards the `Ok`/`Err` distinction, returning only the text.\"\n    },\n    {\n      \"path\": \"src/main.rs\",\n      \"reason\": \"CLI front-end that translates the `Ok`/`Err` from `scout_result` into process exit status. `Ok` \u2192 `ExitCode::SUCCESS` (0); `Err` \u2192 `ExitCode::from(1)` (lines 107\u2013114). Both variants print the answer text to stdout, so the human-readable warning is always visible even when status is non-zero.\"\n    },\n    {\n      \"path\": \"src/mcp.rs\",\n      \"reason\": \"MCP front-end. The `call` dispatcher (line 203) forwards directly to `scout::scout_result` and returns its `Result<String,String>` unchanged to `serve`. The JSON response layer (lines 247\u2013252) maps `Ok` \u2192 `isError: false` and `Err` \u2192 `isError: true`, injecting the incomplete-scan signal into the MCP tool-call result that the agent receives.\"\n    }\n  ],\n  \"summary\": \"Status originates in `src/scout.rs`: `FileSearch::Unreadable` marks a candidate that could not be read (never collapsed into a negative result), and after the scan loop, any non-zero `counts.errors` or `limited` flag causes `scout_result` to return `Err(text)` instead of `Ok(text)` \u2014 with the warning prepended and the display budget respected even at zero bytes. `src/main.rs` converts `Err` to exit code 1 and `Ok` to exit code 0. `src/mcp.rs` converts the same `Result` to MCP's `isError: true/false` field. The compatibility entry point `scout` in `src/scout.rs` calls `scout_result` and discards the variant with `unwrap_or_else`, losing all status information and returning only the text string.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "terminal",
+      "rep": 1,
+      "wall_seconds": 59.12271687499924,
+      "model_seconds": 58.253,
+      "turns": 14,
+      "tokens": 194572,
+      "usage": {
+        "input_tokens": 11,
+        "cache_creation_input_tokens": 20973,
+        "cache_read_input_tokens": 169252,
+        "output_tokens": 4336,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 20973,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1392,
+            "cache_read_input_tokens": 26017,
+            "cache_creation_input_tokens": 363,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 363
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.24254960000000003,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 5,
+      "required_paths_total": 5,
+      "returned_files": [
+        "fastify.js",
+        "lib/context.js",
+        "lib/handle-request.js",
+        "lib/route.js",
+        "lib/validation.js"
+      ],
+      "tools": {
+        "Bash": 13
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"lib/context.js\",\n      \"reason\": \"Context constructor (lines 70-73) implements the 3-way schemaErrorFormatter priority: route-level option \u2192 instance-level kSchemaErrorFormatter symbol \u2192 built-in defaultSchemaErrorFormatter. The defaultSchemaErrorFormatter function (lines 85-95) is defined here: it concatenates AJV instancePath+message strings and returns a new FST_ERR_VALIDATION error.\"\n    },\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"Lines 371-373 record the instance-level schemaErrorFormatter from the Fastify constructor option (binds it to the instance under kSchemaErrorFormatter). Lines 766-769 implement the public setSchemaErrorFormatter() method, which is the post-construction customization entry point for the instance-level formatter.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"Lines 293-294 normalize the attachValidation option: if null/undefined at route registration time it is set to false (the default). Lines 390-391 finalize schemaErrorFormatter resolution at preReady: opts.schemaErrorFormatter || this[kSchemaErrorFormatter] || context.schemaErrorFormatter, overwriting whatever the Context constructor set with the route-level value when present.\"\n    },\n    {\n      \"path\": \"lib/validation.js\",\n      \"reason\": \"wrapValidationError (line ~330) is the single function that normalizes a raw validator failure into a request error: it calls the resolved schemaErrorFormatter, then sets statusCode = error.statusCode || 400 and code = error.code || 'FST_ERR_VALIDATION', and attaches error.validation (the raw AJV errors array) and error.validationContext (the part name: 'body', 'params', etc.).\"\n    },\n    {\n      \"path\": \"lib/handle-request.js\",\n      \"reason\": \"validationCompleted (lines ~116-130) is the decision point for attachValidation: if context.attachValidation === false (the default), it calls reply.send(validationErr), terminating the request with the 400 error. If attachValidation is truthy, it assigns the error to request.validationError and falls through to run preHandler hooks and the route handler.\"\n    }\n  ],\n  \"summary\": \"On a validation failure the flow is: (1) lib/validation.js#validate calls wrapValidationError, which invokes the resolved schemaErrorFormatter (route-option \u2192 instance kSchemaErrorFormatter \u2192 defaultSchemaErrorFormatter from lib/context.js) and then unconditionally stamps statusCode=400 and code='FST_ERR_VALIDATION' on the resulting error while attaching the raw AJV errors array as error.validation and the failing part name as error.validationContext. (2) Control returns to lib/handle-request.js#validationCompleted: when attachValidation===false (the default set in lib/route.js at registration time) it immediately calls reply.send(err), aborting the lifecycle before preHandler or the route handler run; when attachValidation is true the error is placed on request.validationError and execution continues normally into preHandler and the route handler. The public instance customization entry point is fastify.setSchemaErrorFormatter() (fastify.js:766), which sets the instance-level formatter; a per-route schemaErrorFormatter option overrides it and is resolved in lib/route.js at preReady.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "kiro",
+      "rep": 1,
+      "wall_seconds": 33.03989220800031,
+      "model_seconds": 32.28,
+      "turns": 6,
+      "tokens": 88041,
+      "usage": {
+        "input_tokens": 18,
+        "cache_creation_input_tokens": 8028,
+        "cache_read_input_tokens": 77948,
+        "output_tokens": 2047,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 8028,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 792,
+            "cache_read_input_tokens": 16645,
+            "cache_creation_input_tokens": 1351,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 1351
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1031984,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "fastify.js",
+        "lib/route.js",
+        "lib/server.js"
+      ],
+      "tools": {
+        "run": 5
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have enough information to produce the answer.\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"onClose callback (registered inside avvio's 'preReady' hook, lines 408\u2013457) owns the full shutdown sequence: sets kState.closing=true, calls router.closeRoutes(), then invokes the 'preClose' hook chain via hookRunnerApplication. After preClose resolves it selects the connection-closing strategy (closeIdleConnections / closeAllConnections / destroy loop over kKeepAliveConnections) then calls server.close(). Also holds the kKeepAliveConnections symbol reference used to pass the socket set to route.js.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"routeHandler (the per-request hot path, lines 488\u2013521) owns all three HTTP/1 draining decisions. (1) closeRoutes() (line 121) sets the module-level 'closing' flag to true. (2) When closing===true and the request is HTTP/1, it unconditionally sets 'Connection: close' (line 491); if return503OnClosing is true (default, set at line 110) it immediately responds 503 Service Unavailable and returns without running the full handler chain. (3) When forceCloseConnections is true but server.closeAllConnections is unavailable, it tracks keep-alive sockets in the keepAliveConnections Set (lines 519\u2013521) so fastify.js can destroy them later.\"\n    },\n    {\n      \"path\": \"lib/server.js\",\n      \"reason\": \"buildServer / createServer (lines 126\u2013146) performs capability detection: checks whether server.closeAllConnections and server.closeIdleConnections exist on the Node.js http.Server, normalises forceCloseConnections to 'idle'/true/false accordingly, allocates a real Set for keepAliveConnections only when closeAllConnections is absent and forceCloseConnections===true (falling back to noopSet otherwise), and returns all three values so fastify.js can wire them into the shutdown path.\"\n    }\n  ],\n  \"summary\": \"Shutdown proceeds in three ordered steps. First, fastify.js sets kState.closing and calls router.closeRoutes() (which flips the closing flag in route.js), then runs the preClose hook chain before touching any sockets. Second, while preClose is running (and after), any new HTTP/1 request that arrives on an already-open keep-alive or pipelined connection hits the routeHandler branch in route.js: it always writes 'Connection: close', and by default (return503OnClosing===true) immediately short-circuits with a 503 without running any application code. Third, once preClose completes, fastify.js picks a connection-closing strategy based on capability flags resolved at startup in server.js: if server.closeIdleConnections exists and forceCloseConnections==='idle' it closes idle sockets; if server.closeAllConnections exists and forceCloseConnections===true it closes all sockets; if neither is available but forceCloseConnections===true the legacy fallback destroys each socket in the kKeepAliveConnections Set that route.js populated during the draining window. Finally server.close() is called to stop accepting new TCP connections.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "terminal",
+      "rep": 1,
+      "wall_seconds": 68.86916162499983,
+      "model_seconds": 68.028,
+      "turns": 17,
+      "tokens": 336765,
+      "usage": {
+        "input_tokens": 19,
+        "cache_creation_input_tokens": 25171,
+        "cache_read_input_tokens": 307607,
+        "output_tokens": 3968,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 25171,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1109,
+            "cache_read_input_tokens": 34793,
+            "cache_creation_input_tokens": 429,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 429
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.30372509999999997,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "src/grep.rs",
+        "src/limits.rs",
+        "src/main.rs",
+        "src/mcp.rs",
+        "src/scout.rs"
+      ],
+      "tools": {
+        "Bash": 16
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have everything I need.\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"src/scout.rs\",\n      \"reason\": \"Defines the FileSearch enum (Skipped / Read / Unreadable) that keeps an I/O failure permanently distinct from a confirmed negative. Accumulates counts.errors for every Unreadable result and sets the `limited` flag when a resource ceiling is hit. Derives the `incomplete` boolean (true when limited || counts.errors > 0), prepends a human-readable '[search incomplete: \u2026]' warning to the answer text, then returns Err(answer) for any incomplete scan and Ok(answer) only for a fully successful scan\u2014including a scan that found nothing. The scout() compatibility shim calls scout_result() and flattens both variants to a plain String, discarding the Ok/Err status.\"\n    },\n    {\n      \"path\": \"src/grep.rs\",\n      \"reason\": \"Defines the Output struct with a code field. The Search struct tracks two orthogonal booleans\u2014found (at least one match) and failed (at least one I/O error reported via report())). The report() method sets failed=true and writes a 'Permission denied / No such file' message to stderr, so an unreadable candidate is never silently ignored. The final exit-code rule (code = if s.failed && !(o.quiet && s.found) { 2 } else if s.found { 0 } else { 1 }) mirrors POSIX grep: 2 means trouble, 1 means clean no-match, 0 means match found. ReadError::Refused (size/type limits) escalates to an Err, refusing the whole command rather than silently skipping.\"\n    },\n    {\n      \"path\": \"src/mcp.rs\",\n      \"reason\": \"Translates the Ok/Err status from scout_result and the code field from grep's Output into MCP isError. In the single-command run path, run_one() appends '[exit code N]' to the text when code != 0 and returns (text, refused=true) only on refusal; for the tools/call handler, refused=true or Err from call() produces isError:true in the JSON response, while Ok produces isError:false. This is the point where scout's Err(partial_text) becomes an MCP error indicator visible to the agent.\"\n    },\n    {\n      \"path\": \"src/main.rs\",\n      \"reason\": \"CLI front-end. For 'kiro run', propagates reply.code directly to ExitCode::from(), so grep's code=2 (I/O errors) vs code=1 (no match) vs code=0 reaches the shell exit status unchanged. For 'kiro scout', maps scout_result Ok(_) to ExitCode::SUCCESS and Err(_) to ExitCode::from(1), so any incomplete scan (read errors or resource limits) exits non-zero at the CLI even though the display text is preserved.\"\n    },\n    {\n      \"path\": \"src/limits.rs\",\n      \"reason\": \"Defines the ReadError enum (Io vs Refused) consumed by both grep.rs and scout.rs to distinguish a transient I/O failure from a deliberate refusal. Io errors are reported as candidate errors (setting failed/Unreadable); Refused errors abort the whole operation. This is the shared classification layer that prevents an unreadable file from becoming a silent miss.\"\n    }\n  ],\n  \"summary\": \"Status propagation works in two parallel paths. In grep: Search.failed tracks whether any candidate produced an I/O error; the final code is 2 (errors present and not suppressed), 1 (no match, no errors), or 0 (match found). main.rs passes code directly to the process exit status. mcp.rs appends '[exit code N]' and surfaces refused commands as isError:true. In scout: search_file() returns FileSearch::Unreadable for I/O failures and Err(()) when a resource ceiling ends the scan; scout_result() counts both into the incomplete flag. If incomplete is true\u2014regardless of whether any matches were found\u2014the answer is returned as Err(text) with a '[search incomplete: \u2026]' prefix, so an unreadable candidate can never collapse into a clean negative result. main.rs maps this Err to exit code 1; mcp.rs maps it to isError:true. The scout() shim calls unwrap_or_else on scout_result, discarding the Ok/Err distinction and returning the display text alone. When the answer budget is zero, bounded_answer truncates the text but the Err/Ok variant is determined before truncation, so the status signal survives even a zero-byte display budget.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "terminal",
+      "rep": 1,
+      "wall_seconds": 53.608549332999246,
+      "model_seconds": 52.87,
+      "turns": 12,
+      "tokens": 213039,
+      "usage": {
+        "input_tokens": 14,
+        "cache_creation_input_tokens": 13170,
+        "cache_read_input_tokens": 196615,
+        "output_tokens": 3240,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 13170,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1300,
+            "cache_read_input_tokens": 22324,
+            "cache_creation_input_tokens": 248,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 248
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1875285,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "fastify.js",
+        "lib/noop-set.js",
+        "lib/route.js",
+        "lib/server.js"
+      ],
+      "tools": {
+        "Bash": 11
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"lib/server.js\",\n      \"reason\": \"createServer / buildServer (lines 126-146): detects capability at startup \u2014 `typeof server.closeAllConnections === 'function'` \u2192 `serverHasCloseAllConnections`, `typeof server.closeIdleConnections === 'function'` \u2192 `serverHasCloseIdleConnections`. Derives the final `forceCloseConnections` value (defaulting to 'idle' when closeIdleConnections is present, false otherwise, throwing FST_ERR_FORCE_CLOSE_CONNECTIONS_IDLE_NOT_AVAILABLE when 'idle' is requested but unavailable). Decides whether to allocate a real Set or a noopSet for `keepAliveConnections`: a real Set is allocated only when `closeAllConnections` is absent and `forceCloseConnections === true`. Returns these values so fastify.js can store them on the instance.\"\n    },\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"onClose callback registered in the 'preReady' avvio event (lines 408-456): (1) sets `fastify[kState].closing = true` and calls `router.closeRoutes()` to flip the route-level closing flag before anything else; (2) invokes `hookRunnerApplication('preClose', ...)` \u2014 only after that callback fires does it proceed to connection teardown; (3) implements the three-way connection-close branch: if `forceCloseConnections === 'idle'` with a custom serverFactory calls `server.closeIdleConnections()`, else if `serverHasCloseAllConnections && forceCloseConnections === true` calls `server.closeAllConnections()`, else if `forceCloseConnections === true` iterates `fastify[kKeepAliveConnections]` destroying each socket (legacy fallback); (4) then calls `server.close()` to stop accepting new TCP connections.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"routeHandler / routing entry point (lines 87-121, 488-521): holds module-level `closing` boolean and `return503OnClosing` flag; `closeRoutes()` exported function sets `closing = true`. In the per-request hot path: when `closing === true` and the request is HTTP/1.x, sets `res.setHeader('Connection', 'close')` unconditionally; then if `return503OnClosing` is truthy (default true, set from options at line 110) immediately writes a 503 JSON response and returns, short-circuiting the full handler chain. When `return503OnClosing` is false the request continues normally but the Connection header is still set. Outside the closing check, tracks keep-alive sockets into `keepAliveConnections` Set via `req.socket` when `connection: keep-alive` header is present (lines 518-521); `removeTrackedSocket` deletes a socket from the Set on its 'close' event.\"\n    },\n    {\n      \"path\": \"lib/noop-set.js\",\n      \"reason\": \"Returns a no-op object that satisfies the Set interface (add/delete/has/iterator are all no-ops). Used by lib/server.js as `keepAliveConnections` whenever the legacy socket-tracking branch is not needed (i.e. when `closeAllConnections` is available or `forceCloseConnections !== true`), eliminating the overhead of socket bookkeeping in the common case.\"\n    }\n  ],\n  \"summary\": \"Graceful shutdown for HTTP/1 proceeds in this order: (1) The avvio 'preReady' hook in fastify.js registers an onClose handler that immediately sets `kState.closing = true` and calls `router.closeRoutes()`, then runs all `preClose` application hooks via `hookRunnerApplication`. (2) After preClose hooks complete, fastify.js selects the connection-closing strategy based on capability flags resolved at startup in lib/server.js: if the Node.js `http.Server` exposes `closeIdleConnections` (Node \u226518.2) and `forceCloseConnections` was set to 'idle', idle connections are drained gently; if `closeAllConnections` is present and `forceCloseConnections === true`, all connections are forcibly closed via the native API; if neither native API is available but `forceCloseConnections === true`, the legacy path iterates the `keepAliveConnections` Set (a real Set populated in lib/route.js for every keep-alive socket) and calls `socket.destroy()` on each. When none of these apply the Set is a noopSet (noop-set.js) and no forced teardown happens. (3) `server.close()` is called to stop accepting new TCP connections. Concurrently, the per-request gate in lib/route.js: on every incoming request while `closing === true` it adds `Connection: close` to the HTTP/1 response (pipelining/keep-alive teardown) and, if `return503OnClosing` is true (the default), immediately replies with HTTP 503 and an inline JSON body, bypassing all route handlers \u2014 this shedding is necessary because `server.close()` and `closeIdleConnections()` only reap truly idle sockets; requests already pipelined or in-flight on a keep-alive connection still arrive at the routing layer with `closing === true`.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "kiro",
+      "rep": 2,
+      "wall_seconds": 35.742616417001045,
+      "model_seconds": 34.996,
+      "turns": 6,
+      "tokens": 91102,
+      "usage": {
+        "input_tokens": 18,
+        "cache_creation_input_tokens": 11327,
+        "cache_read_input_tokens": 77683,
+        "output_tokens": 2074,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 11327,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 857,
+            "cache_read_input_tokens": 18983,
+            "cache_creation_input_tokens": 3119,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 3119
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1232559,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "src/main.rs",
+        "src/mcp.rs",
+        "src/scout.rs"
+      ],
+      "tools": {
+        "run": 4,
+        "scout": 1
+      },
+      "kiro_refusals": 2,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"src/scout.rs\",\n      \"reason\": \"Contains all status classification and propagation logic. The `FileSearch` enum (line 344) distinguishes `Unreadable` (I/O failure \u2014 not evidence of absence) from `Read(None)` (searched, no match) and `Skipped` (intentional exclusion). `search_file` (line 362) maps each candidate to one of these three outcomes. The scan loop in `scout_result` (line 719) accumulates `counts.errors` for every `Unreadable` result and sets `limited` for resource exhaustion. After the loop, `let incomplete = limited || counts.errors > 0` (line 832) is the single predicate that decides status: `Ok(answer)` for a fully complete scan (including a true negative), `Err(answer)` for any incomplete scan. Both variants respect the display budget even when it is zero \u2014 the `Err` variant still carries the failure signal even if the budget is too small to show the warning text. The `scout` compatibility wrapper (line 712) calls `scout_result` and discards the `Err`/`Ok` distinction with `unwrap_or_else`, flattening both outcomes to a plain `String`.\"\n    },\n    {\n      \"path\": \"src/main.rs\",\n      \"reason\": \"CLI front-end. The `scout` subcommand (line 103) calls `scout_result` and pattern-matches the `Result`: `Ok` \u2192 `ExitCode::SUCCESS` (0), `Err` \u2192 `ExitCode::from(1)`. This is the sole translation of the `Result<String,String>` status into a Unix exit code. The text is printed to stdout in both branches, so human-readable output is preserved regardless of status.\"\n    },\n    {\n      \"path\": \"src/mcp.rs\",\n      \"reason\": \"MCP front-end. The `call` function (line 162) for the `scout` tool returns `scout_result(...)` directly (line 212), propagating its `Ok`/`Err` as the function's own `Result<String,String>`. In `respond` (line 224), `Ok(text)` produces `{\\\"isError\\\": false}` and `Err(error)` produces `{\\\"isError\\\": true}` in the MCP `tools/call` response (lines 248\u2013251). This is the sole translation of the scout status into the MCP protocol's error indicator.\"\n    }\n  ],\n  \"summary\": \"Status propagation flows in one direction from a single classification point. In `scout.rs`, the `FileSearch::Unreadable` variant (returned by `search_file` on any I/O failure) is counted separately from successful reads and intentional skips; it can never collapse into a negative match result. After scanning all candidates, `incomplete = limited || counts.errors > 0` is the sole predicate: `scout_result` returns `Ok` only when every candidate was either fully read or intentionally skipped, and `Err` for any resource limit or unreadable file \u2014 both variants carry the same display text respecting the budget, so status is preserved even when the budget is zero. `main.rs` translates `Ok`\u2192exit 0 and `Err`\u2192exit 1 for the CLI. `mcp.rs` translates `Ok`\u2192`isError:false` and `Err`\u2192`isError:true` for the MCP protocol. The `scout` compatibility wrapper in `scout.rs` discards the distinction entirely by unwrapping both arms to a plain string.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "terminal",
+      "rep": 2,
+      "wall_seconds": 42.44499858400013,
+      "model_seconds": 41.705,
+      "turns": 12,
+      "tokens": 190405,
+      "usage": {
+        "input_tokens": 11,
+        "cache_creation_input_tokens": 14884,
+        "cache_read_input_tokens": 172785,
+        "output_tokens": 2725,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 14884,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1107,
+            "cache_read_input_tokens": 24805,
+            "cache_creation_input_tokens": 261,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 261
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.18291049999999998,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 5,
+      "required_paths_total": 5,
+      "returned_files": [
+        "fastify.js",
+        "lib/context.js",
+        "lib/errors.js",
+        "lib/handle-request.js",
+        "lib/route.js",
+        "lib/validation.js"
+      ],
+      "tools": {
+        "Bash": 11
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"lib/context.js\",\n      \"reason\": \"Context constructor (lines 22-80): stores the resolved schemaErrorFormatter with the precedence rule `schemaErrorFormatter || server[kSchemaErrorFormatter] || defaultSchemaErrorFormatter`. Also defines `defaultSchemaErrorFormatter` (lines 82-93): concatenates Ajv error messages and wraps them in a `new FST_ERR_VALIDATION(text)` instance, which carries HTTP status 400 and code FST_ERR_VALIDATION by construction.\"\n    },\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"Public instance customization entry point. `setSchemaErrorFormatter` (line 766-769) stores a bound formatter on `fastify[kSchemaErrorFormatter]`, making it the instance-level override. The constructor option `options.schemaErrorFormatter` (line 371-373) is validated and bound immediately as a startup-time instance default. Both are the two external surfaces callers use to override the default.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"Route registration: sets `opts.attachValidation = false` when absent (lines 293-294). Passes `opts.schemaErrorFormatter` to Context as the route-level override. In the `after` callback (lines 388-391) finalises `context.schemaErrorFormatter` as `opts.schemaErrorFormatter || this[kSchemaErrorFormatter] || context.schemaErrorFormatter`, implementing the three-level precedence: route > instance > default.\"\n    },\n    {\n      \"path\": \"lib/validation.js\",\n      \"reason\": \"`wrapValidationError` (lines ~295-310): takes the raw Ajv errors array, calls `context.schemaErrorFormatter(result, dataVar)` to produce an Error, then stamps `statusCode = statusCode || 400`, `code = code || 'FST_ERR_VALIDATION'`, `error.validation = result` (the raw errors array), and `error.validationContext = dataVar` (the failing part name, e.g. 'body'). This is where the default HTTP 400 status and FST_ERR_VALIDATION code are normalised onto the error while keeping the raw validation metadata attached.\"\n    },\n    {\n      \"path\": \"lib/handle-request.js\",\n      \"reason\": \"`validationCompleted` (lines ~110-130): checks `reply[kRouteContext].attachValidation`. When `false` (the default), calls `reply.send(validationErr)` immediately, aborting the request before preHandler runs. When `true`, assigns `reply.request.validationError = validationErr` and falls through to run preHandler hooks and the route handler normally.\"\n    },\n    {\n      \"path\": \"lib/errors.js\",\n      \"reason\": \"`FST_ERR_VALIDATION` is defined via `createRequestError('FST_ERR_VALIDATION', '%s', 400)` (lines 56-60), making 400 the built-in HTTP status code for validation errors produced by `defaultSchemaErrorFormatter`.\"\n    }\n  ],\n  \"summary\": \"When a request body (or other part) fails schema validation, the flow is: (1) Formatter selection \u2014 `Context` resolves `schemaErrorFormatter` as route-level option > instance-level `setSchemaErrorFormatter`/constructor option stored on `fastify[kSchemaErrorFormatter]` > built-in `defaultSchemaErrorFormatter`, all in `lib/context.js` and finalised in `lib/route.js`. (2) Error normalisation \u2014 `wrapValidationError` in `lib/validation.js` calls the resolved formatter to produce an Error object, then unconditionally sets `statusCode = statusCode || 400`, `code = code || 'FST_ERR_VALIDATION'`, and attaches the raw Ajv errors array as `error.validation` and the failing part name as `error.validationContext`; the default formatter itself constructs a `FST_ERR_VALIDATION` (HTTP 400, defined in `lib/errors.js`) from the concatenated Ajv messages. (3) attachValidation gate \u2014 `validationCompleted` in `lib/handle-request.js` reads `context.attachValidation`; it defaults to `false` (set in `lib/route.js`). When `false`, `reply.send(validationErr)` is called immediately, skipping preHandler and the route handler. When `true`, the error is stored as `request.validationError` and execution continues to preHandler and then the route handler.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "kiro",
+      "rep": 2,
+      "wall_seconds": 36.385946250000416,
+      "model_seconds": 35.583,
+      "turns": 6,
+      "tokens": 98201,
+      "usage": {
+        "input_tokens": 18,
+        "cache_creation_input_tokens": 9514,
+        "cache_read_input_tokens": 86483,
+        "output_tokens": 2186,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 9514,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 981,
+            "cache_read_input_tokens": 18595,
+            "cache_creation_input_tokens": 1834,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 1834
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.11673990000000001,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "fastify.js",
+        "lib/route.js",
+        "lib/server.js"
+      ],
+      "tools": {
+        "run": 5
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have all the information needed. Here is the result:\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"The `onClose` handler registered inside `avvio.once('preReady')` (lines ~408-460) owns decisions (1) and (3): it sets `kState.closing = true`, calls `router.closeRoutes()` to flip the draining flag, runs the `preClose` hook chain via `hookRunnerApplication`, then \u2014 after preClose completes \u2014 selects the connection-closing strategy: `server.closeIdleConnections()` when `forceCloseConnections === 'idle'`, `server.closeAllConnections()` when `forceCloseConnections === true` and the native API exists, or iterating `kKeepAliveConnections` and calling `conn.destroy()` as the legacy fallback when `closeAllConnections` is unavailable. It then calls `server.close()` to stop accepting new TCP connections.\"\n    },\n    {\n      \"path\": \"lib/server.js\",\n      \"reason\": \"`createServer` (exported factory) owns the capability-detection logic for decision (3): it probes `typeof server.closeAllConnections === 'function'` and `typeof server.closeIdleConnections === 'function'` at startup, throws `FST_ERR_FORCE_CLOSE_CONNECTIONS_IDLE_NOT_AVAILABLE` if `forceCloseConnections === 'idle'` but the API is absent, and resolves `forceCloseConnections` to `'idle'` as the automatic default when `closeIdleConnections` is present and no explicit boolean was given. It also allocates `keepAliveConnections` as a real `Set` only when `closeAllConnections` is unavailable and `forceCloseConnections === true`, otherwise substituting a no-op set \u2014 establishing which tracking path will be used at runtime.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"The per-request router handler (the `routeHandler` function, ~line 488) owns decision (2): it checks the module-level `closing` boolean (set by `closeRoutes()`) on every incoming request. For HTTP/1 requests (`req.httpVersionMajor !== 2`) it immediately sets `Connection: close` on the response. If `return503OnClosing` is true (the default, configured in `setup()` from `options.return503OnClosing`) it short-circuits with a 503 JSON body before any application hooks run. If `return503OnClosing` is false the request continues through the normal handler chain but the connection header has already been set. The same function also adds keep-alive sockets to `keepAliveConnections` for the legacy forced-close path.\"\n    }\n  ],\n  \"summary\": \"Shutdown proceeds in three connected phases. First, `fastify.close()` triggers avvio's close chain, which runs the `onClose` callback registered in `fastify.js`. That callback immediately sets `kState.closing = true` and calls `router.closeRoutes()`, which flips the `closing` flag inside `lib/route.js` so every subsequent request is intercepted. Second, the `preClose` hook chain is executed (application hooks can drain in-flight work). Third, once preClose finishes, the connection-closing strategy chosen at startup in `lib/server.js` is executed: `closeIdleConnections()` for the `'idle'` mode (drops only idle keep-alive sockets), `closeAllConnections()` for forced mode on Node.js \u2265 18.2, or a manual `conn.destroy()` loop over the `keepAliveConnections` Set as a legacy fallback. `server.close()` is then called to stop accepting new TCP connections. Concurrently, any request that arrives on an already-open keep-alive or pipelined HTTP/1 connection after `closing` is set receives `Connection: close` plus \u2014 by default (`return503OnClosing: true`) \u2014 an immediate 503 response, so the load balancer can redirect in-flight traffic without running application logic.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "kiro",
+      "rep": 2,
+      "wall_seconds": 45.70835524999893,
+      "model_seconds": 44.859,
+      "turns": 8,
+      "tokens": 141195,
+      "usage": {
+        "input_tokens": 17,
+        "cache_creation_input_tokens": 13605,
+        "cache_read_input_tokens": 124663,
+        "output_tokens": 2910,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 13605,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 1154,
+            "cache_read_input_tokens": 23766,
+            "cache_creation_input_tokens": 745,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 745
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.16359289999999999,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 5,
+      "required_paths_total": 5,
+      "returned_files": [
+        "fastify.js",
+        "lib/context.js",
+        "lib/errors.js",
+        "lib/handle-request.js",
+        "lib/route.js",
+        "lib/validation.js"
+      ],
+      "tools": {
+        "scout": 2,
+        "run": 5
+      },
+      "kiro_refusals": 1,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have all the information needed. Here is the result:\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"lib/context.js\",\n      \"reason\": \"Context constructor (lines 23\u201383): selects schemaErrorFormatter with the priority chain `opts.schemaErrorFormatter || server[kSchemaErrorFormatter] || defaultSchemaErrorFormatter`, storing the winner on `this.schemaErrorFormatter`. Also defines `defaultSchemaErrorFormatter` (lines 85\u201393): iterates over the AJV errors array, concatenates `dataVar + instancePath + message` strings, and returns `new FST_ERR_VALIDATION(text)` \u2014 which carries HTTP 400 by definition.\"\n    },\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"`setSchemaErrorFormatter` (lines 766\u2013770): the public instance-level customization entry point. Validates the function is not async, binds it to the Fastify instance (`this`), and stores it at `this[kSchemaErrorFormatter]`. Called before the server starts; the bound function is later picked up by Context's priority chain.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"In `addNewRoute` (lines 293\u2013294): defaults `opts.attachValidation` to `false` when not provided. In the `after` callback (lines 388\u2013391): re-applies the schemaErrorFormatter priority `opts.schemaErrorFormatter || this[kSchemaErrorFormatter] || context.schemaErrorFormatter`, meaning a route-level formatter beats the instance-level one which beats the default.\"\n    },\n    {\n      \"path\": \"lib/validation.js\",\n      \"reason\": \"`wrapValidationError` (lines 508\u2013521): normalizes the raw validator result into a request error. If the result is already an Error, stamps `statusCode = statusCode || 400`, `code = code || 'FST_ERR_VALIDATION'`, and `validationContext = dataVar`. Otherwise calls `schemaErrorFormatter(result, dataVar)` and then stamps the same defaults plus `error.validation = result` (the raw errors array) and `error.validationContext = dataVar`. The `validate` function (lines 398\u2013461) calls `wrapValidationError` for each of params, body, querystring, headers, returning on the first failure.\"\n    },\n    {\n      \"path\": \"lib/handle-request.js\",\n      \"reason\": \"`validationCompleted` (lines 125\u2013148): the sole branching point for `attachValidation`. If `validationErr` is truthy and `context.attachValidation === false` (the default), it calls `reply.send(validationErr)` and returns \u2014 the request stops and goes to the error handler. If `attachValidation` is `true`, it assigns `reply.request.validationError = validationErr` and falls through to run the preHandler hooks and then the route handler, so the handler receives the error on `request.validationError` and decides what to do.\"\n    },\n    {\n      \"path\": \"lib/errors.js\",\n      \"reason\": \"`FST_ERR_VALIDATION` definition (lines 56\u201360): created with `createRequestError('FST_ERR_VALIDATION', '%s', 400)`, establishing HTTP 400 as the canonical status code for validation failures and the error code string used throughout the validation pipeline.\"\n    }\n  ],\n  \"summary\": \"When a route-schema validation fails, `lib/validation.js:wrapValidationError` normalizes the error: it calls the route's `context.schemaErrorFormatter` (selected at Context construction time in `lib/context.js` with priority route-opts > instance `kSchemaErrorFormatter` > `defaultSchemaErrorFormatter`), then unconditionally stamps `statusCode=400`, `code='FST_ERR_VALIDATION'`, `validation=<raw errors>`, and `validationContext=<part name>` onto the returned Error. The `defaultSchemaErrorFormatter` builds a human-readable message from AJV's error objects and wraps it in a `FST_ERR_VALIDATION` instance (HTTP 400, defined in `lib/errors.js`). Control then reaches `lib/handle-request.js:validationCompleted`: if `context.attachValidation` is `false` (the default, set in `lib/route.js`) the error is passed directly to `reply.send`, bypassing preHandler and the route handler entirely; if `attachValidation` is `true`, the error is attached as `request.validationError` and execution continues through preHandler hooks to the route handler. The public entry point to override the formatter at the instance level is `fastify.setSchemaErrorFormatter` in `fastify.js`, which binds the function to the instance and stores it at `kSchemaErrorFormatter` for the priority chain to pick up.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "terminal",
+      "rep": 2,
+      "wall_seconds": 65.53179616700072,
+      "model_seconds": 64.756,
+      "turns": 15,
+      "tokens": 237737,
+      "usage": {
+        "input_tokens": 11,
+        "cache_creation_input_tokens": 28414,
+        "cache_read_input_tokens": 205208,
+        "output_tokens": 4104,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 28414,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 2035,
+            "cache_read_input_tokens": 37807,
+            "cache_creation_input_tokens": 658,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 658
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.2944694,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "src/grep.rs",
+        "src/limits.rs",
+        "src/main.rs",
+        "src/mcp.rs",
+        "src/scout.rs"
+      ],
+      "tools": {
+        "Bash": 14
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"src/grep.rs\",\n      \"reason\": \"Classifies each candidate outcome via two boolean fields in the `Search` struct: `found` (any line matched) and `failed` (any I/O error). The `report` method sets `failed = true` for `ReadError::Io` (permission denied, not found). After all candidates are processed, `run()` derives the exit code: 2 when `failed && !(quiet && found)`, 0 when `found`, 1 otherwise. This is the standard grep three-way exit-code contract, making a search with an unreadable file (exit 2) distinguishable from a clean no-match (exit 1). `ReadError::Refused` from `limits::read_regular_file` propagates as `Err` out of `file()` and aborts the whole search with an engine refusal, keeping it out of the `failed`/`found` accounting.\"\n    },\n    {\n      \"path\": \"src/scout.rs\",\n      \"reason\": \"Defines the `FileSearch` enum with three arms \u2014 `Skipped`, `Read(Option<FileHits>)`, and `Unreadable` \u2014 explicitly to prevent an unreadable file from becoming a successful negative result. In `scout_result()`, each `Unreadable` outcome increments `counts.errors` and records the path; `limited || counts.errors > 0` sets `incomplete`. A complete scan (zero unreadable files, no resource limit hit) returns `Ok(answer)`; any incomplete scan returns `Err(answer)`. The compatibility wrapper `scout()` calls `scout_result().unwrap_or_else(|text| text)`, discarding the `Ok`/`Err` status and returning only the text \u2014 the designated entry point for callers that do not need to distinguish completeness. Both paths respect a budget of zero via `bounded_answer`.\"\n    },\n    {\n      \"path\": \"src/main.rs\",\n      \"reason\": \"CLI front end. For `kiro run`, it converts `reply.code` directly to `ExitCode::from(reply.code.clamp(0, 255) as u8)`, so grep's exit 2 (unreadable candidate) versus exit 1 (no match) reaches the shell's exit status unchanged. For `kiro scout`, it maps `scout_result` `Ok` to `ExitCode::SUCCESS` and `Err` (incomplete scan, including any unreadable file) to `ExitCode::from(1)`.\"\n    },\n    {\n      \"path\": \"src/mcp.rs\",\n      \"reason\": \"MCP front end. In `call()`, a single-command `run` path feeds `run_one()`'s `refused` boolean directly to `Err`/`Ok`, which the `tools/call` handler translates to `isError: true`/`false` in the JSON response. For `scout`, `scout_result` returning `Err` (incomplete due to unreadable candidates) also produces `isError: true`. For multi-command batches, `run_one`'s `refused` boolean is ignored (`_`) and all text is merged into one `Ok` response, so the incomplete/refused status is embedded only in the text, not in `isError`.\"\n    },\n    {\n      \"path\": \"src/limits.rs\",\n      \"reason\": \"Defines `ReadError` with two variants: `Io(io::Error)` for ordinary OS errors (permission denied, not found) and `Refused(String)` for engine policy rejections (non-regular file, file too large). `grep.rs` maps `Io` errors to `Search::report` (sets `failed`, adds stderr, stays in the `found`/`failed` accounting) and `Refused` to an immediate `Err` that aborts the search entirely. `scout.rs` treats both `ReadError` variants as `FileSearch::Unreadable`, incrementing `counts.errors` and triggering the `incomplete` flag.\"\n    }\n  ],\n  \"summary\": \"The distinction between 'unreadable candidate encountered' and 'complete search with no matches' is maintained at two layers. In grep.rs, the Search struct's `failed` and `found` booleans are set independently: an I/O error (ReadError::Io) calls `report()` which sets `failed = true` while leaving `found` untouched, so the final exit code is 2 (error) vs 1 (clean no-match) vs 0 (match). In scout.rs, the FileSearch::Unreadable arm keeps unreadable candidates out of the match accounting and increments counts.errors; scout_result() returns Err for any incomplete scan (errors > 0 or resource limit) and Ok only for a fully clean scan, even a fully clean no-match. The CLI (main.rs) propagates grep's numeric exit code verbatim to the shell and maps scout_result Ok/Err to ExitCode 0/1. The MCP server (mcp.rs) maps Err from both run_one and scout_result to isError:true. The compatibility function scout() discards the Ok/Err distinction with unwrap_or_else, making it safe for callers that only want the text. All of this holds when the display budget is zero because bounded_answer still returns the Err/Ok wrapper with a truncated string.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "terminal",
+      "rep": 2,
+      "wall_seconds": 49.75461075000021,
+      "model_seconds": 49.067,
+      "turns": 11,
+      "tokens": 129967,
+      "usage": {
+        "input_tokens": 9,
+        "cache_creation_input_tokens": 13978,
+        "cache_read_input_tokens": 113013,
+        "output_tokens": 2967,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 13978,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1307,
+            "cache_read_input_tokens": 21921,
+            "cache_creation_input_tokens": 2248,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 2248
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1631909,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "fastify.js",
+        "lib/noop-set.js",
+        "lib/route.js",
+        "lib/server.js"
+      ],
+      "tools": {
+        "Bash": 10
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have enough information from the source to construct the precise answer.\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"The `onClose` callback registered inside `avvio.once('preReady')` (lines ~408-460) owns decision (1): it sets `kState.closing = true`, calls `router.closeRoutes()` to flip the route-layer `closing` flag, then synchronously fires the `preClose` hook chain via `hookRunnerApplication('preClose', ...)`. Only after the `preClose` callback completes does it proceed to connection closing and `server.close()`. It also owns decision (3) at a high level: after `preClose`, if `forceCloseConnections === 'idle'` it calls `instance.server.closeIdleConnections()`; if `forceCloseConnections === true` and `serverHasCloseAllConnections` is set it calls `instance.server.closeAllConnections()`; otherwise (legacy fallback) it iterates `kKeepAliveConnections` and calls `conn.destroy()` on each tracked socket.\"\n    },\n    {\n      \"path\": \"lib/server.js\",\n      \"reason\": \"`createServer()` (lines ~122-144) owns decision (3) at the capability-detection layer: it feature-tests `typeof server.closeAllConnections === 'function'` and `typeof server.closeIdleConnections === 'function'` to set `serverHasCloseAllConnections` and `serverHasCloseIdleConnections`. When `forceCloseConnections` is not explicitly boolean it defaults to `'idle'` if `closeIdleConnections` exists, otherwise `false`. Critically, `keepAliveConnections` is created as a real `Set` only when `closeAllConnections` is *absent* and `forceCloseConnections === true`; otherwise it is a no-op set (`noopSet`). This `keepAliveConnections` object is passed to the router so that socket tracking is activated only when needed for the legacy fallback path.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"The `routingHandler` function (around line 488) owns decision (2): on every incoming request it checks the module-level `closing` flag (set by `closeRoutes()`). If `closing` is true and the request is HTTP/1.x it immediately sets the `Connection: close` response header. It then checks `return503OnClosing` (defaulting to `true` if the option is absent, resolved in `setup()` at line ~110): when `true` it writes a 503 JSON body and returns early, bypassing all route handlers. When `false` it allows the request to continue but `Connection: close` is already set so the socket will not be reused. The same function also performs socket tracking for the legacy fallback: if `keepAliveConnections` is a real `Set` and the request carries `Connection: keep-alive`, the socket is added to the set and a `close` listener is attached to prune it (`removeTrackedSocket`).\"\n    },\n    {\n      \"path\": \"lib/noop-set.js\",\n      \"reason\": \"Provides the no-op `Set`-like object returned by `createServer` when socket tracking is unnecessary (i.e. when `closeAllConnections` is available or `forceCloseConnections` is not `true`). Its `has`, `add`, and `delete` methods are all no-ops, so the socket-tracking branch in `lib/route.js` is a zero-cost path in modern Node.js environments.\"\n    }\n  ],\n  \"summary\": \"Shutdown proceeds in three ordered steps. First, `fastify.close()` (fastify.js `onClose` callback) flips `kState.closing`, calls `router.closeRoutes()` to set the route-layer `closing` flag, then runs all registered `preClose` hooks and waits for them to finish. Second, while the application is draining, every new HTTP/1 request that arrives on a pipelined or keep-alive connection passes through the `routingHandler` in `lib/route.js`: it unconditionally sets `Connection: close` and, if `return503OnClosing` is `true` (the default), immediately short-circuits with a 503 JSON response so no route handler runs; if `return503OnClosing` is `false` the request is processed normally but the connection will not be reused. Third, once `preClose` hooks complete, connection closing is dispatched based on capabilities detected at startup in `lib/server.js`: on Node \u2265 18.2 where `closeIdleConnections` exists, `forceCloseConnections` defaults to `'idle'` and idle sockets are reaped with `server.closeIdleConnections()`; if the user sets `forceCloseConnections: true` and `closeAllConnections` is available (Node \u2265 18.2), all connections are destroyed with `server.closeAllConnections()`; on older Node where neither method exists and `forceCloseConnections: true` is requested, `lib/server.js` creates a real `Set` for `keepAliveConnections`, `lib/route.js` tracks every keep-alive socket in it, and at shutdown `fastify.js` calls `conn.destroy()` on each tracked socket. Finally `server.close()` is called to stop accepting new TCP connections and the `done` callback resolves the close promise.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "kiro",
+      "rep": 3,
+      "wall_seconds": 39.54274975000044,
+      "model_seconds": 38.771,
+      "turns": 4,
+      "tokens": 69074,
+      "usage": {
+        "input_tokens": 12,
+        "cache_creation_input_tokens": 12063,
+        "cache_read_input_tokens": 54429,
+        "output_tokens": 2570,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 12063,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 1763,
+            "cache_read_input_tokens": 21046,
+            "cache_creation_input_tokens": 1923,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 1923
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1281557,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 5,
+      "required_paths_total": 5,
+      "returned_files": [
+        "fastify.js",
+        "lib/context.js",
+        "lib/errors.js",
+        "lib/handle-request.js",
+        "lib/route.js",
+        "lib/validation.js"
+      ],
+      "tools": {
+        "run": 2,
+        "scout": 1
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"lib/context.js\",\n      \"reason\": \"Context constructor (lines 70-73) resolves schemaErrorFormatter with explicit priority: route-level opts.schemaErrorFormatter > instance symbol server[kSchemaErrorFormatter] > defaultSchemaErrorFormatter. defaultSchemaErrorFormatter (lines 85-93) is defined here: it concatenates AJV error messages and returns a new FST_ERR_VALIDATION instance.\"\n    },\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"Public instance customization entry point: setSchemaErrorFormatter() (lines 766-769) is the documented API method that stores a bound formatter on the fastify instance under kSchemaErrorFormatter. Options-time path (lines 371-373) does the same via fastify options. validateSchemaErrorFormatter (lines 1020-1024) enforces that the formatter is a synchronous function. The instance symbol is initialized to null (line 177).\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"Sets attachValidation default to false when undefined (lines 293-294). Passes opts.attachValidation and opts.schemaErrorFormatter into the Context constructor (lines 349-350). After context construction, re-applies the schemaErrorFormatter priority (lines 390-391) for plugin-scoped overrides: opts.schemaErrorFormatter > this[kSchemaErrorFormatter] > existing context.schemaErrorFormatter.\"\n    },\n    {\n      \"path\": \"lib/validation.js\",\n      \"reason\": \"wrapValidationError() (lines 508-521) is the normalization point: if the raw result is already an Error it stamps statusCode || 400 and code || 'FST_ERR_VALIDATION' onto it; otherwise it calls schemaErrorFormatter(result, dataVar) and then stamps the same defaults, plus attaches result as error.validation and dataVar as error.validationContext. validate() (lines 398-457) calls wrapValidationError for each part (params, body, querystring, headers) passing context.schemaErrorFormatter.\"\n    },\n    {\n      \"path\": \"lib/handle-request.js\",\n      \"reason\": \"validationCompleted() (lines 126-138) is where attachValidation is enforced: if validationErr is truthy and context.attachValidation === false (the default), reply.send(validationErr) is called and the function returns, stopping the request before preHandler. If attachValidation is true, the error is attached to reply.request.validationError and execution continues into the preHandler hook runner.\"\n    },\n    {\n      \"path\": \"lib/errors.js\",\n      \"reason\": \"Defines FST_ERR_VALIDATION (lines 56-59) as a 400-status request error with code 'FST_ERR_VALIDATION' and a '%s' message template. This is the Error subclass instantiated by defaultSchemaErrorFormatter and used as the code default in wrapValidationError.\"\n    }\n  ],\n  \"summary\": \"When a request body (or any input part) fails schema validation, the flow is: (1) schemaErrorFormatter selection \u2014 Context constructor in lib/context.js resolves it as route-level option > instance-level kSchemaErrorFormatter (set via fastify.js setSchemaErrorFormatter() or the options.schemaErrorFormatter boot option) > the built-in defaultSchemaErrorFormatter defined in the same file, which produces an FST_ERR_VALIDATION with concatenated AJV messages. (2) Normalization \u2014 lib/validation.js wrapValidationError() calls the chosen formatter, then unconditionally stamps statusCode = error.statusCode || 400 and code = error.code || 'FST_ERR_VALIDATION' onto the returned error, and attaches the raw AJV errors array as error.validation and the input part name as error.validationContext. (3) attachValidation routing \u2014 lib/handle-request.js validationCompleted() checks the boolean: the default is false (set in lib/route.js), so the validation error is passed directly to reply.send() and the request terminates before preHandler; if explicitly set to true the error is instead stored on reply.request.validationError and execution proceeds normally through preHandler and the route handler.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "terminal",
+      "rep": 3,
+      "wall_seconds": 43.29926462500043,
+      "model_seconds": 42.536,
+      "turns": 11,
+      "tokens": 122497,
+      "usage": {
+        "input_tokens": 9,
+        "cache_creation_input_tokens": 11687,
+        "cache_read_input_tokens": 108182,
+        "output_tokens": 2619,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 11687,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1093,
+            "cache_read_input_tokens": 20973,
+            "cache_creation_input_tokens": 905,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 905
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1427756,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "fastify.js",
+        "lib/noop-set.js",
+        "lib/route.js",
+        "lib/server.js"
+      ],
+      "tools": {
+        "Bash": 10
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I now have enough information to construct the precise answer.\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"In the avvio 'preReady' onClose callback (lines ~408-456): sets kState.closing=true, calls router.closeRoutes() to flip the route-layer closing flag, then runs the 'preClose' hook chain via hookRunnerApplication before proceeding to connection teardown and server.close(). This is the top-level orchestrator that sequences marking\u2192preClose\u2192connection teardown\u2192TCP close.\"\n    },\n    {\n      \"path\": \"lib/server.js\",\n      \"reason\": \"getServerInstance / module-level setup (lines ~126-146): detects Node.js capability via typeof checks for server.closeAllConnections, server.closeIdleConnections, and server.closeHttp2Sessions. Decides forceCloseConnections default: auto-sets to 'idle' when closeIdleConnections exists, leaves false otherwise. Creates keepAliveConnections as a real Set only when closeAllConnections is absent and forceCloseConnections===true (legacy tracked-socket fallback); otherwise uses a noopSet. The result is passed to the route layer. In the onClose callback (called from fastify.js): if forceCloseConnections==='idle' calls server.closeIdleConnections(); if =true and closeAllConnections exists calls server.closeAllConnections(); if =true without closeAllConnections iterates keepAliveConnections and calls conn.destroy() on each. Then calls server.close() to stop accepting new TCP connections.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"setup() reads options.return503OnClosing (defaults to true if not set). closeRoutes() sets the module-level closing=true flag. routeHandler (lines ~488-515): when closing===true, immediately sets 'Connection: close' on the response (HTTP/1 only, skipped for http2). If return503OnClosing is true, writes a 503 JSON response and returns early\u2014this is the draining policy that rejects already-pipelined and keep-alive requests arriving after shutdown begins. If return503OnClosing is false, the request proceeds normally but still gets Connection:close. Also tracks keep-alive sockets in keepAliveConnections Set for the legacy fallback path.\"\n    },\n    {\n      \"path\": \"lib/noop-set.js\",\n      \"reason\": \"Exports a frozen object that implements the Set interface as no-ops. Used as the keepAliveConnections container when closeAllConnections is available (modern Node.js), eliminating the per-request socket-tracking overhead on platforms that don't need the legacy fallback.\"\n    }\n  ],\n  \"summary\": \"Shutdown proceeds in four connected steps. (1) Marking & preClose: fastify.js's onClose callback (registered at preReady) immediately sets kState.closing=true and calls router.closeRoutes(), which flips a module-scoped closing flag in lib/route.js. It then runs all preClose hooks via hookRunnerApplication before touching any connections. (2) Draining policy for pipelined/keep-alive requests: lib/route.js's routeHandler checks closing===true on the hot path. For HTTP/1 it always adds 'Connection: close'. If return503OnClosing is true (the default, set in setup() from options), it short-circuits the entire handler chain with a 503 JSON response\u2014this is load-shedding for requests that arrive on already-established keep-alive or pipelined connections after server.close() cannot yet close them. Setting return503OnClosing=false lets those requests finish normally while still sending Connection:close. (3) Connection teardown strategy in lib/server.js: capability is detected at startup with typeof checks. If forceCloseConnections==='idle', server.closeIdleConnections() is called (requires Node.js \u226518.2). If forceCloseConnections===true and closeAllConnections exists (Node.js \u226518.2), server.closeAllConnections() is called, destroying every connection immediately. If forceCloseConnections===true but closeAllConnections is absent (older Node.js), a Set of keep-alive sockets was built in lib/route.js and is now iterated, calling conn.destroy() on each\u2014the legacy fallback. If forceCloseConnections is false (or defaulted to false), no forced teardown occurs and server.close() alone stops new TCP accepts, waiting for in-flight requests to finish. (4) server.close() is always called last to stop accepting new connections.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "terminal",
+      "rep": 3,
+      "wall_seconds": 43.998397499999555,
+      "model_seconds": 43.276,
+      "turns": 12,
+      "tokens": 149852,
+      "usage": {
+        "input_tokens": 9,
+        "cache_creation_input_tokens": 16855,
+        "cache_read_input_tokens": 130067,
+        "output_tokens": 2921,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 16855,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1264,
+            "cache_read_input_tokens": 26624,
+            "cache_creation_input_tokens": 413,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 413
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1848501,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 5,
+      "required_paths_total": 5,
+      "returned_files": [
+        "fastify.js",
+        "lib/context.js",
+        "lib/errors.js",
+        "lib/handle-request.js",
+        "lib/route.js",
+        "lib/validation.js"
+      ],
+      "tools": {
+        "Bash": 11
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I now have all the information needed to produce the JSON answer.\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"lib/context.js\",\n      \"reason\": \"Context constructor (lines 22-83) resolves the schemaErrorFormatter with the precedence: route-level `schemaErrorFormatter` arg \u2192 instance symbol `server[kSchemaErrorFormatter]` \u2192 built-in `defaultSchemaErrorFormatter`. `defaultSchemaErrorFormatter` (lines 85-95) is the default: it iterates the AJV errors array, concatenates `dataVar + instancePath + message` strings, and wraps them in a `new FST_ERR_VALIDATION(text)` \u2014 a 400-status error with code `FST_ERR_VALIDATION`.\"\n    },\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"`setSchemaErrorFormatter` (line 766) is the public instance customization entry point; it validates the formatter (must be sync, not AsyncFunction) via `validateSchemaErrorFormatter` (line 1020) and stores it on `fastify[kSchemaErrorFormatter]`. The `schemaErrorFormatter` option passed to the top-level `fastify()` factory (line 371) is similarly stored on `fastify[kSchemaErrorFormatter]` after the same validation.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"During `preReady` hook (lines 390-391), the context's `schemaErrorFormatter` is overwritten with: `opts.schemaErrorFormatter || this[kSchemaErrorFormatter] || context.schemaErrorFormatter`. This is the second evaluation point for the route-level \u2192 instance-level \u2192 constructed-default priority, applied after encapsulation (plugin scoping) is resolved.\"\n    },\n    {\n      \"path\": \"lib/validation.js\",\n      \"reason\": \"`wrapValidationError` (line 508) normalizes any validation failure: if the result is already an Error it stamps `statusCode = statusCode || 400` and `code = code || 'FST_ERR_VALIDATION'`; otherwise it calls `schemaErrorFormatter(result, dataVar)`, then sets `error.statusCode = error.statusCode || 400`, `error.code = error.code || 'FST_ERR_VALIDATION'`, and attaches `error.validation = result` (the raw AJV errors array) and `error.validationContext = dataVar` (the part name: `'body'`, `'params'`, etc.). The `validate` function (line 393) calls `wrapValidationError` for every request part and returns the first failure.\"\n    },\n    {\n      \"path\": \"lib/handle-request.js\",\n      \"reason\": \"`validationCompleted` (line 109) is where `attachValidation` is checked: if `reply[kRouteContext].attachValidation === false` (the default \u2014 the field is `undefined`/falsy unless the route opts in), `reply.send(validationErr)` is called immediately, terminating the request before `preHandler` or the route handler run. If `attachValidation` is truthy, `reply.request.validationError = validationErr` is set and execution continues to `preHandlerHookRunner` and then to the route handler.\"\n    },\n    {\n      \"path\": \"lib/errors.js\",\n      \"reason\": \"`FST_ERR_VALIDATION` (line 56) is defined via `createRequestError` with status 400 and code `'FST_ERR_VALIDATION'`. This is the Error subclass instantiated by `defaultSchemaErrorFormatter` and used as the default HTTP status and error code for every validation failure.\"\n    }\n  ],\n  \"summary\": \"When a request body (or any part) fails schema validation the flow is: (1) Formatter selection \u2014 the `Context` constructor in `lib/context.js` picks `schemaErrorFormatter` with priority: route-level option \u2192 instance symbol set by `fastify.setSchemaErrorFormatter()` (public API in `fastify.js`) \u2192 built-in `defaultSchemaErrorFormatter`; `lib/route.js` re-applies the same priority in `preReady` after plugin scoping. (2) Error normalization \u2014 `wrapValidationError` in `lib/validation.js` calls the chosen formatter, then unconditionally sets `statusCode = statusCode || 400`, `code = code || 'FST_ERR_VALIDATION'`, and attaches `error.validation` (raw AJV errors) and `error.validationContext` (part name, e.g. `'body'`); the default formatter produces a `new FST_ERR_VALIDATION(concatenatedMessages)` defined in `lib/errors.js` with a hardcoded 400 default. (3) `attachValidation` gate \u2014 `validationCompleted` in `lib/handle-request.js` checks `reply[kRouteContext].attachValidation`; since it defaults to `undefined` (falsy), `reply.send(validationErr)` is called and the request short-circuits before `preHandler` or the route handler. Only when a route explicitly sets `attachValidation: true` does the error get attached to `request.validationError` and execution continue to `preHandler` and the handler.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "kiro",
+      "rep": 3,
+      "wall_seconds": 35.98417612499907,
+      "model_seconds": 35.15,
+      "turns": 5,
+      "tokens": 109657,
+      "usage": {
+        "input_tokens": 15,
+        "cache_creation_input_tokens": 19277,
+        "cache_read_input_tokens": 88395,
+        "output_tokens": 1970,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 19277,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 1067,
+            "cache_read_input_tokens": 28163,
+            "cache_creation_input_tokens": 2029,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 2029
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.17266250000000002,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "fastify.js",
+        "lib/noop-set.js",
+        "lib/route.js",
+        "lib/server.js"
+      ],
+      "tools": {
+        "run": 3,
+        "scout": 1
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have all the information needed. Here is the result:\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"In the avvio 'preReady' hook callback (lines ~390\u2013440), registers the single onClose handler that owns the entire shutdown sequence: sets kState.closing=true, calls router.closeRoutes(), runs the preClose hook chain via hookRunnerApplication, then conditionally calls server.closeIdleConnections(), server.closeAllConnections(), or iterates kKeepAliveConnections to destroy sockets depending on forceCloseConnections and capability flags, and finally calls server.close(). This is the authoritative orchestrator for decisions (1) and (3).\"\n    },\n    {\n      \"path\": \"lib/server.js\",\n      \"reason\": \"createServer() (lines ~26\u2013147) performs all capability detection at startup: checks typeof server.closeAllConnections, typeof server.closeIdleConnections, resolves the final forceCloseConnections value (defaulting to 'idle' when closeIdleConnections exists, false otherwise, throwing FST_ERR_FORCE_CLOSE_CONNECTIONS_IDLE_NOT_AVAILABLE if 'idle' is requested but unavailable), and constructs keepAliveConnections as either a real Set (legacy fallback when closeAllConnections is absent and forceCloseConnections===true) or a noopSet. These resolved values are returned to fastify.js and drive the branch logic in the onClose handler. This is the authoritative owner of decision (3) capability detection.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"routeHandler() (lines ~465\u2013522) owns decision (2): on every incoming request it checks the module-level closing flag; if true it unconditionally sets the Connection: close response header (HTTP/1 only), then if return503OnClosing===true (default true, set in setup() at line 110 from options or defaulted) it immediately writes a 503 and returns, short-circuiting the full handler chain. It also owns the legacy socket tracking: when forceCloseConnections===true and closeAllConnections is unavailable, every request with a Connection: keep-alive header has its socket added to the keepAliveConnections Set (lines 519\u2013521), with a socket 'close' event wired to removeTrackedSocket() for cleanup.\"\n    },\n    {\n      \"path\": \"lib/noop-set.js\",\n      \"reason\": \"Returns a Set-shaped object whose add/has/delete methods are all no-ops. Used as the keepAliveConnections container when the legacy tracked-socket fallback is not needed (i.e. when closeAllConnections is available or forceCloseConnections is not true), ensuring zero overhead in the hot path of routeHandler.\"\n    }\n  ],\n  \"summary\": \"Shutdown proceeds in this order: (1) The avvio preReady hook in fastify.js registers an onClose handler. When fastify.close() is called, that handler immediately sets kState.closing=true and calls router.closeRoutes(), which flips the closing flag checked by every subsequent request in routeHandler. It then runs all registered preClose hooks before proceeding. (2) While draining, any new HTTP/1 request that reaches routeHandler in route.js finds closing===true: it always sets Connection: close, and if return503OnClosing is true (the default) it replies with a 503 and exits without running any application code, shedding load from already-pipelined or keep-alive requests. Setting return503OnClosing:false allows those requests to complete normally while still advertising connection teardown. (3) After preClose hooks finish, the onClose handler in fastify.js selects a connection-closing strategy using capability flags resolved once at startup by createServer() in server.js: if forceCloseConnections==='idle' and closeIdleConnections is present it calls server.closeIdleConnections(); if forceCloseConnections===true and closeAllConnections is present it calls server.closeAllConnections(); otherwise if forceCloseConnections===true it falls back to iterating the kKeepAliveConnections Set (populated per-request in routeHandler) and calling conn.destroy() on each tracked socket. If none of these apply (forceCloseConnections===false) it relies on Node's server.close() to drain naturally. server.close() is always called last to stop accepting new TCP connections and invoke the done callback when all in-flight responses have finished.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "kiro",
+      "rep": 3,
+      "wall_seconds": 40.56903541599968,
+      "model_seconds": 39.822,
+      "turns": 9,
+      "tokens": 138453,
+      "usage": {
+        "input_tokens": 23,
+        "cache_creation_input_tokens": 13466,
+        "cache_read_input_tokens": 122444,
+        "output_tokens": 2520,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 13466,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 723,
+            "cache_read_input_tokens": 21890,
+            "cache_creation_input_tokens": 2351,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 2351
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.15622819999999998,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "src/main.rs",
+        "src/mcp.rs",
+        "src/scout.rs"
+      ],
+      "tools": {
+        "run": 6,
+        "Bash": 1,
+        "scout": 1
+      },
+      "kiro_refusals": 2,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have everything needed to construct the answer.\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"src/scout.rs\",\n      \"reason\": \"Defines the FileSearch enum whose Unreadable variant is the classification boundary: metadata or read failures map to Unreadable (never to a negative Read(None)), while successful reads map to Read(Some/None). The scan loop increments counts.errors for each Unreadable file, then sets incomplete = limited || counts.errors > 0. scout_result returns Ok for a fully clean scan and Err for any incomplete one; both variants carry the same display text, but Err prepends a [search incomplete: \u2026] warning and names up to five unreadable paths. When the display budget is zero the Err/Ok distinction is the only signal \u2014 the text is empty in both cases but the variant still carries the status.\"\n    },\n    {\n      \"path\": \"src/main.rs\",\n      \"reason\": \"CLI front-end: calls scout_result and maps Ok\u2192ExitCode::SUCCESS (0) and Err\u2192ExitCode::from(1), giving the shell a distinguishable exit status for incomplete versus complete-with-no-matches. This is the only place that translates the Result into a process exit code.\"\n    },\n    {\n      \"path\": \"src/mcp.rs\",\n      \"reason\": \"MCP front-end: the scout tool branch in call() forwards scout_result directly. The respond() function maps Ok\u2192{isError:false} and Err\u2192{isError:true} in the tools/call JSON-RPC response content block. An incomplete scan therefore sets isError:true while a complete scan with no matches sets isError:false \u2014 the MCP error indicator is driven by the same Result.\"\n    },\n    {\n      \"path\": \"src/scout.rs\",\n      \"reason\": \"(scout function, line 712\u2013714) Compatibility entry point: calls scout_result and collapses both Ok and Err to a plain String via unwrap_or_else. This discards the incomplete/complete distinction entirely, making it safe for callers that only need display text and must not propagate status.\"\n    }\n  ],\n  \"summary\": \"src/scout.rs is the sole classifier: the FileSearch::Unreadable variant ensures an unreadable candidate increments counts.errors and can never produce a clean negative result, and scout_result returns Err (with a [search incomplete:] prefix) whenever any file was unreadable or a resource limit was hit, and Ok only for a fully complete scan. src/main.rs translates that Result to exit code 1 vs 0 for the CLI. src/mcp.rs translates it to isError:true vs isError:false for the MCP content response. The scout() compatibility function (also in scout.rs) intentionally drops the Result and returns only text, discarding the status for callers that do not need it. When the display budget is zero the text payload is empty in both cases, but the Err/Ok variant \u2014 and therefore the exit code and isError flag \u2014 still faithfully reflects whether any candidate was unreadable.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "kiro",
+      "rep": 4,
+      "wall_seconds": 40.65268787500099,
+      "model_seconds": 39.807,
+      "turns": 6,
+      "tokens": 90409,
+      "usage": {
+        "input_tokens": 18,
+        "cache_creation_input_tokens": 7809,
+        "cache_read_input_tokens": 80098,
+        "output_tokens": 2484,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 7809,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 1199,
+            "cache_read_input_tokens": 17395,
+            "cache_creation_input_tokens": 1523,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 1523
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1090644,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "fastify.js",
+        "lib/route.js",
+        "lib/server.js"
+      ],
+      "tools": {
+        "run": 5
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have enough information to construct the precise answer.\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"The `onClose` hook registered inside `avvio.once('preReady', ...)` (lines ~408\u2013455) owns decision (1): it sets `kState.closing = true`, calls `router.closeRoutes()` to flip the route-layer `closing` flag, then runs the `preClose` hook chain via `hookRunnerApplication('preClose', ...)`. Only after those hooks complete does it execute connection teardown and call `server.close()`. It also owns the capability-dispatch for decision (3): when `forceCloseConnections === 'idle'` with a custom serverFactory it calls `server.closeIdleConnections()`; when `forceCloseConnections === true` and `serverHasCloseAllConnections` is true it calls `server.closeAllConnections()`; otherwise it iterates `kKeepAliveConnections` and calls `conn.destroy()` on each tracked socket (the legacy fallback). The `kKeepAliveConnections` symbol is attached to the fastify instance and is the shared container used by both this file and `lib/route.js`.\"\n    },\n    {\n      \"path\": \"lib/server.js\",\n      \"reason\": \"The `getServerInstance` / `buildServer` section (lines ~126\u2013147) owns the capability-detection half of decision (3): it probes `typeof server.closeAllConnections`, `closeIdleConnections`, and `closeHttp2Sessions` at startup and resolves the effective `forceCloseConnections` value. If the caller passes `'idle'` but `closeIdleConnections` is absent it throws immediately. If the caller passes no boolean, it defaults to `'idle'` when `closeIdleConnections` is available, otherwise `false`. It also decides whether a real `Set` or the noop set is used for `keepAliveConnections`: a real `Set` is allocated only when `closeAllConnections` is unavailable and `forceCloseConnections === true` (the legacy tracked-socket path). The resolved values (`forceCloseConnections`, `serverHasCloseAllConnections`, `keepAliveConnections`) are returned and threaded into `fastify.js` and `lib/route.js`.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"The module-level `closing` boolean (line 91) is set by `closeRoutes()` (line 121), which is called from `fastify.js` as the very first action of the close sequence. The `routeHandler` function (lines ~488\u2013520) owns decision (2): when `closing === true` and the request is HTTP/1 it immediately sets `Connection: close` on the response. It then checks `return503OnClosing` (defaulting to `true`, read from options at setup time, line 110): if `true` it writes a 503 with `Content-Type: application/json` and returns early, short-circuiting the entire handler chain. If `false`, the request is allowed to proceed normally but the connection header is already set. Separately, for every HTTP/1 keep-alive request received while `closing === false`, the socket is added to the shared `keepAliveConnections` Set (lines ~519\u2013521) so `fastify.js` can destroy it on forced close.\"\n    }\n  ],\n  \"summary\": \"Shutdown proceeds in three layered phases. Phase 1 (fastify.js, preReady onClose): `kState.closing` is set and `router.closeRoutes()` flips the route layer's `closing` flag synchronously, then `hookRunnerApplication('preClose', ...)` runs all preClose hooks before any connection is touched. Phase 2 (lib/route.js, routeHandler): every inbound HTTP/1 request that arrives while `closing === true` immediately receives `Connection: close`; if `return503OnClosing` is `true` (the default) the response is a bare 503 JSON body and the handler chain is aborted \u2014 this drains pipelined and keep-alive requests that bypassed `server.close()`'s idle-socket reaping. Phase 3 (capability detection in lib/server.js, execution in fastify.js): after preClose hooks complete, the choice of connection teardown is resolved by the flags computed at startup in `lib/server.js`. `forceCloseConnections === 'idle'` uses `server.closeIdleConnections()` (Node \u2265 18.2); `forceCloseConnections === true` with `closeAllConnections` present uses `server.closeAllConnections()` (Node \u2265 18.2); `forceCloseConnections === true` without `closeAllConnections` falls back to iterating the `keepAliveConnections` Set \u2014 a real Set only when on the legacy path \u2014 and calling `conn.destroy()` per socket. Finally `server.close()` stops accepting new TCP connections and signals completion.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "terminal",
+      "rep": 3,
+      "wall_seconds": 75.08568858299986,
+      "model_seconds": 74.318,
+      "turns": 16,
+      "tokens": 318783,
+      "usage": {
+        "input_tokens": 18,
+        "cache_creation_input_tokens": 25430,
+        "cache_read_input_tokens": 288911,
+        "output_tokens": 4424,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 25430,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1921,
+            "cache_read_input_tokens": 34922,
+            "cache_creation_input_tokens": 559,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 559
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.3064873,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "src/grep.rs",
+        "src/limits.rs",
+        "src/main.rs",
+        "src/mcp.rs",
+        "src/scout.rs"
+      ],
+      "tools": {
+        "Bash": 15
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "Now I have a complete picture of the status propagation chain. Let me compile the answer.\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"src/limits.rs\",\n      \"reason\": \"Defines ReadError with two variants \u2014 Io (unreadable candidate, I/O failure) and Refused (resource-limit breach that aborts the whole command). This two-way split is the root classification: Io errors become grep exit-code 2 / scout read-error counts, while Refused propagates as an Err that refuses the entire command to the caller.\"\n    },\n    {\n      \"path\": \"src/grep.rs\",\n      \"reason\": \"Classifies per-file outcomes into the three grep exit codes. When read_regular_file returns ReadError::Io, State::report() sets self.failed = true and writes a stderr message; ReadError::Refused aborts via Err. At the end of run(), the final exit code is 2 if failed (at least one unreadable candidate), 0 if any match found, or 1 if the scan completed cleanly with no match \u2014 making exit code 2 the precise signal that the search was not exhaustive.\"\n    },\n    {\n      \"path\": \"src/scout.rs\",\n      \"reason\": \"Contains three cooperating pieces: (1) the FileSearch enum (Skipped / Read(Option<FileHits>) / Unreadable) classifies each candidate so an unreadable file increments counts.errors but cannot be mistaken for a confirmed absence; (2) scout_result() sets incomplete = limited || counts.errors > 0, prepends a '[search incomplete: \u2026]' warning, then returns Err(answer) for incomplete and Ok(answer) for a fully-exhaustive scan \u2014 both respecting the budget even at zero bytes; (3) the compatibility function scout() calls scout_result().unwrap_or_else(|text| text), discarding the Ok/Err distinction and returning the text unconditionally.\"\n    },\n    {\n      \"path\": \"src/main.rs\",\n      \"reason\": \"The CLI front-end translates both status signals. For 'kiro run' it propagates engine::Reply.code directly to the process ExitCode (0/1/2 from grep pass through unchanged). For 'kiro scout' it calls scout_result() and maps Ok \u2192 ExitCode::SUCCESS and Err \u2192 ExitCode::from(1), giving the shell a distinguishable exit status for incomplete versus complete-with-no-matches results.\"\n    },\n    {\n      \"path\": \"src/mcp.rs\",\n      \"reason\": \"The MCP front-end translates status to the JSON-RPC isError field. For the 'scout' tool, the Ok/Err from scout_result() maps directly to isError:false / isError:true. For single 'run' commands, engine::run_native() Err (refused command) produces isError:true; a successful reply with non-zero exit code embeds '[exit code N]' as text with isError:false. Multi-command batches always return Ok regardless of individual exit codes, embedding status as text \u2014 the Err/isError distinction is thus suppressed for batched calls.\"\n    }\n  ],\n  \"summary\": \"Status propagation works through two parallel paths. For grep/run: limits.rs defines ReadError::Io vs Refused; grep.rs converts Io errors into self.failed=true, producing exit code 2 (unreadable) vs 1 (no match) vs 0 (match); engine.rs forwards Reply.code unchanged; main.rs emits it as the process exit code and mcp.rs appends it as '[exit code N]' text. For scout: scout.rs FileSearch::Unreadable increments counts.errors, scout_result() sets incomplete = limited || counts.errors > 0 and returns Err for incomplete vs Ok for exhaustive \u2014 including exhaustive-with-no-matches; main.rs maps this to exit code 1 vs 0; mcp.rs maps it to isError:true vs false. The compatibility entry point scout() calls unwrap_or_else(|t| t), collapsing both variants to plain text and discarding the status. When the budget is zero, bounded_answer() truncates the display text to '[truncated]', but the Err variant is still returned because the incomplete flag is computed and the Err is constructed before bounded_answer() is called, so the status signal survives a zero-byte budget.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "terminal",
+      "rep": 4,
+      "wall_seconds": 53.04914179199841,
+      "model_seconds": 52.305,
+      "turns": 15,
+      "tokens": 183936,
+      "usage": {
+        "input_tokens": 11,
+        "cache_creation_input_tokens": 15038,
+        "cache_read_input_tokens": 165472,
+        "output_tokens": 3415,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 15038,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1391,
+            "cache_read_input_tokens": 25002,
+            "cache_creation_input_tokens": 227,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 227
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.19201459999999998,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "fastify.js",
+        "lib/log-controller.js",
+        "lib/noop-set.js",
+        "lib/route.js",
+        "lib/server.js"
+      ],
+      "tools": {
+        "Bash": 14
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have enough information to construct the precise answer. Here is the result:\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"The `onClose` handler registered inside `avvio.once('preReady')` (lines ~408-460) owns decision (1): it sets `fastify[kState].closing = true`, calls `router.closeRoutes()` to flip the route-level `closing` flag, then runs the `preClose` hook chain via `hookRunnerApplication('preClose', \u2026)`. After all preClose hooks complete it executes the connection-closing strategy and then calls `server.close()`. It also owns decision (3) at the orchestration level: it calls `server.closeIdleConnections()` when `forceCloseConnections === 'idle'`, `server.closeAllConnections()` when `serverHasCloseAllConnections && forceCloseConnections === true`, or falls back to iterating `fastify[kKeepAliveConnections]` and calling `conn.destroy()` on each tracked socket when `closeAllConnections` is unavailable.\"\n    },\n    {\n      \"path\": \"lib/server.js\",\n      \"reason\": \"The `createServer` function (lines ~126-145) owns the capability-detection logic for decision (3): it probes `typeof server.closeAllConnections === 'function'` and `typeof server.closeIdleConnections === 'function'` at startup; throws `FST_ERR_FORCE_CLOSE_CONNECTIONS_IDLE_NOT_AVAILABLE` if `'idle'` is requested but unavailable; auto-selects `'idle'` as the default when `closeIdleConnections` exists but `forceCloseConnections` was not explicitly set to a boolean; and chooses whether `keepAliveConnections` is a real `Set` (legacy fallback when `closeAllConnections` is absent and `forceCloseConnections === true`) or a no-op container. The returned `keepAliveConnections` reference is passed to the router and used for legacy socket tracking.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"The `routeHandler` function owns decisions (2) and the per-request side of (3). When the module-level `closing` flag (set by `closeRoutes()`) is `true` and the request is HTTP/1.x, it unconditionally adds `Connection: close` to the response (line ~491). It then checks `return503OnClosing` (defaulting to `true` if the option is absent, resolved in `setup()` at line ~110): if true, it immediately writes a 503 JSON response and returns, short-circuiting all hooks and handlers. If `return503OnClosing` is false the request proceeds normally but still carries `Connection: close`. Outside the closing path, `routeHandler` also performs the legacy socket-tracking for decision (3): when the incoming `Connection: keep-alive` header is present and `closeAllConnections` is unavailable, it adds `req.socket` to `keepAliveConnections` and registers a `close` event listener (`removeTrackedSocket`) to self-clean the set.\"\n    },\n    {\n      \"path\": \"lib/noop-set.js\",\n      \"reason\": \"Provides the no-op `Set`-shaped container that replaces the real `keepAliveConnections` Set when socket tracking is unnecessary (i.e. when `closeAllConnections` is available or `forceCloseConnections !== true`). Its `has()` always returns `true` so the `keepAliveConnections.has(req.socket)` guard in `routeHandler` suppresses any `add()` call, making socket tracking zero-cost in the common path.\"\n    },\n    {\n      \"path\": \"lib/log-controller.js\",\n      \"reason\": \"Contains `serviceUnavailable()` (called from `routeHandler` after emitting the 503 response) which logs the info-level message `'request aborted - refusing to accept new requests as server is closing'` with `statusCode: 503`. This is the only production logging side-effect of the draining policy.\"\n    }\n  ],\n  \"summary\": \"Graceful HTTP/1 shutdown proceeds in three connected phases. First, `fastify.js`'s `onClose` handler (registered during `preReady`) atomically sets `kState.closing`, calls `router.closeRoutes()` to raise the route-level `closing` flag, and then runs all `preClose` hooks via `hookRunnerApplication` before touching any connections. Second, still within the same post-preClose callback, `fastify.js` selects the connection-closing strategy using the boolean flags computed by `lib/server.js` at startup: `server.closeIdleConnections()` for `forceCloseConnections='idle'`, `server.closeAllConnections()` when that method exists and `forceCloseConnections===true`, or a manual loop over the `keepAliveConnections` Set calling `conn.destroy()` as a legacy fallback; then `server.close()` stops accepting new TCP connections. Third, any HTTP/1 request that arrives on an already-open (pipelined or keep-alive) connection after `closeRoutes()` fires is handled by `routeHandler` in `lib/route.js`: it always adds `Connection: close` to signal the client, and\u2014when `return503OnClosing` is `true` (the default)\u2014immediately responds with 503 and skips the entire handler/hook chain, logging via `lib/log-controller.js`; setting `return503OnClosing: false` allows those requests to complete normally while still carrying `Connection: close`. The `lib/noop-set.js` no-op container makes per-request socket tracking zero-cost when the native `closeAllConnections` API is present.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "terminal",
+      "rep": 4,
+      "wall_seconds": 34.9124417919993,
+      "model_seconds": 34.179,
+      "turns": 13,
+      "tokens": 80800,
+      "usage": {
+        "input_tokens": 8,
+        "cache_creation_input_tokens": 5996,
+        "cache_read_input_tokens": 72652,
+        "output_tokens": 2144,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 5996,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 921,
+            "cache_read_input_tokens": 14940,
+            "cache_creation_input_tokens": 1238,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 1238
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.0908136,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 5,
+      "required_paths_total": 5,
+      "returned_files": [
+        "fastify.js",
+        "lib/context.js",
+        "lib/handle-request.js",
+        "lib/route.js",
+        "lib/validation.js"
+      ],
+      "tools": {
+        "Bash": 12
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have enough information now. Let me compile the findings.\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"lib/context.js\",\n      \"reason\": \"Context constructor (lines 70-73) resolves the schemaErrorFormatter with the precedence: route-level opts.schemaErrorFormatter \u2192 instance kSchemaErrorFormatter \u2192 built-in defaultSchemaErrorFormatter. defaultSchemaErrorFormatter (lines 85-95) concatenates AJV error messages and returns a new FST_ERR_VALIDATION instance as the default formatter.\"\n    },\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"setSchemaErrorFormatter() (lines ~769-773) is the public instance customization entry point; it stores the formatter on the instance symbol kSchemaErrorFormatter. The constructor path (lines 371-373) handles the schemaErrorFormatter option passed at Fastify() creation time. validateSchemaErrorFormatter (lines 1020-1024) enforces the formatter must be a sync function.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"Route registration (lines 293-294) defaults opts.attachValidation to false when unset. During the preReady hook (lines 388-391), context.schemaErrorFormatter is set with the same three-level precedence (route opts \u2192 instance kSchemaErrorFormatter \u2192 existing context value, which was already set by Context constructor). This is where the final per-route formatter resolution is committed.\"\n    },\n    {\n      \"path\": \"lib/validation.js\",\n      \"reason\": \"wrapValidationError() (lines 508-522) normalizes a raw validator result: if the result is already an Error it stamps statusCode=400 and code='FST_ERR_VALIDATION' only if those fields are absent, then sets validationContext. If the result is a plain AJV errors array, it calls schemaErrorFormatter(result, dataVar) and then stamps the same defaults plus error.validation (the raw AJV errors array) and error.validationContext on the returned Error object. All calls to wrapValidationError pass context.schemaErrorFormatter directly.\"\n    },\n    {\n      \"path\": \"lib/handle-request.js\",\n      \"reason\": \"validationCompleted() (lines 128-145) contains the attachValidation branch: if attachValidation===false (the default), it calls reply.send(validationErr) immediately, terminating the lifecycle before preHandler. If attachValidation is truthy, it assigns the error to request.validationError and falls through to run preHandler hooks and the route handler normally.\"\n    }\n  ],\n  \"summary\": \"When a request body (or params/query/headers) fails schema validation the flow is: (1) Formatter selection \u2014 Context constructor in lib/context.js picks the schemaErrorFormatter with precedence route-option > instance setSchemaErrorFormatter/constructor-option (stored as kSchemaErrorFormatter on the Fastify instance in fastify.js) > built-in defaultSchemaErrorFormatter; this choice is later confirmed per-route in lib/route.js preReady hook. (2) Error normalization \u2014 lib/validation.js wrapValidationError() calls the chosen formatter with the raw AJV errors array and the data-variable name ('body', 'params', etc.), then unconditionally stamps statusCode=400 and code='FST_ERR_VALIDATION' on the result only if those properties are not already set, and attaches the raw AJV errors array as error.validation plus the data-variable name as error.validationContext. (3) attachValidation gate \u2014 lib/handle-request.js validationCompleted() checks the boolean: the default (false) causes reply.send(validationErr) to be called immediately, short-circuiting preHandler and the route handler; when explicitly set to true the error is stored on request.validationError and execution continues through preHandler into the route handler.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "kiro",
+      "rep": 4,
+      "wall_seconds": 35.34591341699888,
+      "model_seconds": 34.32,
+      "turns": 5,
+      "tokens": 107561,
+      "usage": {
+        "input_tokens": 15,
+        "cache_creation_input_tokens": 18853,
+        "cache_read_input_tokens": 86709,
+        "output_tokens": 1984,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 18853,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 992,
+            "cache_read_input_tokens": 27219,
+            "cache_creation_input_tokens": 2791,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 2791
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1697937,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 5,
+      "required_paths_total": 5,
+      "returned_files": [
+        "fastify.js",
+        "lib/context.js",
+        "lib/errors.js",
+        "lib/handle-request.js",
+        "lib/route.js",
+        "lib/validation.js"
+      ],
+      "tools": {
+        "run": 3,
+        "scout": 1
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"lib/context.js\",\n      \"reason\": \"Context constructor (line 70-73): resolves schemaErrorFormatter with priority order \u2014 route-level arg \u2192 server[kSchemaErrorFormatter] \u2192 defaultSchemaErrorFormatter. Also defines defaultSchemaErrorFormatter (line 85-93): concatenates Ajv error messages and returns a new FST_ERR_VALIDATION instance.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"addNewRoute (line 293): defaults attachValidation to false when absent. Line 340-391: passes opts.schemaErrorFormatter into Context at construction time, then re-resolves it in the after() callback (line 390-391) with the same three-way priority: opts.schemaErrorFormatter || this[kSchemaErrorFormatter] || context.schemaErrorFormatter.\"\n    },\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"Lines 371-373: reads options.schemaErrorFormatter at instance construction and stores it on fastify[kSchemaErrorFormatter] \u2014 the instance-level slot read by Context. Line 766: setSchemaErrorFormatter(), the public API for setting the instance-level formatter after construction (also validates it is a non-async function).\"\n    },\n    {\n      \"path\": \"lib/validation.js\",\n      \"reason\": \"wrapValidationError (line 508-521): normalizes every validation failure \u2014 if the validator threw an Error it stamps statusCode=400 and code='FST_ERR_VALIDATION' as defaults; otherwise it calls schemaErrorFormatter(errors, dataVar) and stamps the same defaults plus error.validation (the raw Ajv errors array) and error.validationContext (the part name: 'body', 'params', etc.). validate() (line 398) and the four async helpers each call wrapValidationError with the resolved context.schemaErrorFormatter.\"\n    },\n    {\n      \"path\": \"lib/handle-request.js\",\n      \"reason\": \"validationCompleted (line 126-134): the sole branch point for attachValidation. If context.attachValidation === false (the default), reply.send(validationErr) is called immediately and the function returns, aborting the request before preHandler. If true, the error is instead stored on reply.request.validationError and execution continues into the preHandler hook runner and then the route handler.\"\n    },\n    {\n      \"path\": \"lib/errors.js\",\n      \"reason\": \"FST_ERR_VALIDATION (line 40-43): declared as a 400 request error with code 'FST_ERR_VALIDATION'. This is the type instantiated by defaultSchemaErrorFormatter and whose code/statusCode are used as the fallback defaults in wrapValidationError.\"\n    }\n  ],\n  \"summary\": \"When a request body (or any other part) fails schema validation, the flow is: (1) Formatter selection \u2014 Context constructor resolves schemaErrorFormatter with strict priority: route-option > instance[kSchemaErrorFormatter] (set via fastify options or setSchemaErrorFormatter()) > built-in defaultSchemaErrorFormatter. The route.js after() callback re-applies the same resolution so late-registered plugins can still influence it. (2) Error normalization \u2014 wrapValidationError in validation.js calls the chosen formatter, then unconditionally stamps statusCode=400 and code='FST_ERR_VALIDATION' as defaults (preserving any higher statusCode/code already on the error), attaches the raw Ajv errors array as error.validation, and records the failing HTTP part name as error.validationContext. defaultSchemaErrorFormatter builds a human-readable message from the Ajv errors and wraps it in FST_ERR_VALIDATION(400). (3) attachValidation gate \u2014 validationCompleted in handle-request.js checks context.attachValidation, which defaults to false (set in route.js). When false, reply.send(validationErr) is called immediately, short-circuiting preHandler and the route handler. When true, the error is attached to reply.request.validationError and the lifecycle continues normally through preHandler to the route handler.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "kiro",
+      "rep": 5,
+      "wall_seconds": 40.97600274999968,
+      "model_seconds": 40.197,
+      "turns": 6,
+      "tokens": 116033,
+      "usage": {
+        "input_tokens": 18,
+        "cache_creation_input_tokens": 30547,
+        "cache_read_input_tokens": 83259,
+        "output_tokens": 2209,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 30547,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 1059,
+            "cache_read_input_tokens": 26528,
+            "cache_creation_input_tokens": 14794,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 14794
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.2422787,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": false,
+      "required_paths_found": 2,
+      "required_paths_total": 3,
+      "returned_files": [
+        "src/engine.rs",
+        "src/grep.rs",
+        "src/limits.rs",
+        "src/main.rs",
+        "src/mcp.rs"
+      ],
+      "tools": {
+        "run": 5
+      },
+      "kiro_refusals": 2,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"src/grep.rs\",\n      \"reason\": \"Classifies every candidate outcome: `Search::file` calls `limits::read_regular_file` and on `ReadError::Io` calls `Search::report`, which sets `s.failed = true` and writes a 'Permission denied' / 'No such file or directory' message to stderr, while `ReadError::Refused` propagates as `Err` out of the whole `run`. After all candidates are visited, `run` computes the exit code as: 2 when `s.failed` (at least one unreadable candidate), 0 when `s.found` (matches exist, no errors), and 1 when neither (complete search, no matches). That three-way distinction is the core of the status classification.\"\n    },\n    {\n      \"path\": \"src/limits.rs\",\n      \"reason\": \"Defines `ReadError` (the `Io` vs `Refused` enum that grep.rs branches on to decide whether an unreadable candidate is a soft I/O error or a hard refusal) and `read_regular_file`, which produces those variants. When a file is a non-regular special file or exceeds 8 MiB, it returns `Refused`; ordinary OS errors become `Io`. This distinction determines whether a candidate failure stays inside the search (incrementing `failed`) or aborts it entirely.\"\n    },\n    {\n      \"path\": \"src/engine.rs\",\n      \"reason\": \"Receives the `Output { stdout, stderr, code }` struct from `grep::run` via `stage`, wraps it in a `Reply`, and propagates the numeric exit code unchanged to its callers. For the CLI front-end, `run_native` returns `Ok(Reply)` with `reply.code` intact; for the MCP front-end, `run_one` reads that same `reply.code` to decide whether to append `[exit code N]`. The engine does not reinterpret the code.\"\n    },\n    {\n      \"path\": \"src/main.rs\",\n      \"reason\": \"The CLI front-end. Calls `engine::run` and passes `reply.code` directly to `ExitCode::from`, so exit code 1 (no matches) and exit code 2 (at least one unreadable candidate) reach the shell unmodified. This is the file that translates the internal `Reply.code` into the process exit status.\"\n    },\n    {\n      \"path\": \"src/mcp.rs\",\n      \"reason\": \"The MCP front-end. `run_one` calls `engine::run_native`; on `Ok(reply)` it appends `[exit code N]` to the text content when `reply.code != 0` (covering both code 1 and code 2), and returns `(text, false)` \u2014 not refused. The caller in `call` maps that to `isError: false`. On `Err(reason)` from the engine (a hard refusal, not an I/O failure on a candidate) it returns `(message, true)`, which `call` maps to `isError: true`. Crucially, when commands are batched (the `commands` array path), `run_one` is called per command but the refused boolean is *discarded* (`let (text, _) = run_one(...)`) \u2014 the multi-command path always returns `Ok`, collapsing the error indicator to `isError: false` regardless of individual command failures.\"\n    }\n  ],\n  \"summary\": \"grep.rs is the classification point: a candidate file that returns ReadError::Io (e.g. permission denied) sets s.failed=true without aborting the search, while ReadError::Refused (non-regular file, size limit) aborts via Err. After all candidates, run() emits code 2 (failed), 0 (found), or 1 (no matches). limits.rs defines ReadError and read_regular_file, which produce those variants. engine.rs forwards the code unchanged in Reply. main.rs converts Reply.code to the process ExitCode. mcp.rs translates: for a single command, Err from run_native \u2192 isError:true (refused), Ok with code!=0 \u2192 isError:false but appended '[exit code N]' text; for a batch of commands, the refused boolean is silently discarded so isError is always false, making the multi-command path a compatibility entry point that drops the status distinction.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "kiro",
+      "rep": 4,
+      "wall_seconds": 56.720933624999816,
+      "model_seconds": 55.9,
+      "turns": 10,
+      "tokens": 192299,
+      "usage": {
+        "input_tokens": 24,
+        "cache_creation_input_tokens": 24426,
+        "cache_read_input_tokens": 164510,
+        "output_tokens": 3339,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 24426,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 1381,
+            "cache_read_input_tokens": 33219,
+            "cache_creation_input_tokens": 1982,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 1982
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.246891,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "src/grep.rs",
+        "src/limits.rs",
+        "src/main.rs",
+        "src/mcp.rs",
+        "src/scout.rs"
+      ],
+      "tools": {
+        "run": 6,
+        "Bash": 2,
+        "scout": 1
+      },
+      "kiro_refusals": 2,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"src/scout.rs\",\n      \"reason\": \"Central classification and propagation hub. Defines the `FileSearch` enum with three distinct variants \u2014 `Read`, `Skipped`, and `Unreadable` \u2014 so an I/O failure on a candidate can never become a negative match. The `search_file` function returns `Unreadable` on metadata or read failure (incrementing `counts.errors`) and `Err(())` on resource exhaustion (setting `limited = true`). After the scan loop, `scout_result` sets `incomplete = limited || counts.errors > 0`: any non-zero error count makes the result incomplete regardless of whether matches were found. It then prepends a `[search incomplete: \u2026]` warning to the answer text and returns `Err(answer)` for incomplete scans versus `Ok(answer)` for complete ones. The public `scout` compatibility function calls `scout_result` and flattens both `Ok` and `Err` to a plain `String`, discarding the status \u2014 this is the compatibility entry point that discards status. The `bounded_answer` helper ensures the warning prefix survives even when the display budget is zero, by preserving the `Err` variant with a `[truncated]` string.\"\n    },\n    {\n      \"path\": \"src/grep.rs\",\n      \"reason\": \"Classifies candidate outcomes for grep searches. The `Search::file` method calls `limits::read_regular_file` and distinguishes `ReadError::Io` (calls `self.report`, sets `self.failed = true`, emits a stderr message, continues) from `ReadError::Refused` (returns `Err`, aborting the whole run). After the scan, `grep::run` computes the exit code as: `2` when `s.failed` is true (at least one candidate was unreadable), `0` when matches were found with no failures, and `1` when the scan was complete but no matches exist. This is the POSIX grep distinction between 'no match' (exit 1) and 'error encountered' (exit 2), implemented without delegating to the real grep binary.\"\n    },\n    {\n      \"path\": \"src/mcp.rs\",\n      \"reason\": \"MCP front-end: translates `Result<String, String>` status into the MCP `isError` field. The `call` function passes `scout::scout_result` directly (not the compatibility `scout`), so `Err` from an incomplete scan reaches `respond`. There, `Ok(text)` maps to `{isError: false}` and `Err(error)` maps to `{isError: true}`. For the `run` tool, `run_one` appends `[exit code N]` to the text when `reply.code != 0` but always returns `isError: false` for non-zero exit codes from successful engine execution (only refusals set `isError: true` via `Err`). Multiple-command batches in `call` use `run_one` and always return `Ok`, so individual non-zero exit codes inside a batch are embedded as text, not propagated as MCP errors.\"\n    },\n    {\n      \"path\": \"src/main.rs\",\n      \"reason\": \"CLI front-end: translates `scout_result`'s `Result` into the process exit code. For `kiro scout`, `Ok` exits with `ExitCode::SUCCESS` (0) and `Err` exits with code 1 \u2014 a complete scan with no matches returns 0, an incomplete scan (any unreadable candidate) returns 1. For `kiro run`, it converts `reply.code` (which carries grep's 0/1/2 distinction) directly to the process exit code via `clamp(0, 255)`. This is the only path where grep's exit-code 2 (unreadable candidate) reaches the shell exit status.\"\n    },\n    {\n      \"path\": \"src/limits.rs\",\n      \"reason\": \"Defines the `ReadError` enum (`Io` vs `Refused`) that enables both `grep.rs` and `scout.rs` to distinguish I/O failures on candidates from policy refusals. `read_regular_file` returns `ReadError::Io` for permission-denied and other OS errors (which callers treat as unreadable candidates) and `ReadError::Refused` for non-regular files or oversized files (which callers treat as expected skips rather than failures).\"\n    }\n  ],\n  \"summary\": \"Status propagation works through two parallel pipelines. For scout: `search_file` in `scout.rs` returns the `FileSearch::Unreadable` variant for any I/O failure, which the scan loop counts in `ScanCounts::errors`. After the loop, `scout_result` sets `incomplete = limited || counts.errors > 0` \u2014 any unreadable candidate makes the result incomplete even if other files matched \u2014 prepends a warning, and returns `Err(answer)`. The CLI (`main.rs`) maps this `Err` to exit code 1; the MCP server (`mcp.rs`) maps it to `isError: true`. The public `scout` function collapses both variants to a plain `String`, discarding the status for callers that only need display text. For grep: `grep.rs` tracks `s.failed` when a file read fails, and `run` sets exit code 2 (vs. 1 for no-match, 0 for match) \u2014 the CLI propagates this code directly to the shell exit status, while the MCP `run` tool embeds it as `[exit code 2]` text without setting `isError`. The `ReadError::Io` vs `ReadError::Refused` split in `limits.rs` is what allows both subsystems to treat permission-denied as an unreadable candidate rather than a policy exclusion.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "terminal",
+      "rep": 5,
+      "wall_seconds": 71.98191016700002,
+      "model_seconds": 71.182,
+      "turns": 17,
+      "tokens": 345397,
+      "usage": {
+        "input_tokens": 19,
+        "cache_creation_input_tokens": 24536,
+        "cache_read_input_tokens": 317066,
+        "output_tokens": 3776,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 24536,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1236,
+            "cache_read_input_tokens": 33792,
+            "cache_creation_input_tokens": 1011,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 1011
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.2998478,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "src/engine.rs",
+        "src/grep.rs",
+        "src/main.rs",
+        "src/mcp.rs",
+        "src/scout.rs"
+      ],
+      "tools": {
+        "Bash": 16
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "Now I have a complete picture of the status propagation. Let me compose the JSON answer.\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"src/grep.rs\",\n      \"reason\": \"Classifies each candidate outcome by setting `s.failed = true` when a file cannot be read (permission denied, not found) via the `report` method, and `s.found` when a match is produced. The exit-code formula at line 1099 encodes the three-way distinction: code 2 when any file read failed (and quiet mode did not suppress it), code 0 when at least one match was found with no errors, and code 1 when the search was complete but nothing matched. This is the only place where I/O failures are promoted from a per-file error into the aggregate exit status.\"\n    },\n    {\n      \"path\": \"src/scout.rs\",\n      \"reason\": \"Defines the `FileSearch` enum (Skipped / Read(Option<FileHits>) / Unreadable) that distinguishes a successful negative result from a candidate that could not be examined. The `search_file` function returns `FileSearch::Unreadable` for any metadata or read failure, keeping it distinct from `FileSearch::Read(None)` (file read, term absent). In `scout_result`, each `Unreadable` increments `counts.errors`; `Err(())` from resource exhaustion sets `limited = true`. After scanning, `let incomplete = limited || counts.errors > 0` is the single gate: `Ok(answer)` signals a complete scan (including a true negative), `Err(answer)` signals an incomplete scan\u2014even when the display budget is zero and the text is truncated to empty. The `scout` compatibility wrapper discards the `Ok`/`Err` distinction by calling `unwrap_or_else`, making it unsuitable for status-aware consumers.\"\n    },\n    {\n      \"path\": \"src/engine.rs\",\n      \"reason\": \"Collects the `code` field from each pipeline stage (which originates from `grep::run`'s exit-code formula) into the `Reply` struct. `run_native` returns `Ok(Reply { code, .. })` for commands the engine covers, propagating the grep exit code (0/1/2) verbatim. `run` falls back to the real shell and surfaces the shell's exit status when the engine refuses a command. This is the layer that moves the per-command exit code from the grep/builtin layer to the two front ends.\"\n    },\n    {\n      \"path\": \"src/mcp.rs\",\n      \"reason\": \"Translates engine/scout status into the MCP error indicator. For a single `run` command, `run_one` calls `engine::run_native`; a non-zero exit code appends `[exit code N]` to the text but the tool result is still `isError: false` (the command ran, the exit code is surfaced in-band). A refused command (engine returns `Err`) yields `isError: true`. For `scout`, the `call` function passes `scout_result`'s `Ok`/`Err` directly through: `Ok` \u2192 `isError: false`, `Err` \u2192 `isError: true`, so an incomplete scan (any unreadable candidate) becomes an MCP error. When multiple commands are batched, `run_one`'s refused flag is ignored and all results are concatenated with `isError` always false.\"\n    },\n    {\n      \"path\": \"src/main.rs\",\n      \"reason\": \"CLI front end. For `kiro run`, the `Reply.code` from `engine::run` is passed directly to `ExitCode::from`, so grep's exit code 2 (read failure) reaches the shell exit status unchanged. For `kiro scout`, `scout_result`'s `Ok`/`Err` distinction maps to `ExitCode::SUCCESS` vs `ExitCode::from(1)`, making an incomplete scout visible as a non-zero shell exit status.\"\n    }\n  ],\n  \"summary\": \"Status propagation works in two parallel paths. For grep: `src/grep.rs` sets `s.failed` on any unreadable candidate and encodes it as exit code 2 (vs. 1 for no-matches, 0 for found); `src/engine.rs` carries that code in `Reply.code`; `src/main.rs` passes it to the OS exit status; `src/mcp.rs` appends `[exit code 2]` in-band while keeping `isError: false` (the command ran). For scout: `src/scout.rs` distinguishes `FileSearch::Unreadable` from `FileSearch::Read(None)`, accumulates `counts.errors`, and returns `Err(text)` from `scout_result` whenever any candidate was unreadable\u2014even when the display budget is zero\u2014while `Ok(text)` is reserved for a provably complete scan; `src/main.rs` maps this to exit status 1 and `src/mcp.rs` maps it to `isError: true`. The `scout` function in `src/scout.rs` is the compatibility entry point that collapses both variants to plain text, discarding the completeness status entirely.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "kiro",
+      "rep": 5,
+      "wall_seconds": 37.49946095800078,
+      "model_seconds": 36.775,
+      "turns": 4,
+      "tokens": 58545,
+      "usage": {
+        "input_tokens": 12,
+        "cache_creation_input_tokens": 8206,
+        "cache_read_input_tokens": 48239,
+        "output_tokens": 2088,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 8206,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 1292,
+            "cache_read_input_tokens": 14692,
+            "cache_creation_input_tokens": 4625,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 4625
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.0959507,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "fastify.js",
+        "lib/route.js",
+        "lib/server.js"
+      ],
+      "tools": {
+        "run": 2,
+        "scout": 1
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"Lines 408\u2013449: the `onClose` callback registered via `avvio.once('preReady')` owns the entire shutdown sequence. It (1) sets `fastify[kState].closing = true` and calls `router.closeRoutes()` to flip the route-level `closing` flag, (2) invokes `hookRunnerApplication('preClose', \u2026)` to run all preClose hooks before touching the server, then (3) inside that callback selects the connection-closing strategy: `closeIdleConnections()` when `forceCloseConnections === 'idle'`, `closeAllConnections()` when `serverHasCloseAllConnections && forceCloseConnections === true`, or the legacy tracked-socket loop (`for conn of fastify[kKeepAliveConnections]) conn.destroy()`) when `closeAllConnections` is unavailable, and finally calls `instance.server.close()` to stop accepting new TCP connections.\"\n    },\n    {\n      \"path\": \"lib/server.js\",\n      \"reason\": \"Lines 126\u2013148: capability detection at server-creation time. `serverHasCloseAllConnections` and `serverHasCloseIdleConnections` are set by feature-testing the Node.js `http.Server` instance. `forceCloseConnections` is normalised: if the user passed `'idle'` but the method is absent an `FST_ERR_FORCE_CLOSE_CONNECTIONS_IDLE_NOT_AVAILABLE` error is thrown immediately; if the user passed neither `true` nor `'idle'` it defaults to `'idle'` when available, otherwise `false`. `keepAliveConnections` is instantiated as a real `Set` only when `closeAllConnections` is absent and `forceCloseConnections === true` (the legacy path); otherwise it is a no-op set. These resolved values are returned and consumed by `fastify.js`. Lines 190\u2013208: secondary-server teardown (localhost dual-bind) mirrors the same `closeAllConnections` / `close` pattern on each secondary server after the main server's `close` event fires.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"Lines 87\u2013121: `closing` (boolean, module-level) and `return503OnClosing` (defaults to `true` if not explicitly set in options) are initialised during `setup()`. `closeRoutes()` (line 121) simply sets `closing = true` and is called by `fastify.js` before preClose hooks run. Lines 488\u2013513 (`routeHandler`): on every incoming HTTP/1 request while `closing === true`, the handler unconditionally sets the `Connection: close` response header (HTTP/2 is skipped). If `return503OnClosing` is `true` (the default) it immediately writes a 503 response with a JSON body and returns, discarding the full handler chain \u2014 this is the draining policy that covers pipelined and keep-alive requests that bypass `server.close()`/`closeIdleConnections()`. If `return503OnClosing` is `false` the request is processed normally but still receives `Connection: close`. Lines 514\u2013522: keep-alive socket tracking \u2014 every request whose `Connection: keep-alive` header arrives on a socket not yet in `keepAliveConnections` adds that socket and registers a `close` listener to remove it; this populates the set that the legacy `conn.destroy()` loop in `fastify.js` drains.\"\n    }\n  ],\n  \"summary\": \"Shutdown proceeds in this order: (1) `fastify.js` registers a single `onClose` handler (via avvio preReady). When `.close()` is called, that handler atomically marks the application closing (`kState.closing = true`) and flips the route-level `closing` flag via `router.closeRoutes()`, then runs all `preClose` hooks through `hookRunnerApplication`. (2) Inside the preClose completion callback, `fastify.js` selects the connection-closing strategy based on flags resolved at startup in `lib/server.js`: prefer `server.closeIdleConnections()` (`forceCloseConnections === 'idle'`), fall back to `server.closeAllConnections()` if available and `forceCloseConnections === true`, or as a last resort iterate the `keepAliveConnections` Set and call `conn.destroy()` on each tracked socket. `server.close()` is then called to stop new TCP accepts. (3) Requests that arrive on already-open keep-alive or pipelined connections after step 1 but before the TCP socket is reaped still reach `routeHandler` in `lib/route.js`. There, `closing === true` causes `Connection: close` to be set unconditionally on HTTP/1 responses. If `return503OnClosing` is `true` (the default, overridable per-instance) the request is short-circuited with a 503 immediately, never entering the hook/handler chain; if `false`, the request completes normally but the connection is still signalled for closure. The `lib/server.js` capability checks (run once at server creation) determine whether the modern `closeAllConnections`/`closeIdleConnections` API or the legacy tracked-Set fallback is used, and throw early if `'idle'` is requested on a Node.js version that lacks it.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "terminal",
+      "rep": 4,
+      "wall_seconds": 92.22709095800019,
+      "model_seconds": 91.386,
+      "turns": 22,
+      "tokens": 447436,
+      "usage": {
+        "input_tokens": 24,
+        "cache_creation_input_tokens": 20449,
+        "cache_read_input_tokens": 421664,
+        "output_tokens": 5299,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 20449,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1608,
+            "cache_read_input_tokens": 29762,
+            "cache_creation_input_tokens": 738,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 738
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.32958019999999993,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "src/engine.rs",
+        "src/grep.rs",
+        "src/limits.rs",
+        "src/main.rs",
+        "src/mcp.rs",
+        "src/scout.rs"
+      ],
+      "tools": {
+        "Bash": 21
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I now have a complete picture. Here is the answer:\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"src/scout.rs\",\n      \"reason\": \"Defines the `FileSearch` enum with three variants (`Skipped`, `Read(Option<FileHits>)`, `Unreadable`) that are the canonical classification of every candidate outcome. The `search_file` function assigns each file one of these variants: metadata failure or a failed `read_regular_file` call returns `Unreadable`; resource exhaustion returns `Err(())`; exclusions return `Skipped`; successful reads return `Read`. The `scout_result` public function accumulates `counts.errors` (incremented on every `Unreadable` variant) and sets `limited` on resource exhaustion. The flag `incomplete = limited || counts.errors > 0` is the single source of truth distinguishing a partial search from a complete one. When `incomplete` is true the answer text is prefixed with `[search incomplete: \u2026]` and the function returns `Err(text)`; a fully clean scan (zero errors, no limit hit) returns `Ok(text)`. The `bounded_answer` helper applies the display budget last, so the `Err`/`Ok` distinction is preserved even when the budget is zero \u2014 the status survives even if the text is fully truncated to `[truncated]`.\"\n    },\n    {\n      \"path\": \"src/grep.rs\",\n      \"reason\": \"Implements the in-process grep used by the `run` tool. The `Search` struct tracks two independent Boolean fields: `found` (at least one matching line) and `failed` (at least one unreadable candidate, set in the `report` method on any `ReadError::Io`). The exit code is computed at the end of `run`: code 2 when `failed && !(quiet && found)` (error \u2014 unreadable file), code 0 when `found` (match), code 1 otherwise (no match, clean). This three-way distinction (match / no-match / error) is put directly into `Output.code` and returned as `Ok(Output)`, keeping it separate from the `Err(reason)` path that signals the engine must fall back to the real `grep` binary.\"\n    },\n    {\n      \"path\": \"src/engine.rs\",\n      \"reason\": \"Wraps `grep::run` (and other builtins) and surfaces the result as a `Reply { stdout, stderr, code }`. It passes `grep::Output.code` through unchanged into `Reply.code`, so the grep three-way exit code (0/1/2) reaches callers without modification. The `run` function also calls `fallback` to execute the real binary when `run_native` returns `Err`, preserving the subprocess's own exit code.\"\n    },\n    {\n      \"path\": \"src/main.rs\",\n      \"reason\": \"CLI front-end for both `kiro run` and `kiro scout`. For `kiro run`, `Reply.code` is clamped to 0\u2013255 and passed directly to `ExitCode::from`, so grep's code 2 (unreadable file) surfaces as a non-zero shell exit status. For `kiro scout`, the `Ok`/`Err` from `scout_result` maps to `ExitCode::SUCCESS` (0) versus `ExitCode::from(1)`, so an incomplete search (any unreadable candidate) exits non-zero. In both cases the text is printed regardless of the status variant.\"\n    },\n    {\n      \"path\": \"src/mcp.rs\",\n      \"reason\": \"MCP front-end. For the `run` tool it calls `run_one`, which appends `[exit code N]` to the text when `reply.code != 0` but always returns `isError: false` for the MCP result (the refused boolean is false). The error/success distinction in MCP responses is driven by whether `run_one` returns the `refused=true` sentinel (engine refusal) not by the grep exit code. For the `scout` tool it calls `scout_result` directly and maps `Ok` to `isError: false` and `Err` to `isError: true`, so an unreadable candidate during a scout search sets the MCP `isError` flag to `true`. The compatibility shim `scout` (not used by MCP) calls `scout_result().unwrap_or_else(|text| text)`, discarding the `Err`/`Ok` distinction entirely.\"\n    },\n    {\n      \"path\": \"src/limits.rs\",\n      \"reason\": \"Defines `ReadError` (the two variants `Io` and `Refused`) returned by `read_regular_file`. `scout.rs`'s `search_file` and `grep.rs`'s `Search::scan` both pattern-match on these variants: `ReadError::Io` in grep sets `failed=true` (counts as unreadable, produces stderr + exit code 2) while `ReadError::Refused` in grep causes the whole engine call to return `Err` (fall back to real binary). In scout both variants result in `FileSearch::Unreadable`. The `ReadError` split is therefore the foundational classification that determines whether an I/O problem is a recoverable partial result or an unsupported operation.\"\n    }\n  ],\n  \"summary\": \"Status propagation works in two layers. For grep (the `run` tool): `limits::ReadError` distinguishes I/O failures from unsupported operations; `grep.rs` accumulates the `failed` flag on I/O errors and encodes the three-way POSIX exit code (0 match / 1 no-match / 2 error) into `Output.code`; `engine.rs` passes that code through as `Reply.code`; `main.rs` forwards it as the shell exit status; `mcp.rs` appends it as `[exit code 2]` text in the MCP content but does not set `isError` for the run tool. For scout: `scout.rs`'s `FileSearch::Unreadable` variant (returned when `read_regular_file` fails) increments `counts.errors`; at the end of `scout_result`, `incomplete = limited || counts.errors > 0` is the single predicate that selects `Err(text)` vs `Ok(text)` \u2014 this distinction is preserved by `bounded_answer` even at zero budget (minimum text is `[truncated]`, but the `Err`/`Ok` wrapper is set before truncation); `main.rs` maps `Err` to exit code 1; `mcp.rs` maps `Err` to `isError: true`. The public `scout` function (the compatibility shim) erases this distinction by collapsing both variants to plain text.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "terminal",
+      "rep": 5,
+      "wall_seconds": 51.09972637500141,
+      "model_seconds": 50.303,
+      "turns": 14,
+      "tokens": 187216,
+      "usage": {
+        "input_tokens": 11,
+        "cache_creation_input_tokens": 17602,
+        "cache_read_input_tokens": 166389,
+        "output_tokens": 3214,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 17602,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1108,
+            "cache_read_input_tokens": 26878,
+            "cache_creation_input_tokens": 915,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 915
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.20465870000000003,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 3,
+      "required_paths_total": 3,
+      "returned_files": [
+        "fastify.js",
+        "lib/noop-set.js",
+        "lib/route.js",
+        "lib/server.js"
+      ],
+      "tools": {
+        "Bash": 13
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "```json\n{\n  \"files\": [\n    {\n      \"path\": \"lib/server.js\",\n      \"reason\": \"createServer() detects capability flags at startup: serverHasCloseAllConnections (typeof server.closeAllConnections === 'function'), serverHasCloseIdleConnections, serverHasCloseHttp2Sessions. It resolves the final forceCloseConnections value \u2014 defaulting to 'idle' when closeIdleConnections is present, throwing FST_ERR_FORCE_CLOSE_CONNECTIONS_IDLE_NOT_AVAILABLE when 'idle' is requested but unavailable. It allocates keepAliveConnections as a real Set only when closeAllConnections is absent and forceCloseConnections === true; otherwise it assigns a noopSet. These resolved values are returned to fastify.js for use in the close path.\"\n    },\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"In the avvio 'preReady' hook, registers the onClose callback that orchestrates the entire shutdown sequence: (1) sets fastify[kState].closing = true and calls router.closeRoutes() to flip the closing flag checked on every incoming request; (2) calls hookRunnerApplication('preClose', ...) which runs all registered preClose hooks before any server teardown begins; (3) after preClose completes, selects connection teardown based on forceCloseConnections and capability flags: calls server.closeIdleConnections() for 'idle', server.closeAllConnections() for true + serverHasCloseAllConnections, or iterates fastify[kKeepAliveConnections] calling conn.destroy() for the legacy fallback; (4) calls server.closeHttp2Sessions() if present; (5) finally calls server.close() to stop accepting new TCP connections and waits for in-flight requests to drain.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"routeHandler() is the hot path where the draining policy is enforced per-request. When closing === true (set by closeRoutes()): for HTTP/1 requests (req.httpVersionMajor !== 2) it unconditionally sets the 'Connection: close' response header; then, if return503OnClosing is true (default), it immediately responds with HTTP 503 and exits, discarding the handler chain. If return503OnClosing is false, the request proceeds normally but still carries Connection: close. The return503OnClosing option is read from options in setup() defaulting to true when not explicitly provided. For keep-alive socket tracking: if the request header is 'keep-alive' and closeAllConnections is unavailable (forceCloseConnections === true legacy path), the socket is added to keepAliveConnections and a 'close' event listener (removeTrackedSocket) is attached to remove it on natural closure.\"\n    },\n    {\n      \"path\": \"lib/noop-set.js\",\n      \"reason\": \"Returns a no-op object with the same Set interface (add, has, delete, forEach, [Symbol.iterator]) whose methods do nothing and return no items. Used as the keepAliveConnections container on Node.js versions where closeAllConnections is available, so socket tracking incurs zero overhead in that case.\"\n    }\n  ],\n  \"summary\": \"Shutdown proceeds in this order: (1) fastify.js registers a single onClose handler during 'preReady'. When fastify.close() is called, that handler immediately sets kState.closing=true and calls router.closeRoutes(), which flips a module-scoped closing boolean in route.js so every subsequent incoming HTTP/1 request gets Connection: close (and an immediate 503 if return503OnClosing is true, which is the default). (2) Still inside that onClose handler, hookRunnerApplication('preClose') runs all user-registered preClose hooks synchronously in plugin order before any connection teardown is attempted. (3) After preClose completes, the teardown strategy is selected based on capability flags resolved at startup in lib/server.js: if forceCloseConnections === 'idle' and closeIdleConnections exists, idle sockets are closed; if forceCloseConnections === true and closeAllConnections exists (Node \u2265 18.2), all connections are force-closed; otherwise (legacy path), only sockets that sent Connection: keep-alive and were tracked in the real Set allocated in lib/server.js are explicitly destroyed. (4) server.close() is called to stop accepting new TCP connections; it resolves once all tracked requests finish or are force-closed. The 503-on-closing policy in route.js ensures that keep-alive or pipelined requests arriving during the drain window are shed before they reach any route handler.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "kiro",
+      "rep": 5,
+      "wall_seconds": 33.52978154199991,
+      "model_seconds": 32.636,
+      "turns": 5,
+      "tokens": 93871,
+      "usage": {
+        "input_tokens": 15,
+        "cache_creation_input_tokens": 14570,
+        "cache_read_input_tokens": 77272,
+        "output_tokens": 2014,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 14570,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 3,
+            "output_tokens": 985,
+            "cache_read_input_tokens": 22850,
+            "cache_creation_input_tokens": 2626,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 2626
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.1417196,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 5,
+      "required_paths_total": 5,
+      "returned_files": [
+        "fastify.js",
+        "lib/context.js",
+        "lib/handle-request.js",
+        "lib/route.js",
+        "lib/validation.js"
+      ],
+      "tools": {
+        "run": 3,
+        "scout": 1
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have all the information needed. Here is the result:\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"lib/context.js\",\n      \"reason\": \"Context constructor (line 70-73) resolves schemaErrorFormatter with the three-level priority: route-level opts.schemaErrorFormatter \u2192 instance-level server[kSchemaErrorFormatter] \u2192 defaultSchemaErrorFormatter. defaultSchemaErrorFormatter (line 85-93) is defined here: it concatenates Ajv error messages into a single string and returns a new FST_ERR_VALIDATION instance.\"\n    },\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"Public instance customization entry points: the 'schemaErrorFormatter' constructor option (line 371-373) and the fastify.setSchemaErrorFormatter() method (line 766-770). Both validate the formatter via validateSchemaErrorFormatter (line 1020-1024, which rejects async functions and non-functions) and store the bound function on fastify[kSchemaErrorFormatter]. The instance-level slot is initialized to null (line 177).\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"addNewRoute (line 293) defaults opts.attachValidation to false when absent. Context is first constructed with opts.schemaErrorFormatter (line 350); then in the after() callback (line 390-391) the final schemaErrorFormatter is re-resolved as opts.schemaErrorFormatter || this[kSchemaErrorFormatter] || context.schemaErrorFormatter, applying the same priority after plugin encapsulation is complete.\"\n    },\n    {\n      \"path\": \"lib/validation.js\",\n      \"reason\": \"wrapValidationError (line 508-521) normalizes every validation failure: if the result is already an Error it fills in statusCode=400 and code='FST_ERR_VALIDATION' only if absent, then sets validationContext. For non-Error results it calls schemaErrorFormatter(result, dataVar), then unconditionally sets statusCode=400 (if not already set), code='FST_ERR_VALIDATION' (if not already set), attaches the raw errors array as error.validation, and sets error.validationContext to the failing part name ('body', 'params', 'querystring', or 'headers'). validate() (line 398) calls this for each request part in order: params \u2192 body \u2192 querystring \u2192 headers, stopping at the first failure.\"\n    },\n    {\n      \"path\": \"lib/handle-request.js\",\n      \"reason\": \"validationCompleted (line 126-140) is the attachValidation decision point. If validationErr is truthy and context.attachValidation === false (the default), it calls reply.send(validationErr) immediately, terminating the request with a 400 error response before preHandler or the route handler run. If context.attachValidation is true, it instead assigns the error to reply.request.validationError and continues to the preHandler hook runner and then the route handler.\"\n    }\n  ],\n  \"summary\": \"When a request body (or any part) fails schema validation, the flow is: (1) validate() in lib/validation.js runs the compiled validator; on failure wrapValidationError builds a normalized error with statusCode=400, code='FST_ERR_VALIDATION', error.validation (raw Ajv errors), and error.validationContext (the failing part name). The error message is produced by schemaErrorFormatter, resolved in priority order \u2014 route-level opts.schemaErrorFormatter \u2192 instance-level fastify[kSchemaErrorFormatter] (set via setSchemaErrorFormatter() or the constructor option in fastify.js) \u2192 defaultSchemaErrorFormatter defined in lib/context.js, which joins Ajv messages into a plain string. (2) Control returns to validationCompleted in lib/handle-request.js, which checks context.attachValidation (defaulted to false in lib/route.js): if false (default) the error is sent immediately via reply.send(), short-circuiting preHandler and the route handler; if true the error is attached as request.validationError and execution continues normally to preHandler and the route handler.\"\n}\n```",
+      "errors": []
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "terminal",
+      "rep": 5,
+      "wall_seconds": 35.706250417000774,
+      "model_seconds": 34.934,
+      "turns": 9,
+      "tokens": 99127,
+      "usage": {
+        "input_tokens": 9,
+        "cache_creation_input_tokens": 5816,
+        "cache_read_input_tokens": 91289,
+        "output_tokens": 2013,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 5816,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "global",
+        "iterations": [
+          {
+            "input_tokens": 1,
+            "output_tokens": 1092,
+            "cache_read_input_tokens": 15630,
+            "cache_creation_input_tokens": 368,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 368
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "standard"
+      },
+      "cost_usd": 0.0933677,
+      "complete": true,
+      "parsed_answer": true,
+      "expected_paths_mentioned": true,
+      "required_paths_found": 5,
+      "required_paths_total": 5,
+      "returned_files": [
+        "fastify.js",
+        "lib/context.js",
+        "lib/errors.js",
+        "lib/handle-request.js",
+        "lib/route.js",
+        "lib/validation.js"
+      ],
+      "tools": {
+        "Bash": 8
+      },
+      "kiro_refusals": 0,
+      "permission_denials": 0,
+      "model": "claude-sonnet-4-6",
+      "returncode": 0,
+      "timed_out": false,
+      "answer": "I have enough information to construct the precise answer.\n\n```json\n{\n  \"files\": [\n    {\n      \"path\": \"fastify.js\",\n      \"reason\": \"Public instance customization entry point: `setSchemaErrorFormatter` (line 766\u2013769) sets `this[kSchemaErrorFormatter]` after validating the formatter is a synchronous function; `options.schemaErrorFormatter` passed at construction (line 371\u2013373) also sets `this[kSchemaErrorFormatter]`. Both bind the formatter to the Fastify instance. `validateSchemaErrorFormatter` (line 1020\u20131023) enforces the synchronous-only constraint.\"\n    },\n    {\n      \"path\": \"lib/context.js\",\n      \"reason\": \"Priority resolution for schemaErrorFormatter (line 70\u201373): route-level `opts.schemaErrorFormatter` \u2192 instance-level `server[kSchemaErrorFormatter]` \u2192 built-in `defaultSchemaErrorFormatter`. `defaultSchemaErrorFormatter` (line 85\u201393) is the ultimate fallback: it concatenates AJV error messages and returns a `new FST_ERR_VALIDATION(text)`, which carries HTTP status 400 by default.\"\n    },\n    {\n      \"path\": \"lib/route.js\",\n      \"reason\": \"Route-registration logic: `opts.attachValidation` defaults to `false` (line 293\u2013294). After the plugin's `after` hook fires (line 388\u2013391) it re-resolves `context.schemaErrorFormatter` as `opts.schemaErrorFormatter || this[kSchemaErrorFormatter] || context.schemaErrorFormatter`, giving route-level precedence over instance-level and over whatever was set in the Context constructor.\"\n    },\n    {\n      \"path\": \"lib/validation.js\",\n      \"reason\": \"`wrapValidationError` (line 508\u2013523): converts a raw AJV result or existing Error into the canonical validation-error shape. Sets `statusCode = statusCode || 400`, `code = code || 'FST_ERR_VALIDATION'`, attaches the raw AJV array as `error.validation`, and sets `error.validationContext` to the data location ('body', 'querystring', 'params', 'headers'). Calls `schemaErrorFormatter(result, dataVar)` from `context.schemaErrorFormatter`.\"\n    },\n    {\n      \"path\": \"lib/handle-request.js\",\n      \"reason\": \"`validationCompleted` (line 128\u2013137): sole decision point for `attachValidation`. When `attachValidation === false` (the default) it calls `reply.send(validationErr)` immediately, short-circuiting preHandler and the route handler. When `attachValidation === true` it sets `request.validationError = validationErr` and continues to the preHandler hook runner, letting the route handler inspect or ignore the error.\"\n    },\n    {\n      \"path\": \"lib/errors.js\",\n      \"reason\": \"`FST_ERR_VALIDATION` definition (line 56\u201359): declared via `createRequestError` with HTTP status 400 and a `'%s'` message template. This is the concrete Error subclass instantiated by `defaultSchemaErrorFormatter` and used as the fallback code/status in `wrapValidationError`.\"\n    }\n  ],\n  \"summary\": \"When a request body (or params/query/headers) fails schema validation, `lib/validation.js:wrapValidationError` normalises the AJV result into an Error with `statusCode=400`, `code='FST_ERR_VALIDATION'`, `error.validation` (the raw AJV array), and `error.validationContext` (the data location). The formatter called to build that Error is resolved in priority order inside `lib/context.js` (Context constructor) and re-confirmed in `lib/route.js` (after-hook): route-level `schemaErrorFormatter` wins, then the instance-level value stored by `fastify.js:setSchemaErrorFormatter` / constructor option, then the built-in `defaultSchemaErrorFormatter` in `lib/context.js` which concatenates AJV messages and returns `new FST_ERR_VALIDATION(text)`. After validation, `lib/handle-request.js:validationCompleted` reads `context.attachValidation` (default `false`, set in `lib/route.js`): if false it calls `reply.send(err)` immediately, bypassing preHandler and the route handler entirely; if true it stores the error on `request.validationError` and proceeds normally through preHandler into the route handler.\"\n}\n```",
+      "errors": []
+    }
+  ]
+}
