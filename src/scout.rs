@@ -4,11 +4,12 @@
 //! picture of the code: grep a word, list a directory, grep another word, read a passage.
 //! Each of those round trips re-reads the whole conversation. Scout does that exploration in
 //! one go, with no model involved: the agent gives the words it cares about, and gets back
-//! the files that mention them, the matching lines, and the function each line sits in.
+//! the files that mention them, the matching lines, and nearby declaration context.
 //!
 //! It is a text search and says so in its answer: code that does the same thing without the
 //! words is not listed.
 
+use crate::syntax;
 use regex::bytes::{Regex, RegexBuilder, RegexSet, RegexSetBuilder};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -33,6 +34,11 @@ const MAX_ANSWER_BYTES: usize = 64 * 1024;
 /// Bounds for references returned independently of the text display budget.
 const MAX_MATCH_RECORDS: usize = 4096;
 const MAX_METADATA_BYTES: usize = 256 * 1024;
+const MAX_STRUCTURE_FILES: usize = 256;
+const MAX_SYNTAX_INPUT: usize = 4 * 1024 * 1024;
+const MAX_SYNTAX_RETAINED: usize = 2 * 1024 * 1024;
+const MAX_SYNTAX_TIME: Duration = Duration::from_secs(2);
+const MAX_SIGNATURE_LINES: usize = 8;
 const GIT_TIMEOUT: Duration = Duration::from_secs(2);
 /// Matching lines shown for a detailed file, and for a previewed one.
 const LINES_PER_FILE: usize = 14;
@@ -128,6 +134,17 @@ pub struct ScoutMatch {
     pub term_indices: Vec<usize>,
 }
 
+/// Syntax evidence is deduplicated by file. Definitions contain at least one matching
+/// line; they are syntactic ranges, not resolved references or unique match ownership.
+#[derive(Debug)]
+pub struct ScoutFileStructure {
+    pub path: String,
+    pub language: Option<&'static str>,
+    pub status: syntax::Status,
+    pub definitions: Vec<syntax::Scope>,
+    pub definitions_truncated: bool,
+}
+
 /// A bounded machine-readable view of Scout, independent of presentation. `reason` and
 /// counts survive even a zero-byte text budget. `metadata_truncated` means that `matches`
 /// omits references; `display_truncated` means the rendered text exceeded its byte budget.
@@ -142,6 +159,8 @@ pub struct ScoutReport {
     pub matches: Vec<ScoutMatch>,
     pub metadata_truncated: bool,
     pub display_truncated: bool,
+    pub structure: Vec<ScoutFileStructure>,
+    pub structure_truncated: bool,
 }
 
 impl ScoutReport {
@@ -156,6 +175,8 @@ impl ScoutReport {
             matches: Vec::new(),
             metadata_truncated: false,
             display_truncated,
+            structure: Vec::new(),
+            structure_truncated: false,
         }
     }
 }
@@ -169,7 +190,11 @@ struct MatchReferences {
 }
 
 impl MatchReferences {
-    fn add(&mut self, file: &FileHits) {
+    fn allocated_bytes(&self) -> usize {
+        self.matches.capacity() * std::mem::size_of::<ScoutMatch>() + self.owned_bytes
+    }
+
+    fn add(&mut self, file: &FileHits, budget: usize) {
         for hit in &file.hits {
             if self.truncated {
                 break;
@@ -186,14 +211,25 @@ impl MatchReferences {
                 self.matches.capacity()
             };
             if self.matches.len() == MAX_MATCH_RECORDS
-                || capacity * std::mem::size_of::<ScoutMatch>() + self.owned_bytes + owned
-                    > MAX_METADATA_BYTES
+                || capacity * std::mem::size_of::<ScoutMatch>() + self.owned_bytes + owned > budget
             {
                 self.truncated = true;
                 break;
             }
             if capacity > self.matches.capacity() {
-                self.matches.reserve_exact(capacity - self.matches.len());
+                if self
+                    .matches
+                    .try_reserve_exact(capacity - self.matches.len())
+                    .is_err()
+                {
+                    self.truncated = true;
+                    break;
+                }
+                if self.allocated_bytes() + owned > budget {
+                    self.matches.shrink_to_fit();
+                    self.truncated = true;
+                    break;
+                }
             }
             let mut term_indices = Vec::with_capacity(hit.terms.count_ones() as usize);
             for term in 0..MAX_TERMS {
@@ -211,6 +247,162 @@ impl MatchReferences {
     }
 }
 
+#[derive(Default)]
+struct StructureReferences {
+    files: Vec<ScoutFileStructure>,
+    owned_bytes: usize,
+    truncated: bool,
+}
+
+impl StructureReferences {
+    fn allocated_bytes(&self) -> usize {
+        self.files.capacity() * std::mem::size_of::<ScoutFileStructure>() + self.owned_bytes
+    }
+
+    fn add(&mut self, file: &FileHits, budget: usize) {
+        if self.truncated {
+            return;
+        }
+        let capacity = if self.files.len() == self.files.capacity() {
+            self.files
+                .capacity()
+                .max(4)
+                .saturating_mul(2)
+                .min(MAX_STRUCTURE_FILES)
+        } else {
+            self.files.capacity()
+        };
+        let base = capacity * std::mem::size_of::<ScoutFileStructure>() + self.owned_bytes;
+        if self.files.len() == MAX_STRUCTURE_FILES || base + file.path.len() > budget {
+            self.truncated = true;
+            return;
+        }
+        if capacity > self.files.capacity()
+            && self
+                .files
+                .try_reserve_exact(capacity - self.files.len())
+                .is_err()
+        {
+            self.truncated = true;
+            return;
+        }
+        let path = file.path.clone();
+        let mut definitions: Vec<syntax::Scope> = Vec::new();
+        let mut names = 0;
+        let mut omitted = false;
+        for scope in &file.syntax.scopes {
+            let at = file
+                .hits
+                .partition_point(|hit| hit.line + 1 < scope.start_line);
+            if file
+                .hits
+                .get(at)
+                .is_none_or(|hit| hit.line >= scope.end_line)
+            {
+                continue;
+            }
+            let capacity = if definitions.len() == definitions.capacity() {
+                definitions.capacity().max(4).saturating_mul(2)
+            } else {
+                definitions.capacity()
+            };
+            let name = scope.name.as_ref().map_or(0, String::len);
+            if self.allocated_bytes()
+                + path.capacity()
+                + capacity * std::mem::size_of::<syntax::Scope>()
+                + names
+                + name
+                > budget
+            {
+                omitted = true;
+                break;
+            }
+            if capacity > definitions.capacity()
+                && definitions
+                    .try_reserve_exact(capacity - definitions.len())
+                    .is_err()
+            {
+                omitted = true;
+                break;
+            }
+            let copy = scope.clone();
+            let actual_name = copy.name.as_ref().map_or(0, String::capacity);
+            if self.allocated_bytes()
+                + path.capacity()
+                + definitions.capacity() * std::mem::size_of::<syntax::Scope>()
+                + names
+                + actual_name
+                > budget
+            {
+                omitted = true;
+                break;
+            }
+            names += actual_name;
+            definitions.push(copy);
+        }
+        let owned =
+            path.capacity() + definitions.capacity() * std::mem::size_of::<syntax::Scope>() + names;
+        if self.allocated_bytes() + owned > budget {
+            self.truncated = true;
+            self.files.shrink_to_fit();
+            return;
+        }
+        self.files.push(ScoutFileStructure {
+            path,
+            language: file.syntax.language,
+            status: file.syntax.status,
+            definitions,
+            definitions_truncated: omitted,
+        });
+        self.owned_bytes += owned;
+        self.truncated |= omitted;
+    }
+}
+
+/// Optional syntax work has independent bounds and never consumes the lexical scan's
+/// input/retention budget or converts a complete text search into a failed search.
+#[derive(Default)]
+struct SyntaxBudget {
+    files: usize,
+    bytes: usize,
+    elapsed: Duration,
+    retained: usize,
+}
+
+impl SyntaxBudget {
+    fn analyze(&mut self, path: &str, bytes: &[u8]) -> syntax::Analysis {
+        let language = syntax::language_name(path);
+        let unavailable = |status| syntax::Analysis {
+            language,
+            status,
+            scopes: Vec::new(),
+        };
+        if language.is_none() {
+            return unavailable(syntax::Status::Unsupported);
+        }
+        let Ok(source) = std::str::from_utf8(bytes) else {
+            return unavailable(syntax::Status::InvalidUtf8);
+        };
+        if self.files == MAX_STRUCTURE_FILES
+            || self.bytes + bytes.len() > MAX_SYNTAX_INPUT
+            || self.elapsed >= MAX_SYNTAX_TIME
+        {
+            return unavailable(syntax::Status::Limited);
+        }
+        self.files += 1;
+        self.bytes += bytes.len();
+        let started = Instant::now();
+        let mut analysis = syntax::analyze(path, source, MAX_SYNTAX_TIME - self.elapsed);
+        self.elapsed += started.elapsed();
+        if analysis.allocated_bytes() > MAX_SYNTAX_RETAINED - self.retained {
+            analysis.scopes = Vec::new();
+            analysis.status = syntax::Status::Limited;
+        }
+        self.retained += analysis.allocated_bytes();
+        analysis
+    }
+}
+
 /// A line that contains at least one term.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Hit {
@@ -225,6 +417,7 @@ struct FileHits {
     path: String,
     content: Vec<String>,
     hits: Vec<Hit>,
+    syntax: syntax::Analysis,
 }
 
 /// How much each term, line and file is worth.
@@ -484,6 +677,7 @@ fn search_file(
     path: &str,
     terms: &RegexSet,
     remaining_input: &mut usize,
+    syntax_budget: &mut SyntaxBudget,
 ) -> Result<FileSearch, ()> {
     if is_skipped(path) {
         return Ok(FileSearch::Skipped);
@@ -537,6 +731,7 @@ fn search_file(
         path: path.to_string(),
         content,
         hits,
+        syntax: syntax_budget.analyze(path, &bytes),
     })))
 }
 
@@ -686,10 +881,32 @@ fn write_lines(
         if last_written.is_some_and(|written| hit.line <= written) {
             continue;
         }
-        if let Some(header) = enclosing(&file.content, hit.line) {
-            if last_header != Some(header) && last_written.is_none_or(|written| header > written) {
-                let text = clipped(&file.content[header], preview);
-                out.push_str(&format!("{:>5}  {}\n", header + 1, text));
+        let scope = file.syntax.enclosing(hit.line + 1);
+        let header = scope.map(|scope| scope.start_line - 1).or_else(|| {
+            (file.syntax.status != syntax::Status::Parsed)
+                .then(|| enclosing(&file.content, hit.line))
+                .flatten()
+        });
+        if let Some(header) = header {
+            if last_header != Some(header) && header < hit.line {
+                let end = scope
+                    .map_or(header, |scope| scope.header_end_line.saturating_sub(1))
+                    .min(hit.line - 1)
+                    .min(file.content.len() - 1);
+                let start = header.max(last_written.map_or(0, |line| line + 1));
+                let shown_end = end.min(start.saturating_add(MAX_SIGNATURE_LINES - 1));
+                for line in start..=shown_end {
+                    let mark = if matching.contains(&line) { ':' } else { ' ' };
+                    let text = clipped(&file.content[line], preview);
+                    out.push_str(&format!("{:>5}{mark} {text}\n", line + 1));
+                }
+                if shown_end < end {
+                    out.push_str(&format!(
+                        "       … [signature abbreviated; read lines {}-{}]\n",
+                        header + 1,
+                        end + 1
+                    ));
+                }
             }
             last_header = Some(header);
         }
@@ -707,6 +924,25 @@ fn write_lines(
             let text = clipped(&file.content[next], preview);
             out.push_str(&format!("{:>5}{} {}\n", next + 1, mark, text));
             last_written = Some(next);
+        }
+    }
+}
+
+fn structure_notice(analysis: &syntax::Analysis) -> String {
+    let language = analysis.language.unwrap_or("unknown");
+    match analysis.status {
+        syntax::Status::Parsed => format!("[structure: Tree-sitter {language}; parsed]\n"),
+        syntax::Status::Partial => format!(
+            "[structure: Tree-sitter {language}; partial syntax; lexical heuristic where needed]\n"
+        ),
+        syntax::Status::Limited => format!(
+            "[structure: Tree-sitter {language}; limited; lexical heuristic where needed]\n"
+        ),
+        syntax::Status::Unsupported => {
+            "[structure: unsupported language; lexical heuristic]\n".to_string()
+        }
+        syntax::Status::InvalidUtf8 => {
+            "[structure: invalid UTF-8; lexical heuristic]\n".to_string()
         }
     }
 }
@@ -744,7 +980,7 @@ fn render(
         ));
     }
     out.push_str(
-        "Lines marked `N:` match; lines marked `N ` are the block they sit in or the rest of the statement.\n\
+        "Lines marked `N:` match; lines marked `N ` show nearby declaration or statement context.\n\
          This is a text search: code that does the same thing without these words is not listed. Look at every file below before concluding.\n",
     );
 
@@ -757,6 +993,7 @@ fn render(
             file.content.len(),
             file.hits.len()
         );
+        section.push_str(&structure_notice(&file.syntax));
         let best = scores.best_lines(file, LINES_PER_FILE);
         write_lines(file, &best, CONTINUATION_LINES, preview, &mut section);
         if file.hits.len() > best.len() {
@@ -793,6 +1030,7 @@ fn render(
     let mut previewed = 0;
     for file in rest {
         let mut entry = format!("# {} ({} matching)\n", file.path, file.hits.len());
+        entry.push_str(&structure_notice(&file.syntax));
         let best = scores.best_lines(file, LINES_PER_PREVIEW);
         write_lines(file, &best, CONTINUATION_LINES - 1, preview, &mut entry);
         if out.len() + entry.len() > budget {
@@ -904,12 +1142,14 @@ pub fn scout_report(dir: &Path, request: &Request) -> ScoutReport {
         ..ScoutCounts::default()
     };
     let mut references = MatchReferences::default();
+    let mut structure = StructureReferences::default();
+    let mut syntax_budget = SyntaxBudget::default();
     let mut failed_paths = Vec::new();
     let mut remaining_input = crate::limits::MAX_INPUT_BYTES;
     let mut retained = 0;
     let mut limited = candidates.truncated;
     for path in &candidates.paths {
-        let hit = match search_file(dir, path, &set, &mut remaining_input) {
+        let hit = match search_file(dir, path, &set, &mut remaining_input, &mut syntax_budget) {
             Ok(FileSearch::Read(hit)) => {
                 counts.read += 1;
                 hit
@@ -937,7 +1177,14 @@ pub fn scout_report(dir: &Path, request: &Request) -> ScoutReport {
         if let Some(hit) = hit {
             counts.matching_files += 1;
             counts.matching_lines += hit.hits.len();
-            references.add(&hit);
+            structure.add(
+                &hit,
+                MAX_METADATA_BYTES.saturating_sub(references.allocated_bytes()),
+            );
+            references.add(
+                &hit,
+                MAX_METADATA_BYTES.saturating_sub(structure.allocated_bytes()),
+            );
             let bytes = retained_bytes(&hit);
             if bytes > MAX_RETAINED_BYTES - retained {
                 limited = true;
@@ -995,6 +1242,8 @@ pub fn scout_report(dir: &Path, request: &Request) -> ScoutReport {
         matches: references.matches,
         metadata_truncated: references.truncated,
         display_truncated,
+        structure: structure.files,
+        structure_truncated: structure.truncated,
     }
 }
 

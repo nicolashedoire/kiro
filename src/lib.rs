@@ -22,3 +22,4 @@ mod limits;
 pub mod mcp;
 pub mod scout;
 pub mod shell;
+pub mod syntax;

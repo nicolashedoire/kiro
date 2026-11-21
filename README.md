@@ -32,8 +32,11 @@ agent already writes (`grep`, `sed -n`, `cat`, …) and removes what sits behind
   against the system tools.
   Several commands fit in one call, so one round trip brings back several answers.
 - **`scout`: the map of an area of the code in one call.** Give it the words you care about;
-  it returns the files that mention them, ranked, with the matching lines and the function
-  each one sits in. It replaces the dozen searches an agent usually starts with.
+  it returns the files that mention them, ranked, with matching lines and declaration
+  context. Tree-sitter identifies functions, methods, classes and types in Rust,
+  JavaScript/JSX and TypeScript/TSX, including multiline signatures and configuration
+  bindings. Other files keep an
+  explicitly marked lexical heuristic. Structured results include exact source ranges.
 - **An MCP server** that gives both to an agent such as Claude Code.
 
 Three rules hold it together:
@@ -91,7 +94,8 @@ method, limitations and reproduction commands are in [docs/benchmarks.md](docs/b
 
 ## Install
 
-Requires a Rust toolchain ([rustup.rs](https://rustup.rs)).
+Requires Rust **1.90 or newer** ([rustup.rs](https://rustup.rs)) and a C compiler for the
+bundled Tree-sitter grammars (the macOS Command Line Tools provide one).
 
 ```sh
 cargo install --git https://github.com/nicolashedoire/kiro
@@ -213,6 +217,8 @@ inside batches. Search records come directly from grep, with paths, line numbers
 offsets into the original stdout. `scout` exposes completion status, scan counts and direct
 match references even when its text budget is zero. Each tool advertises an `outputSchema`.
 See the [structured result contract and examples](docs/structured-results.md).
+Scout's schema version is now **2**, adding deduplicated per-file syntax information;
+`run` retains schema version 1.
 
 ## Limits
 
@@ -239,14 +245,17 @@ See the [structured result contract and examples](docs/structured-results.md).
   counted as successfully read. An incomplete scan returns CLI exit status 1 or MCP
   `isError: true`, while retaining any partial answer. This status is preserved even with
   a zero-sized answer budget. Long-line previews show a match window and mark omissions.
-  Grep and Scout metadata are independently capped at 4,096 records and 256 KiB of retained
-  allocations each; omitted references are explicitly flagged, without truncating native
-  stdout or changing a completed Scout scan into a failed one.
+  Grep metadata is capped at 4,096 records and 256 KiB. Scout shares 256 KiB between match
+  references and syntax evidence, with at most 4,096 references and 256 structure entries;
+  omissions are explicitly flagged. Syntax work is separately bounded to 256 matching
+  supported files, 4 MiB of source, two seconds of cooperative analysis time and 2 MiB of
+  retained scopes per call. Reaching a syntax limit preserves the lexical results.
 - **Small evidence.** The historical live comparison is one code base, three search tasks,
   one model and five sessions per cell. No current general speedup is claimed.
 - **A text search.** `scout` finds words. Code that does the same thing without the words is
-  not listed; on the hardest of the three tasks the agent still missed one location in two
-  sessions out of five (four out of five without kiro).
+  not listed. Syntax ranges describe declarations, not resolved symbol references or a
+  semantic call graph. Partial, unsupported, non-UTF-8 and limited analyses use an explicit
+  heuristic fallback. Current AI-session figures predate the Tree-sitter integration.
 - **Coverage.** The supported subset is deliberately conservative. Other commands still
   need the regular shell; historical coverage figures do not describe the current version.
 

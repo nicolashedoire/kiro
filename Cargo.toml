@@ -2,6 +2,7 @@
 name = "kiro"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.90"
 description = "A terminal engine for AI coding agents: same commands, no shell, fewer round trips"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/nicolashedoire/kiro"
@@ -12,6 +13,10 @@ categories = ["command-line-utilities", "development-tools"]
 [dependencies]
 regex = "1"
 serde_json = "1"
+tree-sitter = "0.27.2"
+tree-sitter-javascript = "0.25.0"
+tree-sitter-rust = "0.24.2"
+tree-sitter-typescript = "0.23.2"
 walkdir = "2"
 
 [profile.release]

@@ -35,7 +35,7 @@ fn tools() -> Value {
         },
         {
             "name": "scout",
-            "description": "START HERE when you need to find where something lives in the code. One call replaces a dozen searches: give the words, phrases and identifiers you care about (domain words in every language the code may use, error messages, function or constant names you guess) and get back the files that mention them, ranked, with the matching lines and the function each line sits in. Then read only what you still need, with `run`.",
+            "description": "START HERE when you need to find where something lives in the code. One call replaces a dozen searches: give the words, phrases and identifiers you care about (domain words in every language the code may use, error messages, function or constant names you guess) and get back the files that mention them, ranked, with matching lines and nearby declaration context. Rust, JavaScript/JSX and TypeScript/TSX use syntax-based context; other files use an explicit heuristic. This is text search, not symbol resolution. Then read only what you still need, with `run`.",
             "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false },
             "inputSchema": {
                 "type": "object",
@@ -56,10 +56,11 @@ fn tools() -> Value {
 
 /// Versioned contracts shared by success, refusals and input errors.
 fn output_schema(name: &str) -> Value {
+    let version = if name == "scout" { 2 } else { 1 };
     let nullable_string = json!({"type":["string","null"]});
     let count = json!({"type":"integer","minimum":0});
     let mut properties = json!({
-        "schema_version":{"const":1}, "tool":{"const":name},
+        "schema_version":{"const":version}, "tool":{"const":name},
         "status":{"enum":["complete","partial","refused","error"]},
         "reason":nullable_string, "cwd":{"type":"string"},
     });
@@ -109,12 +110,37 @@ fn output_schema(name: &str) -> Value {
         });
         properties["metadata_truncated"] = json!({"type":"boolean"});
         properties["display_truncated"] = json!({"type":"boolean"});
+        properties["structure_truncated"] = json!({"type":"boolean"});
+        properties["structure"] = json!({
+            "type":"array","maxItems":256,"items":{
+                "type":"object","additionalProperties":false,
+                "required":["path","language","status","definitions","definitions_truncated"],
+                "properties":{
+                    "path":{"type":"string"},"language":nullable_string,
+                    "status":{"enum":["parsed","partial","limited","unsupported","invalid_utf8"]},
+                    "definitions_truncated":{"type":"boolean"},
+                    "definitions":{"type":"array","maxItems":1024,"items":{
+                        "type":"object","additionalProperties":false,
+                        "required":["kind","name","start_line","end_line","header_end_line","start_byte","end_byte"],
+                        "properties":{
+                            "kind":{"type":"string"},"name":nullable_string,
+                            "start_line":{"type":"integer","minimum":1},
+                            "end_line":{"type":"integer","minimum":1},
+                            "header_end_line":{"type":"integer","minimum":1},
+                            "start_byte":count,"end_byte":count,
+                        }
+                    }}
+                }
+            }
+        });
         required.extend([
             "terms",
             "counts",
             "matches",
             "metadata_truncated",
             "display_truncated",
+            "structure",
+            "structure_truncated",
         ]);
     }
     json!({"type":"object","additionalProperties":false,"required":required,"properties":properties})
@@ -258,8 +284,9 @@ fn strings(arguments: &Value, key: &str) -> Result<Vec<String>, String> {
 }
 
 fn empty_report(name: &str, dir: &Path, reason: &str) -> Value {
+    let version = if name == "scout" { 2 } else { 1 };
     let mut result = json!({
-        "schema_version": 1, "tool": name, "status": "error", "reason": reason, "cwd": dir.to_string_lossy(),
+        "schema_version": version, "tool": name, "status": "error", "reason": reason, "cwd": dir.to_string_lossy(),
     });
     match name {
         "run" => result["commands"] = json!([]),
@@ -269,6 +296,8 @@ fn empty_report(name: &str, dir: &Path, reason: &str) -> Value {
             result["counts"] = json!({"candidates":0,"read":0,"skipped":0,"errors":0,"matching_files":0,"matching_lines":0});
             result["metadata_truncated"] = json!(false);
             result["display_truncated"] = json!(false);
+            result["structure"] = json!([]);
+            result["structure_truncated"] = json!(false);
         }
         _ => {}
     }
@@ -365,7 +394,7 @@ fn call(session: &mut Session, name: &str, arguments: &Value) -> Result<ToolAnsw
             };
             let report = scout::scout_report(&session.dir, &request);
             let structured = json!({
-                "schema_version":1,"tool":"scout","status":report.status.as_str(),
+                "schema_version":2,"tool":"scout","status":report.status.as_str(),
                 "reason":report.reason,"cwd":session.dir.to_string_lossy(),"terms":report.terms,
                 "counts":{
                     "candidates":report.counts.candidates,"read":report.counts.read,
@@ -376,6 +405,16 @@ fn call(session: &mut Session, name: &str, arguments: &Value) -> Result<ToolAnsw
                     "path":hit.path,"line_number":hit.line_number,"term_indices":hit.term_indices,
                 })).collect::<Vec<_>>(),
                 "metadata_truncated":report.metadata_truncated,"display_truncated":report.display_truncated,
+                "structure_truncated":report.structure_truncated,
+                "structure":report.structure.iter().map(|file| json!({
+                    "path":file.path,"language":file.language,"status":file.status.as_str(),
+                    "definitions_truncated":file.definitions_truncated,
+                    "definitions":file.definitions.iter().map(|scope| json!({
+                        "kind":scope.kind,"name":scope.name,"start_line":scope.start_line,
+                        "end_line":scope.end_line,"header_end_line":scope.header_end_line,
+                        "start_byte":scope.start_byte,"end_byte":scope.end_byte,
+                    })).collect::<Vec<_>>(),
+                })).collect::<Vec<_>>(),
             });
             let answer = ToolAnswer {
                 text: report.text,

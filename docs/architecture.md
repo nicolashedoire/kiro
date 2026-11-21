@@ -51,6 +51,7 @@ commands themselves.
 | `grep` | `grep` with its usual options, on top of the `regex` crate. |
 | `limits` | Bounded regular-file reads, input and output budgets; exceeding a bound refuses the native command. |
 | `scout` | One-call map of an area of the code. |
+| `syntax` | Bounded Tree-sitter declaration context for Rust, JavaScript/JSX and TypeScript/TSX. |
 | `mcp` | The MCP server that exposes `run` and `scout`. |
 
 ## The engine
@@ -176,7 +177,7 @@ $ sed -n '12,30p' src/api.ts
   numbered, filename-prefixed listings can display a path once followed by `line:text`.
   `exact: true` disables that presentation. Non-UTF-8 output is refused.
 - **Structured output.** Both tools advertise an `outputSchema` and return
-  `structuredContent` with `schema_version: 1`, alongside the compatible readable text.
+  `structuredContent` alongside readable text (`run` schema 1, Scout schema 2).
   Run stdout/stderr and exit codes remain separate; offsets always address original stdout,
   never the grouped display. Records are exposed only for an unmodified final grep stage
   in a single pipeline. Command lists and later transforms retain their exact stdout but
@@ -201,8 +202,9 @@ MCP accepts 128 commands per call, 64 KiB per command, and one JSON message per 
 unbounded read or an attempt to parse the remainder as another message. These are memory
 and enumeration bounds, not a wall-clock deadline for all filesystem operations.
 
-Grep and Scout references each retain at most 4,096 records and 256 KiB of allocations,
-including vector and nested capacities. The scan/output remains independent of metadata
+Grep references retain at most 4,096 records and 256 KiB of allocations. Scout shares a
+256 KiB allocation budget between match references and syntax evidence, including vector
+and nested capacities. The scan/output remains independent of metadata
 truncation. MCP also counts encoded JSON text plus structured content up to 8 MiB while
 accumulating batches, followed by a final envelope check, without allocating a serialized
 copy for counting. Exceeding a response bound returns an error and rolls back the call's
@@ -226,13 +228,19 @@ Takes `terms` (plain text, case-insensitive) and optionally `paths` and `budget`
    An empty successful Git listing stays empty instead of falling back to ignored files.
    Binary files and files over 400,000 bytes are skipped.
 2. **Matches.** One pass per file with a set of all the terms.
-3. **Ranking by rarity.** A term that appears on 14 lines says more than one that appears on
+3. **Syntax evidence.** Only matching supported files are parsed, once per request, from
+   their original UTF-8 bytes rather than rejoined display lines. Rust, JavaScript/JSX, TypeScript and
+   TSX grammars are compiled into the binary. Exact declaration ranges and multiline
+   headers replace indentation guesses where trustworthy. Trees are released immediately;
+   no project code, generators or language servers are run. Other languages, invalid UTF-8,
+   syntax recovery and resource limits retain a marked heuristic fallback.
+4. **Ranking by rarity.** A term that appears on 14 lines says more than one that appears on
    232. A line is worth the rarity of the terms it contains; a file is worth its best lines.
-4. **Neighbours.** A file gets a share of the best score of its directory: a schema next to
+5. **Neighbours.** A file gets a share of the best score of its directory: a schema next to
    the module that matches strongly is probably part of the same feature, even if it only
    mentions a common term.
-5. **Rendering.** For each file, the most telling lines in file order, each with the line that
-   opens its block (the enclosing function or class) and the rest of the statement when it
+6. **Rendering.** For each file, the most telling lines in file order, each with a bounded
+   declaration header (at most eight lines, with an explicit abbreviation notice) and the rest of the statement when it
    continues on more-indented lines. The remaining files get a two-line preview each, then a
    plain list. The whole answer fits in the budget.
 
@@ -244,6 +252,23 @@ and depth 64. Input and stored matching content are each capped at 16 MiB; trans
 parsing, ranking and rendering allocations are additional. A partial scan is
 explicitly marked. The answer budget is a strict UTF-8 byte cap, at most 64 KiB, including
 any truncation notice. This limits work as well as presentation.
+
+Optional syntax work has separate request-wide limits: 256 parsed files, 4 MiB of source,
+two seconds of cumulative cooperative analysis and 2 MiB of retained scopes. Each parser
+call also limits source to 400,000 bytes, work to 100 ms cooperatively, traversal to 100,000
+nodes and retained declarations to 1,024 / 256 KiB. The visitor is iterative, recovery nodes
+are excluded, names over 160 bytes are omitted rather than truncated, and no trees are
+cached. Tree-sitter's transient C allocations are additional; this is not a hard allocator
+or wall-clock sandbox. Syntax limits do not consume the text scan's budgets or alter its
+completion status.
+
+Scout schema 2 adds `structure`, deduplicated by file, and `structure_truncated`. Each entry
+gives the language, analysis status, exact source spans for declarations intersecting
+matching lines and whether some declarations were omitted from metadata. Existing
+`matches` references remain unchanged, with no invented unique owner on ambiguous lines.
+The metadata budget is shared with these references. Scope ranges are syntactic evidence;
+they do not resolve imports, references, dynamic calls or semantic relevance. See
+[the result contract](structured-results.md#scout) for statuses and coordinate conventions.
 
 Successful text reads, documented exclusions and I/O failures are counted separately. An
 unreadable candidate marks the scan incomplete, including when there are no matches; it is

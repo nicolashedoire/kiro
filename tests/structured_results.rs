@@ -251,7 +251,7 @@ fn protocol_negotiation_does_not_claim_unknown_versions() {
         assert_eq!(tool["outputSchema"]["type"], "object");
         assert_eq!(
             tool["outputSchema"]["properties"]["schema_version"]["const"],
-            1
+            if tool["name"] == "scout" { 2 } else { 1 }
         );
         assert_eq!(
             tool["outputSchema"]["properties"]["tool"]["const"],

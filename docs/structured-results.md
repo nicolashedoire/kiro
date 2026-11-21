@@ -2,7 +2,9 @@
 
 Both tools return readable `content` and a machine-readable `structuredContent` object.
 `tools/list` advertises each result's JSON `outputSchema`. The contract is identified by
-`schema_version: 1`; it is independent of the package and negotiated MCP versions.
+`schema_version`; it is independent of the package and negotiated MCP versions.
+`run` remains at version **1**. Scout is version **2**, adding syntax evidence; consumers
+that validate a cached version-1 Scout schema must refresh it from `tools/list`.
 Existing text clients keep the readable output. `exact: true` affects only that display.
 
 ## Run
@@ -69,8 +71,9 @@ to fit the metadata budget. Grouping is disabled for truncated metadata.
 
 ## Scout
 
-The structured result includes `schema_version`, `tool`, `status`, `reason`, `cwd`,
-normalized `terms`, `counts`, `matches`, `metadata_truncated` and `display_truncated`.
+The version-2 structured result includes `schema_version`, `tool`, `status`, `reason`, `cwd`,
+normalized `terms`, `counts`, `matches`, `metadata_truncated`, `display_truncated`,
+`structure` and `structure_truncated`. These fields also exist on input/discovery errors.
 
 | Field | Meaning |
 | --- | --- |
@@ -82,10 +85,13 @@ normalized `terms`, `counts`, `matches`, `metadata_truncated` and `display_trunc
 | `matches` | Direct source references: `path`, one-based `line_number`, and zero-based `term_indices` into `terms`. |
 | `metadata_truncated` | Some direct references were omitted by the independent metadata bound. |
 | `display_truncated` | The generated text exceeded the requested byte budget and was clipped. |
+| `structure` | Deduplicated per-file syntax status and relevant declaration ranges, described below. |
+| `structure_truncated` | Some files or declarations were omitted by the shared metadata bound. |
 
 Counts and references come from scanning, not parsing the summary. Counts cover the files
-actually searched even when references or display excerpts are omitted. Metadata retains
-at most 4,096 references and 256 KiB of allocations. A metadata limit alone does not stop
+actually searched even when references or display excerpts are omitted. Match references
+and syntax metadata share at most 256 KiB of allocations; reference count is at most 4,096
+and structure entries at most 256. A metadata limit alone does not stop
 the scan or make its status partial. Paths are relative to `cwd` unless absolute.
 
 `complete` covers the documented eligible text scope, excluding ignored/binary/oversized
@@ -93,6 +99,39 @@ files. It is not a claim of semantic completeness. Even untruncated text selects
 and may clip long lines; neither truncation flag means every matching line was displayed.
 With `budget: 0`, text is empty while status, reason, counts and bounded references remain.
 Partial/error results set MCP `isError: true`.
+
+Each `structure` entry has `path`, nullable `language` (`rust`, `javascript`, `typescript`,
+`tsx`), `status`, `definitions` and `definitions_truncated`. Analysis status is independent
+of the top-level lexical scan status:
+
+| Syntax status | Meaning |
+| --- | --- |
+| `parsed` | The supported file was parsed and visited within the analysis limits. |
+| `partial` | Syntax errors were found; only trustworthy declaration nodes were retained. |
+| `limited` | A parsing, visitation, source, file-count, time or retained-scope limit was reached. |
+| `unsupported` | No bundled grammar supports this file extension. |
+| `invalid_utf8` | The original source is not UTF-8; syntax coordinates are not invented from replacement text. |
+
+Declarations are deduplicated and intersect at least one matching **line**. Each has `kind`,
+nullable exact `name`, one-based inclusive `start_line`/`end_line`/`header_end_line`, and
+zero-based half-open `start_byte`/`end_byte` into the **original file bytes**, preserving
+Unicode, CRLF and final-newline coordinates. These are different from run's stdout offsets.
+`header_end_line` includes the body-opening line. Names over 160 bytes are null, not shortened.
+Ranges include direct declaration/export wrappers where applicable.
+
+This is syntax context, not a unique ownership claim for each term occurrence: several
+definitions may share a line. It does not resolve identifiers or imports. The display uses
+the innermost unambiguous declaration where available and a marked heuristic fallback
+otherwise; signatures longer than eight displayed lines are explicitly abbreviated.
+`definitions_truncated` marks per-file omissions caused by the metadata budget. A
+`limited` analysis may itself contain only a prefix of declarations, independently of that
+flag. Syntax and metadata limits do not turn a complete lexical search into an error.
+
+Only matching supported files are parsed. Request-wide syntax limits are 256 files,
+4 MiB of source, two seconds of cumulative cooperative analysis time and 2 MiB of retained
+scopes. Per-file limits are 400,000 source bytes, 100 ms cooperatively, 100,000 visited
+nodes, and 1,024 / 256 KiB retained scopes. Transient parser allocations are additional.
+All bounded syntax evidence remains available even with a zero-byte text budget.
 
 ## Bounds and compatibility
 
