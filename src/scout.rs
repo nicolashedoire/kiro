@@ -895,9 +895,15 @@ fn write_lines(
                     .min(file.content.len() - 1);
                 let start = header.max(last_written.map_or(0, |line| line + 1));
                 let shown_end = end.min(start.saturating_add(MAX_SIGNATURE_LINES - 1));
-                for line in start..=shown_end {
+                for (line, source) in file
+                    .content
+                    .iter()
+                    .enumerate()
+                    .take(shown_end + 1)
+                    .skip(start)
+                {
                     let mark = if matching.contains(&line) { ':' } else { ' ' };
-                    let text = clipped(&file.content[line], preview);
+                    let text = clipped(source, preview);
                     out.push_str(&format!("{:>5}{mark} {text}\n", line + 1));
                 }
                 if shown_end < end {
