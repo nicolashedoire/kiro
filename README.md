@@ -219,6 +219,9 @@ match references even when its text budget is zero. Each tool advertises an `out
 See the [structured result contract and examples](docs/structured-results.md).
 Scout's schema version is now **2**, adding deduplicated per-file syntax information;
 `run` retains schema version 1.
+Readable Scout answers reserve paths and short previews before expanding signatures.
+Anonymous callbacks keep a useful named parent in view; missing declarations can use an
+explicit lexical heuristic, while ambiguous declarations never acquire a guessed parent.
 
 ## Limits
 

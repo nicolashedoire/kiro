@@ -13,6 +13,7 @@ const MAX_VISITED_NODES: usize = 100_000;
 const MAX_SCOPES: usize = 1024;
 const MAX_RETAINED_BYTES: usize = 256 * 1024;
 const MAX_NAME_BYTES: usize = 160;
+const MAX_TRANSPARENT_WRAPPERS: usize = 32;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Status {
@@ -55,6 +56,20 @@ pub struct Analysis {
     pub scopes: Vec<Scope>,
 }
 
+/// A missing declaration permits an explicitly heuristic context. Ambiguous sibling
+/// declarations do not: line-only matches cannot establish which sibling owns a hit.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Context<'a> {
+    Unavailable,
+    Missing,
+    Ambiguous,
+    Found {
+        inner: &'a Scope,
+        /// An anonymous callback keeps its closest useful named ancestor in view.
+        named_parent: Option<&'a Scope>,
+    },
+}
+
 impl Analysis {
     pub fn limited(language: Option<&'static str>) -> Self {
         Self {
@@ -75,15 +90,14 @@ impl Analysis {
                 .sum::<usize>()
     }
 
-    /// The innermost unique declaration covering a line. A line with sibling definitions
-    /// cannot identify which sibling owns a text match, so no context is claimed for it.
-    /// Limited analysis is similarly unable to rule out an unvisited inner declaration.
-    pub fn enclosing(&self, line: usize) -> Option<&Scope> {
+    /// Inspect line context without conflating absent syntax, unsupported declarations
+    /// and ambiguity. The lookup borrows the bounded scopes and allocates nothing.
+    pub fn context(&self, line: usize) -> Context<'_> {
         if matches!(
             self.status,
             Status::Limited | Status::Unsupported | Status::InvalidUtf8
         ) {
-            return None;
+            return Context::Unavailable;
         }
         let mut best: Option<&Scope> = None;
         for scope in &self.scopes {
@@ -96,13 +110,57 @@ impl Analysis {
                 } else if !(previous.start_byte >= scope.start_byte
                     && previous.end_byte <= scope.end_byte)
                 {
-                    return None;
+                    return Context::Ambiguous;
                 }
             } else {
                 best = Some(scope);
             }
         }
-        best
+        let Some(inner) = best else {
+            return Context::Missing;
+        };
+        let mut named_parent: Option<&Scope> = None;
+        if inner.name.is_none() {
+            for candidate in &self.scopes {
+                if candidate.name.is_none() || !strictly_contains(candidate, inner) {
+                    continue;
+                }
+                let preferred = named_parent.is_none_or(|previous| {
+                    parent_priority(candidate) < parent_priority(previous)
+                        || (parent_priority(candidate) == parent_priority(previous)
+                            && strictly_contains(previous, candidate))
+                });
+                if preferred {
+                    named_parent = Some(candidate);
+                }
+            }
+        }
+        Context::Found {
+            inner,
+            named_parent,
+        }
+    }
+
+    /// Compatibility view returning only the innermost unambiguous declaration.
+    pub fn enclosing(&self, line: usize) -> Option<&Scope> {
+        match self.context(line) {
+            Context::Found { inner, .. } => Some(inner),
+            _ => None,
+        }
+    }
+}
+
+fn strictly_contains(outer: &Scope, inner: &Scope) -> bool {
+    outer.start_byte <= inner.start_byte
+        && outer.end_byte >= inner.end_byte
+        && (outer.start_byte < inner.start_byte || outer.end_byte > inner.end_byte)
+}
+
+fn parent_priority(scope: &Scope) -> u8 {
+    match scope.kind {
+        "function" | "method" | "arrow_function" | "closure" => 0,
+        "variable" | "constant" | "static" => 1,
+        _ => 2,
     }
 }
 
@@ -161,9 +219,71 @@ fn short_name<'a>(node: Node<'_>, source: &'a str) -> Option<&'a str> {
     (text.len() <= MAX_NAME_BYTES && !text.contains(['\n', '\r'])).then_some(text)
 }
 
+/// The value child of a purely syntactic wrapper. Calls, sequences and other runtime
+/// expressions are deliberately not transparent. Extra comments and types are ignored
+/// only in the explicitly known grammar positions, with bounded child inspection.
+fn transparent_value(node: Node<'_>) -> Option<Node<'_>> {
+    let kind = node.kind();
+    if !matches!(
+        kind,
+        "parenthesized_expression"
+            | "as_expression"
+            | "satisfies_expression"
+            | "type_assertion"
+            | "non_null_expression"
+    ) || node.has_error()
+    {
+        return None;
+    }
+    let mut cursor = node.walk();
+    let mut first = None;
+    let mut last = None;
+    let mut count = 0;
+    let annotation = node.child_by_field_name("type");
+    for (visited, child) in node.named_children(&mut cursor).enumerate() {
+        if visited >= 16 {
+            return None;
+        }
+        if child.is_extra() || annotation == Some(child) {
+            continue;
+        }
+        first.get_or_insert(child);
+        last = Some(child);
+        count += 1;
+    }
+    match kind {
+        "parenthesized_expression" | "non_null_expression" if count == 1 => first,
+        "as_expression" | "satisfies_expression" if count == 2 => first,
+        "type_assertion" if count == 2 => last,
+        _ => None,
+    }
+}
+
+fn through_wrappers(mut node: Node<'_>) -> Node<'_> {
+    for _ in 0..MAX_TRANSPARENT_WRAPPERS {
+        let Some(parent) = node.parent() else { break };
+        if transparent_value(parent) != Some(node) {
+            break;
+        }
+        node = parent;
+    }
+    node
+}
+
+fn without_wrappers(mut node: Node<'_>) -> Node<'_> {
+    for _ in 0..MAX_TRANSPARENT_WRAPPERS {
+        let Some(value) = transparent_value(node) else {
+            break;
+        };
+        node = value;
+    }
+    node
+}
+
 /// Find a directly assigned function's binding without resolving identifiers. Only direct
-/// variable/object-field assignments are recognized; nested expressions are not guessed.
+/// variable/object-field assignments and transparent syntax wrappers are recognized.
 fn assigned_name<'tree>(node: Node<'tree>) -> Option<Node<'tree>> {
+    let node = through_wrappers(node);
     let parent = node.parent()?;
     match parent.kind() {
         "variable_declarator" | "public_field_definition" => (parent.child_by_field_name("value")
@@ -208,7 +328,8 @@ fn single_declarator(declaration: Node<'_>) -> bool {
 }
 
 /// Keep the declaration/export introducer in a multiline signature's source range.
-fn declaration_node(mut node: Node<'_>) -> Node<'_> {
+fn declaration_node(node: Node<'_>) -> Node<'_> {
+    let mut node = through_wrappers(node);
     if let Some(parent) = node.parent() {
         if matches!(
             parent.kind(),
@@ -283,7 +404,7 @@ fn scope(node: Node<'_>, source: &str) -> Option<Scope> {
             // owns its inferred name. Do not emit a second identical variable scope.
             if node.child_by_field_name("value").is_some_and(|value| {
                 matches!(
-                    value.kind(),
+                    without_wrappers(value).kind(),
                     "arrow_function" | "function_expression" | "generator_function" | "class"
                 )
             }) {
@@ -618,6 +739,151 @@ mod tests {
         let result = analyze("source.js", "function a(){} function b(){}", TIME);
         assert_eq!(result.status, Status::Parsed);
         assert!(result.enclosing(1).is_none());
+    }
+
+    #[test]
+    fn context_distinguishes_missing_declarations_ambiguity_and_unavailable_syntax() {
+        let commonjs = analyze(
+            "source.js",
+            "module.exports = {\n schema: 'needle'\n};\n",
+            TIME,
+        );
+        assert_eq!(commonjs.status, Status::Parsed);
+        assert_eq!(commonjs.context(2), Context::Missing);
+        assert!(commonjs.enclosing(2).is_none());
+
+        let siblings = analyze("source.js", "function a(){} function b(){}", TIME);
+        assert_eq!(siblings.context(1), Context::Ambiguous);
+        assert!(siblings.enclosing(1).is_none());
+        let partial = analyze("source.js", "function broken(", TIME);
+        assert_eq!(partial.status, Status::Partial);
+        assert_eq!(partial.context(1), Context::Missing);
+        for status in [Status::Limited, Status::Unsupported, Status::InvalidUtf8] {
+            let unavailable = Analysis {
+                language: None,
+                status,
+                scopes: Vec::new(),
+            };
+            assert_eq!(unavailable.context(1), Context::Unavailable);
+            assert!(unavailable.enclosing(1).is_none());
+        }
+    }
+
+    #[test]
+    fn anonymous_callbacks_keep_named_callable_ancestors_without_mutating_metadata() {
+        for (path, source, line, expected) in [
+            ("source.tsx", "export function Checkout() {\n useEffect(() => {\n  log('needle')\n });\n}\n", 3, "Checkout"),
+            ("source.js", "export function startPayments() {\n const pending = queue.run(async (job) => {\n  log('needle')\n });\n}\n", 3, "startPayments"),
+            ("source.ts", "class Service {\n execute() {\n  jobs.forEach(() => {\n   log('needle')\n  });\n }\n}\n", 4, "execute"),
+            ("source.rs", "fn start_payments() {\n jobs.for_each(|job| {\n  log(\"needle\");\n });\n}\n", 3, "start_payments"),
+        ] {
+            let result = analyze(path, source, TIME);
+            assert_eq!(result.status, Status::Parsed, "{path}");
+            let before = result.scopes.clone();
+            let Context::Found { inner, named_parent: Some(parent) } = result.context(line) else {
+                panic!("missing named parent: {path}: {:?}", result.context(line));
+            };
+            assert!(inner.name.is_none(), "{path}");
+            assert_eq!(parent.name.as_deref(), Some(expected), "{path}");
+            assert!(strictly_contains(parent, inner));
+            assert_eq!(result.enclosing(line), Some(inner));
+            assert_eq!(result.scopes, before);
+        }
+    }
+
+    #[test]
+    fn anonymous_callbacks_retain_binding_or_class_when_no_named_callable_contains_them() {
+        let source =
+            "export const Card = forwardRef((props, ref) => {\n return <div>needle</div>;\n});\n";
+        let result = analyze("source.tsx", source, TIME);
+        let Context::Found {
+            inner,
+            named_parent: Some(parent),
+        } = result.context(2)
+        else {
+            panic!("expected component binding: {:?}", result.context(2));
+        };
+        assert!(
+            inner.name.is_none(),
+            "a call must not become a direct assignment"
+        );
+        assert_eq!(
+            (parent.kind, parent.name.as_deref()),
+            ("variable", Some("Card"))
+        );
+        assert!(strictly_contains(parent, inner));
+
+        let source =
+            "class Service {\n static {\n  jobs.forEach(() => {\n   log('needle')\n  });\n }\n}\n";
+        let result = analyze("source.js", source, TIME);
+        assert_eq!(result.status, Status::Parsed);
+        let Context::Found {
+            named_parent: Some(parent),
+            ..
+        } = result.context(4)
+        else {
+            panic!("expected class context: {:?}", result.context(4));
+        };
+        assert_eq!(
+            (parent.kind, parent.name.as_deref()),
+            ("class", Some("Service"))
+        );
+    }
+
+    #[test]
+    fn transparent_callable_wrappers_preserve_exact_binding_name_and_declaration_range() {
+        for (path, source) in [
+            ("source.js", "export const investigate = (\n(value) => {\n return 'needle';\n}\n);\n"),
+            ("source.ts", "export const investigate = (\n(value: string) => {\n return 'needle';\n}\n) satisfies (value: string) => string;\n"),
+            ("source.ts", "export const investigate = (\n(value: string) => {\n return 'needle';\n}\n) as (value: string) => string;\n"),
+            ("source.ts", "export const investigate = (\n(value: string) => {\n return 'needle';\n}\n)!;\n"),
+            ("source.ts", "export const investigate = <(value: string) => string>(\n(value: string) => {\n return 'needle';\n}\n);\n"),
+        ] {
+            let result = analyze(path, source, TIME);
+            assert_eq!(result.status, Status::Parsed, "{source}");
+            let Context::Found { inner, named_parent } = result.context(3) else {
+                panic!("expected wrapped callable: {source}");
+            };
+            assert_eq!((inner.kind, inner.name.as_deref()), ("arrow_function", Some("investigate")), "{source}");
+            assert_eq!(inner.start_line, 1, "{source}");
+            assert_eq!(&source[inner.start_byte..inner.end_byte], source.trim_end(), "{source}");
+            assert!(named_parent.is_none());
+            assert_eq!(result.scopes.len(), 1, "wrapped callable must not duplicate a variable scope: {source}");
+        }
+        let source =
+            "fn outer() {\n let investigate = (\n  |value: &str| {\n   value\n  }\n );\n}\n";
+        let result = analyze("source.rs", source, TIME);
+        assert_eq!(result.status, Status::Parsed);
+        let closure = result.enclosing(4).unwrap();
+        assert_eq!(
+            (closure.kind, closure.name.as_deref()),
+            ("closure", Some("investigate"))
+        );
+        assert!(source[closure.start_byte..closure.end_byte].starts_with("let investigate"));
+    }
+
+    #[test]
+    fn runtime_expression_wrappers_do_not_invent_callable_bindings() {
+        for source in [
+            "export const investigate = wrap(\n(value) => {\n return 'needle';\n}\n);\n",
+            "export const investigate = (other,\n(value) => {\n return 'needle';\n}\n);\n",
+        ] {
+            let result = analyze("source.js", source, TIME);
+            assert_eq!(result.status, Status::Parsed);
+            let Context::Found {
+                inner,
+                named_parent: Some(parent),
+            } = result.context(3)
+            else {
+                panic!("expected anonymous callable with nearby binding: {source}");
+            };
+            assert_eq!(inner.kind, "arrow_function");
+            assert!(inner.name.is_none());
+            assert_eq!(
+                (parent.kind, parent.name.as_deref()),
+                ("variable", Some("investigate"))
+            );
+        }
     }
 
     #[test]

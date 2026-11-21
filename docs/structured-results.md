@@ -84,7 +84,7 @@ normalized `terms`, `counts`, `matches`, `metadata_truncated`, `display_truncate
 | `counts` | Discovered candidates, text files read, skipped files, read errors, matching files/lines. |
 | `matches` | Direct source references: `path`, one-based `line_number`, and zero-based `term_indices` into `terms`. |
 | `metadata_truncated` | Some direct references were omitted by the independent metadata bound. |
-| `display_truncated` | The generated text exceeded the requested byte budget and was clipped. |
+| `display_truncated` | The display budget required omitting or abbreviating context, paths or summaries, or clipping the text. |
 | `structure` | Deduplicated per-file syntax status and relevant declaration ranges, described below. |
 | `structure_truncated` | Some files or declarations were omitted by the shared metadata bound. |
 
@@ -121,8 +121,12 @@ Ranges include direct declaration/export wrappers where applicable.
 
 This is syntax context, not a unique ownership claim for each term occurrence: several
 definitions may share a line. It does not resolve identifiers or imports. The display uses
-the innermost unambiguous declaration where available and a marked heuristic fallback
-otherwise; signatures longer than eight displayed lines are explicitly abbreviated.
+the innermost unambiguous declaration, retaining a useful named parent alongside an
+anonymous callback. Direct bindings can be followed through bounded parentheses and
+TypeScript type wrappers, without inferring a name through runtime calls or higher-order
+functions. Missing declarations permit explicitly marked lexical context even in a
+`parsed` file; ambiguous sibling declarations do not trigger that fallback. Signatures
+longer than eight displayed lines are explicitly abbreviated.
 `definitions_truncated` marks per-file omissions caused by the metadata budget. A
 `limited` analysis may itself contain only a prefix of declarations, independently of that
 flag. Syntax and metadata limits do not turn a complete lexical search into an error.
@@ -132,6 +136,13 @@ Only matching supported files are parsed. Request-wide syntax limits are 256 fil
 scopes. Per-file limits are 400,000 source bytes, 100 ms cooperatively, 100,000 visited
 nodes, and 1,024 / 256 KiB retained scopes. Transient parser allocations are additional.
 All bounded syntax evidence remains available even with a zero-byte text budget.
+
+The readable answer reserves room for ranked, complete paths and compact file previews
+before expanding signatures. Term summaries cannot displace the path overview. Every
+section, including the first, must fit its allocation; budget reductions set
+`display_truncated` and retain a notice when it fits. Incomplete-scan warnings are reserved
+before this allocation. Extremely small budgets may show only a notice or no text.
+Control characters in displayed paths are JSON-escaped; structured paths remain original.
 
 ## Bounds and compatibility
 

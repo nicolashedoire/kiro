@@ -40,9 +40,8 @@ const MAX_SYNTAX_RETAINED: usize = 2 * 1024 * 1024;
 const MAX_SYNTAX_TIME: Duration = Duration::from_secs(2);
 const MAX_SIGNATURE_LINES: usize = 8;
 const GIT_TIMEOUT: Duration = Duration::from_secs(2);
-/// Matching lines shown for a detailed file, and for a previewed one.
+/// Matching lines shown in an expanded file section.
 const LINES_PER_FILE: usize = 14;
-const LINES_PER_PREVIEW: usize = 2;
 /// More-indented lines shown after a matching line: the rest of its statement.
 const CONTINUATION_LINES: usize = 4;
 /// Share of the best score of a directory that each of its files receives.
@@ -147,7 +146,7 @@ pub struct ScoutFileStructure {
 
 /// A bounded machine-readable view of Scout, independent of presentation. `reason` and
 /// counts survive even a zero-byte text budget. `metadata_truncated` means that `matches`
-/// omits references; `display_truncated` means the rendered text exceeded its byte budget.
+/// omits references; `display_truncated` means the display budget omitted or clipped text.
 /// The normal rendering also selects excerpts and clips long lines as documented in text.
 #[derive(Debug)]
 pub struct ScoutReport {
@@ -864,72 +863,87 @@ fn clipped(line: &str, preview: &Regex) -> String {
     )
 }
 
-/// Writes the chosen matching lines of a file: the line that opens their block, the line
-/// itself (marked `N:`), and the rest of the statement when it continues on more-indented
-/// lines (`retries: z` / `.array(…)` / `.max(2)`).
+/// Render nearby declaration headers, including a named parent of an anonymous callback.
+/// Missing syntax context permits a labelled heuristic; ambiguous syntax never does.
 fn write_lines(
     file: &FileHits,
     chosen: &[Hit],
     continuation: usize,
+    signature_lines: usize,
     preview: &Regex,
     out: &mut String,
 ) {
-    let matching: HashSet<usize> = file.hits.iter().map(|hit| hit.line).collect();
-    let mut last_header = None;
-    let mut last_written: Option<usize> = None;
+    let matching = |line| {
+        file.hits
+            .binary_search_by_key(&line, |hit| hit.line)
+            .is_ok()
+    };
+    let mut shown = HashSet::new();
+    let mut abbreviated = HashSet::new();
     for hit in chosen {
-        if last_written.is_some_and(|written| hit.line <= written) {
+        if shown.contains(&hit.line) {
             continue;
         }
-        let scope = file.syntax.enclosing(hit.line + 1);
-        let header = scope.map(|scope| scope.start_line - 1).or_else(|| {
-            (file.syntax.status != syntax::Status::Parsed)
-                .then(|| enclosing(&file.content, hit.line))
-                .flatten()
-        });
-        if let Some(header) = header {
-            if last_header != Some(header) && header < hit.line {
-                let end = scope
-                    .map_or(header, |scope| scope.header_end_line.saturating_sub(1))
-                    .min(hit.line - 1)
-                    .min(file.content.len() - 1);
-                let start = header.max(last_written.map_or(0, |line| line + 1));
-                let shown_end = end.min(start.saturating_add(MAX_SIGNATURE_LINES - 1));
-                for (line, source) in file
-                    .content
-                    .iter()
-                    .enumerate()
-                    .take(shown_end + 1)
-                    .skip(start)
-                {
-                    let mark = if matching.contains(&line) { ':' } else { ' ' };
-                    let text = clipped(source, preview);
-                    out.push_str(&format!("{:>5}{mark} {text}\n", line + 1));
-                }
-                if shown_end < end {
-                    out.push_str(&format!(
-                        "       … [signature abbreviated; read lines {}-{}]\n",
-                        header + 1,
-                        end + 1
-                    ));
-                }
+        let span = |scope: &syntax::Scope| (scope.start_line - 1, scope.header_end_line - 1, false);
+        let headers = match file.syntax.context(hit.line + 1) {
+            syntax::Context::Found {
+                inner,
+                named_parent,
+            } => [named_parent.map(span), Some(span(inner))],
+            syntax::Context::Missing | syntax::Context::Unavailable => [
+                None,
+                enclosing(&file.content, hit.line).map(|line| (line, line, true)),
+            ],
+            syntax::Context::Ambiguous => [None, None],
+        };
+        for (header, header_end, heuristic) in headers.into_iter().flatten() {
+            if signature_lines == 0 || header >= hit.line {
+                continue;
             }
-            last_header = Some(header);
+            let end = header_end.min(hit.line - 1).min(file.content.len() - 1);
+            let shown_end = end.min(header.saturating_add(signature_lines - 1));
+            let mut labelled = false;
+            for (line, source) in file
+                .content
+                .iter()
+                .enumerate()
+                .take(shown_end + 1)
+                .skip(header)
+            {
+                if !shown.insert(line) {
+                    continue;
+                }
+                if heuristic && !labelled {
+                    out.push_str("       [context: lexical heuristic]\n");
+                    labelled = true;
+                }
+                let mark = if matching(line) { ':' } else { ' ' };
+                let text = clipped(source, preview);
+                out.push_str(&format!("{:>5}{mark} {text}\n", line + 1));
+            }
+            if shown_end < end && abbreviated.insert((header, header_end)) {
+                out.push_str(&format!(
+                    "       … [signature abbreviated; read lines {}-{}]\n",
+                    header + 1,
+                    end + 1
+                ));
+            }
         }
-        let text = clipped(&file.content[hit.line], preview);
-        out.push_str(&format!("{:>5}: {}\n", hit.line + 1, text));
-        last_written = Some(hit.line);
-
+        if shown.insert(hit.line) {
+            let text = clipped(&file.content[hit.line], preview);
+            out.push_str(&format!("{:>5}: {}\n", hit.line + 1, text));
+        }
         let base = indent_of(&file.content[hit.line]).unwrap_or(0);
         for next in (hit.line + 1..file.content.len()).take(continuation) {
-            // The statement ends at the first line that is blank or not more indented.
             if indent_of(&file.content[next]).is_none_or(|indent| indent <= base) {
                 break;
             }
-            let mark = if matching.contains(&next) { ':' } else { ' ' };
+            if !shown.insert(next) {
+                continue;
+            }
+            let mark = if matching(next) { ':' } else { ' ' };
             let text = clipped(&file.content[next], preview);
-            out.push_str(&format!("{:>5}{} {}\n", next + 1, mark, text));
-            last_written = Some(next);
+            out.push_str(&format!("{:>5}{mark} {text}\n", next + 1));
         }
     }
 }
@@ -953,8 +967,55 @@ fn structure_notice(analysis: &syntax::Analysis) -> String {
     }
 }
 
-/// Builds the answer: a summary, the most telling files in detail, a short preview of the
-/// next ones, then a plain list, all within the budget.
+struct Rendered {
+    text: String,
+    truncated: bool,
+}
+
+const DISPLAY_NOTICE: &str = "\n[output truncated; narrow terms or paths]\n";
+
+/// Keep paths atomic, even when a legal filename contains terminal control characters.
+fn display_path(path: &str) -> String {
+    if path.chars().any(char::is_control) {
+        serde_json::to_string(path).unwrap_or_else(|_| "[unprintable path]".to_string())
+    } else {
+        path.to_string()
+    }
+}
+
+fn section(
+    file: &FileHits,
+    chosen: &[Hit],
+    continuation: usize,
+    signature_lines: usize,
+    preview: &Regex,
+) -> String {
+    let mut text = format!(
+        "\n## {} ({} lines, {} matching)\n",
+        display_path(&file.path),
+        file.content.len(),
+        file.hits.len()
+    );
+    text.push_str(&structure_notice(&file.syntax));
+    write_lines(
+        file,
+        chosen,
+        continuation,
+        signature_lines,
+        preview,
+        &mut text,
+    );
+    if file.hits.len() > chosen.len() {
+        text.push_str(&format!(
+            "       … {} more matching lines\n",
+            file.hits.len() - chosen.len()
+        ));
+    }
+    text
+}
+
+/// Reserve ranked paths first, then compact evidence for several files, then enrich it.
+/// Every block is atomic and fits before insertion; the first file has no special bypass.
 fn render(
     terms: &[String],
     files: &[FileHits],
@@ -962,112 +1023,160 @@ fn render(
     scores: &Scores,
     preview: &Regex,
     budget: usize,
-) -> String {
-    let mut out = format!(
+) -> Rendered {
+    if budget < DISPLAY_NOTICE.len() {
+        return Rendered {
+            text: "[truncated]".chars().take(budget).collect(),
+            truncated: true,
+        };
+    }
+    let limit = budget - DISPLAY_NOTICE.len();
+    let mut text = String::new();
+    let mut truncated = false;
+    let summary = format!(
         "SCOUT - {} files mention these terms ({} text files read; {} skipped; {} read errors)\n",
         files.len(),
         counts.read,
         counts.skipped,
-        counts.errors,
+        counts.errors
     );
-    for (term, text) in terms.iter().enumerate() {
+    if summary.len() <= limit {
+        text.push_str(&summary);
+    } else {
+        truncated = true;
+    }
+
+    let mut paths = String::from("Files (ranked):\n");
+    let path_budget = (budget / 4).min(limit.saturating_sub(text.len()));
+    let mut omitted_paths = 0;
+    // Reserve enough for the maximum omission count, not a possibly partial pathname.
+    const PATH_NOTICE_RESERVE: usize = 48;
+    for file in files {
+        let line = format!("  {}\n", display_path(&file.path));
+        if paths.len() + line.len() + PATH_NOTICE_RESERVE <= path_budget {
+            paths.push_str(&line);
+        } else {
+            omitted_paths += 1;
+        }
+    }
+    if omitted_paths > 0 {
+        paths.push_str(&format!("  … {omitted_paths} paths omitted\n"));
+        truncated = true;
+    }
+    if paths.len() <= path_budget {
+        text.push_str(&paths);
+    } else {
+        truncated = true;
+    }
+
+    // Term summaries are useful but may not displace source paths or consume the answer.
+    let stats_limit = (budget * 15 / 100).min(limit.saturating_sub(text.len()));
+    let mut stats = String::new();
+    for (term, query) in terms.iter().enumerate() {
         let bit = 1u64 << term;
         let lines = files
             .iter()
-            .flat_map(|f| &f.hits)
+            .flat_map(|file| &file.hits)
             .filter(|hit| hit.terms & bit != 0)
             .count();
         let in_files = files
             .iter()
-            .filter(|f| f.hits.iter().any(|hit| hit.terms & bit != 0))
+            .filter(|file| file.hits.iter().any(|hit| hit.terms & bit != 0))
             .count();
-        out.push_str(&format!(
-            "  \"{text}\": {lines} lines in {in_files} files\n"
-        ));
+        let entry = format!("  {:?}: {lines} lines in {in_files} files\n", query);
+        if stats.len() + entry.len() > stats_limit {
+            truncated = true;
+            continue;
+        }
+        stats.push_str(&entry);
     }
-    out.push_str(
-        "Lines marked `N:` match; lines marked `N ` show nearby declaration or statement context.\n\
-         This is a text search: code that does the same thing without these words is not listed. Look at every file below before concluding.\n",
-    );
+    text.push_str(&stats);
+    const LEGEND: &str = "Lines marked `N:` match; lines marked `N ` show nearby declaration or statement context.\nThis is a text search: code that does the same thing without these words is not listed.\n";
+    if text.len() + LEGEND.len() <= (budget / 2).min(limit) {
+        text.push_str(LEGEND);
+    } else {
+        truncated = true;
+    }
 
-    // The most telling files, in detail.
-    let mut detailed = 0;
-    for file in files {
-        let mut section = format!(
-            "\n## {} ({} lines, {} matching)\n",
-            file.path,
-            file.content.len(),
-            file.hits.len()
-        );
-        section.push_str(&structure_notice(&file.syntax));
+    // Keep a minimal hit for each admitted file before granting any file long signatures.
+    let available = limit.saturating_sub(text.len());
+    let mut used = 0;
+    let mut sections = Vec::new();
+    for (index, file) in files.iter().enumerate() {
         let best = scores.best_lines(file, LINES_PER_FILE);
-        write_lines(file, &best, CONTINUATION_LINES, preview, &mut section);
-        if file.hits.len() > best.len() {
-            let shown: HashSet<usize> = best.iter().map(|hit| hit.line).collect();
-            let others: Vec<String> = file
-                .hits
-                .iter()
-                .filter(|hit| !shown.contains(&hit.line))
-                .take(40)
-                .map(|hit| (hit.line + 1).to_string())
-                .collect();
-            section.push_str(&format!(
-                "       … {} more matching lines: {}\n",
-                file.hits.len() - best.len(),
-                others.join(", ")
-            ));
+        let first: Vec<Hit> = best
+            .iter()
+            .copied()
+            .max_by(|a, b| {
+                scores
+                    .line(*a)
+                    .partial_cmp(&scores.line(*b))
+                    .unwrap_or(Ordering::Equal)
+                    .then_with(|| b.line.cmp(&a.line))
+            })
+            .into_iter()
+            .collect();
+        let mut compact = section(file, &first, 0, 1, preview);
+        if used + compact.len() > available {
+            compact = section(file, &first, 0, 0, preview);
         }
-        if detailed > 0 && out.len() + section.len() > budget * 65 / 100 {
+        if used + compact.len() > available {
             break;
         }
-        out.push_str(&section);
-        detailed += 1;
+        used += compact.len();
+        sections.push((index, best, compact, true));
+    }
+    if sections.len() < files.len() {
+        truncated = true;
     }
 
-    // The next files are not skipped: each one shows its most telling lines.
-    let rest = &files[detailed..];
-    if rest.is_empty() {
-        return out;
-    }
-    out.push_str(&format!(
-        "\n## {} other files, each with its most telling lines\n",
-        rest.len()
-    ));
-    let mut previewed = 0;
-    for file in rest {
-        let mut entry = format!("# {} ({} matching)\n", file.path, file.hits.len());
-        entry.push_str(&structure_notice(&file.syntax));
-        let best = scores.best_lines(file, LINES_PER_PREVIEW);
-        write_lines(file, &best, CONTINUATION_LINES - 1, preview, &mut entry);
-        if out.len() + entry.len() > budget {
-            break;
+    for (index, best, current, reduced) in &mut sections {
+        let file = &files[*index];
+        let allowance = available - used + current.len();
+        let full = section(file, best, CONTINUATION_LINES, MAX_SIGNATURE_LINES, preview);
+        let replacement = if full.len() <= allowance {
+            *reduced = false;
+            Some(full)
+        } else {
+            let mut ranked = best.clone();
+            ranked.sort_by(|a, b| {
+                scores
+                    .line(*b)
+                    .partial_cmp(&scores.line(*a))
+                    .unwrap_or(Ordering::Equal)
+                    .then(a.line.cmp(&b.line))
+            });
+            let mut fitting = None;
+            'candidate: for count in [best.len(), 8, 4, 2, 1] {
+                if count > best.len() {
+                    continue;
+                }
+                let mut chosen = ranked[..count].to_vec();
+                chosen.sort();
+                for signature_lines in [MAX_SIGNATURE_LINES, 4, 1, 0] {
+                    let candidate = section(file, &chosen, 0, signature_lines, preview);
+                    if candidate.len() <= allowance {
+                        fitting = Some(candidate);
+                        break 'candidate;
+                    }
+                }
+            }
+            fitting
+        };
+        if let Some(replacement) = replacement {
+            used = used - current.len() + replacement.len();
+            *current = replacement;
         }
-        out.push_str(&entry);
-        previewed += 1;
+        truncated |= *reduced;
     }
-
-    // Whatever is left is at least named.
-    let rest = &rest[previewed..];
-    if rest.is_empty() {
-        return out;
+    for (_, _, section, _) in sections {
+        text.push_str(&section);
     }
-    out.push_str(&format!(
-        "\n## {} more files (path: matching lines)\n",
-        rest.len()
-    ));
-    let mut listed = 0;
-    for file in rest {
-        let entry = format!("{}: {}\n", file.path, file.hits.len());
-        if out.len() + entry.len() > budget * 115 / 100 {
-            break;
-        }
-        out.push_str(&entry);
-        listed += 1;
+    if truncated {
+        text.push_str(DISPLAY_NOTICE);
     }
-    if listed < rest.len() {
-        out.push_str(&format!("… and {} more files\n", rest.len() - listed));
-    }
-    out
+    debug_assert!(text.len() <= budget);
+    Rendered { text, truncated }
 }
 
 /// Maps where the terms of the request live in the project rooted at `dir`.
@@ -1200,21 +1309,10 @@ pub fn scout_report(dir: &Path, request: &Request) -> ScoutReport {
             found.push(hit);
         }
     }
-    let mut answer = if found.is_empty() {
-        format!(
-            "scout: nothing found for {:?} in {} text files read ({} skipped; {} read errors)",
-            terms, counts.read, counts.skipped, counts.errors
-        )
-    } else {
-        let scores = Scores::new(terms.len(), &found);
-        let ranked = rank(found, &scores);
-        render(&terms, &ranked, &counts, &scores, &preview, budget)
-    };
     let incomplete = limited || counts.errors > 0;
     let mut reason = None;
+    let mut prefix = String::new();
     if incomplete {
-        // Put the warning before partial results. Status/reason remain independent when
-        // the display budget is too small to show even this notice.
         let mut reasons = Vec::new();
         if limited {
             reasons.push("resource limit reached; restrict paths".to_string());
@@ -1231,10 +1329,28 @@ pub fn scout_report(dir: &Path, request: &Request) -> ScoutReport {
             format!("Unreadable candidates (up to 5): {:?}\n", failed_paths)
         };
         let explanation = reasons.join("; ");
-        answer.insert_str(0, &format!("[search incomplete: {explanation}]\n{details}"));
+        prefix = format!("[search incomplete: {explanation}]\n{details}");
         reason = Some(explanation);
     }
-    let display_truncated = answer.len() > budget;
+    // Reserve the real warning prefix before rendering. It cannot displace the paths
+    // protected by render's budget, even with long or escaped unreadable candidate names.
+    let available = budget.saturating_sub(prefix.len());
+    let rendered = if found.is_empty() {
+        Rendered {
+            text: format!(
+                "scout: nothing found for {:?} in {} text files read ({} skipped; {} read errors)",
+                terms, counts.read, counts.skipped, counts.errors
+            ),
+            truncated: false,
+        }
+    } else {
+        let scores = Scores::new(terms.len(), &found);
+        let ranked = rank(found, &scores);
+        render(&terms, &ranked, &counts, &scores, &preview, available)
+    };
+    let mut answer = prefix;
+    answer.push_str(&rendered.text);
+    let display_truncated = rendered.truncated || answer.len() > budget;
     ScoutReport {
         text: bounded_answer(answer, budget),
         status: if incomplete {

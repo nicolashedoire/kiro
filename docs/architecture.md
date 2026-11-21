@@ -239,10 +239,14 @@ Takes `terms` (plain text, case-insensitive) and optionally `paths` and `budget`
 5. **Neighbours.** A file gets a share of the best score of its directory: a schema next to
    the module that matches strongly is probably part of the same feature, even if it only
    mentions a common term.
-6. **Rendering.** For each file, the most telling lines in file order, each with a bounded
-   declaration header (at most eight lines, with an explicit abbreviation notice) and the rest of the statement when it
-   continues on more-indented lines. The remaining files get a two-line preview each, then a
-   plain list. The whole answer fits in the budget.
+6. **Rendering.** A ranked overview reserves complete paths before term summaries and
+   detailed context. Compact previews are admitted first, then enriched with the most
+   telling lines and bounded declaration headers (at most eight lines per header, with
+   explicit abbreviation notices). Anonymous callbacks retain a useful named parent.
+   Missing declarations permit labelled lexical context; ambiguous siblings do not.
+   Every section, including the first, must fit before insertion. The real incomplete-scan
+   warning and a truncation notice are reserved before this allocation. Budget-driven
+   reductions are reflected in `display_truncated`, independently of scan completion.
 
 The scout is a text search. It says so in its output: code that does the same thing without
 the words is not listed.
