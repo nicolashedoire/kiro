@@ -192,36 +192,52 @@ const FAILURES: &[&str] = &[
     "cat missing.txt 2>&1",
 ];
 
+/// Compares the engine with the system on every command and reports all the differences at
+/// once, so that one run on a new machine shows everything that behaves differently there.
+fn compare(dir: &Path, commands: &[&str], with_messages: bool) {
+    let mut differences = Vec::new();
+    for command in commands {
+        let expected = system(dir, command);
+        let actual = engine(dir, command);
+        if actual.stdout != expected.stdout {
+            differences.push(format!(
+                "output of `{command}`\n  system: {:?}\n  engine: {:?}",
+                text(&expected.stdout),
+                text(&actual.stdout)
+            ));
+        }
+        if with_messages && actual.stderr != expected.stderr {
+            differences.push(format!(
+                "message of `{command}`\n  system: {:?}\n  engine: {:?}",
+                expected.stderr, actual.stderr
+            ));
+        }
+        if actual.code != expected.code {
+            differences.push(format!(
+                "exit code of `{command}`: system {}, engine {}",
+                expected.code, actual.code
+            ));
+        }
+    }
+    assert!(
+        differences.is_empty(),
+        "{} difference(s) with the system tools:\n{}",
+        differences.len(),
+        differences.join("\n")
+    );
+}
+
 #[test]
 fn output_and_exit_code_match_the_system_tools() {
     let dir = fixture("output");
-    for command in COMMANDS {
-        let expected = system(&dir, command);
-        let actual = engine(&dir, command);
-        assert_eq!(
-            text(&actual.stdout),
-            text(&expected.stdout),
-            "output of `{command}`"
-        );
-        assert_eq!(actual.code, expected.code, "exit code of `{command}`");
-    }
+    compare(&dir, COMMANDS, false);
     let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[test]
 fn failures_match_the_system_tools() {
     let dir = fixture("failures");
-    for command in FAILURES {
-        let expected = system(&dir, command);
-        let actual = engine(&dir, command);
-        assert_eq!(
-            text(&actual.stdout),
-            text(&expected.stdout),
-            "output of `{command}`"
-        );
-        assert_eq!(actual.stderr, expected.stderr, "message of `{command}`");
-        assert_eq!(actual.code, expected.code, "exit code of `{command}`");
-    }
+    compare(&dir, FAILURES, true);
     let _ = std::fs::remove_dir_all(&dir);
 }
 

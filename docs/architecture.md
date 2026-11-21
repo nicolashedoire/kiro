@@ -98,7 +98,8 @@ matter, all covered by tests:
 
 - **`grep -r` order.** The system tool visits files in directory order, not sorted. The
   engine does the same, otherwise `grep -r … | head` would return different lines.
-- **`grep -r dir/`.** The path is printed as the system tool builds it: `dir//file`.
+- **`grep -r dir/`.** Some macOS versions print `dir//file`, others `dir/file`. The engine
+  asks the system tool once per process and does the same.
 - **Basic regular expressions.** `\|`, `\(`, `\+`, `\?` are operators; a bare `+ ? | ( ) {`
   is a literal. `$` is an anchor only at the very end or before `\)`: before `\|` the system
   `grep` takes it as a literal dollar sign. A `*` right after a leading `^` is a literal star.

@@ -6,6 +6,8 @@
 
 use regex::bytes::{Regex, RegexBuilder};
 use std::path::Path;
+use std::process::Command;
+use std::sync::OnceLock;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Syntax {
@@ -631,6 +633,31 @@ impl Search<'_> {
     }
 }
 
+/// Whether the system grep keeps the slash of `dir/` in the paths it prints (`dir//file`).
+///
+/// This differs between macOS versions, so the engine asks the tool itself, once per process:
+/// it searches a one-file directory and looks at the path that comes back. `None` when the
+/// question cannot be answered; the search is then left to the system tool.
+fn system_grep_keeps_trailing_slash() -> Option<bool> {
+    static ANSWER: OnceLock<Option<bool>> = OnceLock::new();
+    *ANSWER.get_or_init(|| {
+        let dir = std::env::temp_dir().join(format!("itto-grep-probe-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).ok()?;
+        std::fs::write(dir.join("f"), "x\n").ok()?;
+        let output = Command::new("grep")
+            .arg("-r")
+            .arg("x")
+            .arg(format!("{}/", dir.display()))
+            .output();
+        let _ = std::fs::remove_dir_all(&dir);
+        let printed = String::from_utf8_lossy(&output.ok()?.stdout).into_owned();
+        if printed.is_empty() {
+            return None;
+        }
+        Some(printed.contains("//f:"))
+    })
+}
+
 /// Runs the search. `stdin` is the text received from a pipeline (`… | grep pattern`).
 pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, String> {
     let regex = build_regex(o, false)?;
@@ -684,6 +711,18 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
             }
             continue;
         }
+        // `grep -r x dir/`: the root is printed as the system grep prints it.
+        let root = match path.strip_suffix('/') {
+            None => path.as_str(),
+            Some(trimmed) if trimmed.ends_with('/') || trimmed.is_empty() => {
+                return Err("directory written with several slashes".to_string());
+            }
+            Some(trimmed) => match system_grep_keeps_trailing_slash() {
+                Some(true) => path.as_str(),
+                Some(false) => trimmed,
+                None => return Err("cannot tell how the system grep prints `dir/`".to_string()),
+            },
+        };
         let excluded = &o.exclude_dir;
         // No sorting: the system grep visits entries in directory order, and so do we, so that
         // `grep -r … | head` returns the same lines.
@@ -718,8 +757,7 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
                 .unwrap_or(x.path())
                 .to_string_lossy()
                 .into_owned();
-            // The path is shown exactly as the system grep builds it: `dir/` gives `dir//file`.
-            let shown = format!("{}/{}", path, relative);
+            let shown = format!("{}/{}", root, relative);
             s.file(&shown, x.path());
         }
     }
