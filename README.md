@@ -6,8 +6,9 @@
 
 [![CI](https://github.com/nicolashedoire/kiro/actions/workflows/ci.yml/badge.svg)](https://github.com/nicolashedoire/kiro/actions/workflows/ci.yml)
 
-> Status: early. macOS only for now. The numbers below come from one machine and one code
-> base; read the [limits](#limits) before relying on them.
+> Status: experimental. macOS only for now. Compatibility is checked against the system
+> tools, but a passing corpus is not a guarantee for every shell expression. Read the
+> [limits](#limits) before relying on it.
 >
 > Not affiliated with [Kiro](https://kiro.dev), the IDE from AWS.
 
@@ -27,7 +28,8 @@ agent already writes (`grep`, `sed -n`, `cat`, …) and removes what sits behind
 
 - **`run`: a read-only terminal with no shell.** `cat`, `sed -n`, `head`, `tail`, `wc`, `cut`,
   `ls`, `grep`, pipelines and `;` / `&&` / `||` lists run inside one long-lived process. No
-  shell, no program started, and the output is the one the system tools give, byte for byte.
+  shell or program is started for supported forms. Differential tests check the output
+  against the system tools.
   Several commands fit in one call, so one round trip brings back several answers.
 - **`scout`: the map of an area of the code in one call.** Give it the words you care about;
   it returns the files that mention them, ranked, with the matching lines and the function
@@ -41,39 +43,28 @@ Three rules hold it together:
    at all. Anything not covered is refused (MCP) or handed to your regular shell (CLI), never
    approximated. A [differential test suite](tests/differential.rs) compares the engine with
    the system tools, byte for byte.
-3. **Read-only by construction.** The MCP tools cannot write, delete or start anything, so a
-   single permission covers every call.
+3. **Designed for reading.** Native `run` executes fixed built-ins without starting a
+   program. `scout` invokes system Git to discover files, with hooks and filesystem-monitor
+   commands disabled, then reads the files. These tools do not provide an OS sandbox or
+   restrict access to the project directory; normal filesystem permissions still apply.
 
 ## Results
 
-**Live, with real Claude Code sessions.** Three "find every place to change" tasks on a private
-TypeScript monorepo, five sessions per task and per setup, same model, file edits disabled:
+The repository includes differential tests and a public, temporary benchmark fixture:
 
-| Mean over 15 sessions | Regular terminal | With kiro |
-| --- | ---: | ---: |
-| Complete answers | 11 / 15 | 13 / 15 |
-| Round trips with the model | 14.5 | 5.4 |
-| Time | 164 s | 48 s |
-| Tokens | 308,500 | 146,400 |
-| Cost per session | $0.26 | $0.14 |
+```sh
+cargo run --release --locked --example replay -- --fixture
+```
 
-**Replay, on recorded commands.** 394 read/search commands that agents really ran on
-that code base, sent one by one to the kiro MCP server and to the regular shell:
+This checks native stdout, stderr and exit status against `/bin/sh` and the macOS tools,
+without private sessions or model calls. The optional MCP mode compares formatted UTF-8
+responses, not raw binary streams. It is a small reproducible check, not a representative
+performance study.
 
-| Over the 320 commands answered identically | Regular shell | kiro |
-| --- | ---: | ---: |
-| Programs started | 904 | 0 |
-| Median time per command | 8.04 ms | 0.22 ms |
-| Total time | 9,682 ms | 4,468 ms |
-
-The engine took 321 of the 394 commands (81 %) and left 73 to the shell, mostly because of
-unquoted globs. 320 of its 321 answers were identical byte for byte; the last one differed
-only in the wording of the error for a `cd` into a directory that no longer exists. The
-median command is 37 times faster. The total is only 2.2 times faster: a few large recursive
-searches are dominated by reading the files, which no engine avoids.
-
-The method, the raw numbers, and the ideas that were measured and **did not** work are in
-[docs/benchmarks.md](docs/benchmarks.md).
+Earlier measurements on one private TypeScript monorepo suggested fewer model round trips
+and lower latency. They predate the audit fixes, have not been revalidated, and do not
+establish the performance or accuracy of the current version. The historical results,
+method, limitations and reproduction commands are in [docs/benchmarks.md](docs/benchmarks.md).
 
 ## Install
 
@@ -171,27 +162,48 @@ Everything else is left to your shell: globs, variables, substitutions, redirect
 file, background jobs, and any program not in this table. See
 [docs/architecture.md](docs/architecture.md) for the reasons.
 
+The table describes command families, not every combination of their arguments. In
+particular, `grep -w` accepts only literal ASCII words (letters, digits and `_`), `grep -o`
+refuses alternative patterns (including several `-e` patterns), and `--color=always` is
+refused. Recursive grep paths ending in `/` are refused because macOS versions disagree on
+their printed spelling. Use `src` instead of `src/`. Explicit program paths such as
+`/custom/cat`, shell special parameters (`$$`, `$?`, etc.), multiple redirections, and
+`2>&1` combining both output and errors are also left to the shell.
+
 ## Limits
 
 - **macOS only.** The engine reproduces the BSD tools that ship with macOS. On Linux the GNU
   tools format some outputs differently; that port is not done.
 - **Search and read only.** kiro does nothing for the commands that take most of the wall
   time in real sessions: tests, type-checks, builds.
-- **Small evidence.** The live comparison is one code base, three search tasks, one model and
-  five sessions per cell. Sessions vary a lot from one run to the next.
+- **Bounded native reads.** Only regular files up to 8 MiB are read; devices, FIFOs and
+  larger files are refused before reading. Each stage accepts at most 16 MiB of file input,
+  and each output/error buffer is capped at 2 MiB. Oversized native results are refused,
+  never silently truncated. CLI fallback runs the original command in the regular shell;
+  these bounds do not apply to that shell.
+- **Bounded MCP requests.** At most 128 commands per call, 64 KiB per command and 2 MiB of
+  combined response text. An input message over 1 MiB is rejected and the server exits.
+  Non-UTF-8 output is refused; `exact: true` disables grouping but errors and exit codes
+  remain formatted as text.
+- **Bounded scout.** At most 10,000 candidate files, 16 MiB of input and 16 MiB of retained
+  content; files over 400,000 bytes are skipped. Answers are capped at 64 KiB of UTF-8 text,
+  including notices for partial scans or truncated output. Repository `.gitignore` and
+  `.git/info/exclude` apply; global Git ignore settings are deliberately not loaded.
+- **Small evidence.** The historical live comparison is one code base, three search tasks,
+  one model and five sessions per cell. No current general speedup is claimed.
 - **A text search.** `scout` finds words. Code that does the same thing without the words is
   not listed; on the hardest of the three tasks the agent still missed one location in two
   sessions out of five (four out of five without kiro).
-- **Coverage.** On the recorded sessions, read/search command lines the engine can take are
-  about 10 % of all the shell commands the agents ran. The rest still goes through the shell.
+- **Coverage.** The supported subset is deliberately conservative. Other commands still
+  need the regular shell; historical coverage figures do not describe the current version.
 
 ## Development
 
 ```sh
 cargo fmt --check
 cargo clippy --all-targets -- -D warnings
-cargo test                                  # unit tests + differential tests (macOS)
-cargo run --release --example replay -- --max 600
+cargo test --locked --all-targets            # unit, differential and benchmark tests
+cargo run --release --locked --example replay -- --fixture
 ```
 
 The layout and the design rules are described in [docs/architecture.md](docs/architecture.md).

@@ -4,6 +4,7 @@
 //! error messages and exit codes included) and returns `Err(reason)` for anything else, so the
 //! engine can hand the command to the regular shell instead of answering differently.
 
+use crate::limits::{self, append, append_error, ReadError};
 use crate::shell;
 use std::path::{Path, PathBuf};
 
@@ -11,15 +12,8 @@ use std::path::{Path, PathBuf};
 /// `Err` means "not covered here": the caller must not guess.
 pub(crate) type StageResult = Result<(Vec<u8>, String, i32), String>;
 
-/// Resolves a path against the working directory; `~` is the home directory, as in a shell.
+/// Resolves an already parsed path. Only the shell parser may expand an unquoted `~`.
 pub(crate) fn resolve(dir: &Path, path: &str) -> PathBuf {
-    if path == "~" || path.starts_with("~/") {
-        return PathBuf::from(format!(
-            "{}{}",
-            std::env::var("HOME").unwrap_or_default(),
-            &path[1..]
-        ));
-    }
     let p = Path::new(path);
     if p.is_absolute() {
         p.to_path_buf()
@@ -45,20 +39,22 @@ fn read_file(
     file: &str,
     stderr: &mut String,
     code: &mut i32,
-) -> Option<Vec<u8>> {
-    match std::fs::read(resolve(dir, file)) {
-        Ok(bytes) => Some(bytes),
-        Err(e) => {
+    read_bytes: &mut usize,
+) -> Result<Option<Vec<u8>>, String> {
+    match limits::read_regular_file(&resolve(dir, file)) {
+        Ok(bytes) => {
+            limits::check_input(read_bytes, bytes.len())?;
+            Ok(Some(bytes))
+        }
+        Err(ReadError::Refused(reason)) => Err(format!("{program}: {file}: {reason}")),
+        Err(ReadError::Io(e)) => {
             let infix = if program == "wc" { "open: " } else { "" };
-            stderr.push_str(&format!(
-                "{}: {}: {}{}\n",
-                program,
-                file,
-                infix,
-                error_reason(&e)
-            ));
+            append_error(
+                stderr,
+                &format!("{}: {}: {}{}\n", program, file, infix, error_reason(&e)),
+            )?;
             *code = 1;
-            None
+            Ok(None)
         }
     }
 }
@@ -75,22 +71,23 @@ pub(crate) fn cat(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
         }
     }
     let (mut stdout, mut stderr, mut code) = (Vec::new(), String::new(), 0);
-    let write = |bytes: &[u8], out: &mut Vec<u8>| {
+    let mut read_bytes = 0;
+    let write = |bytes: &[u8], out: &mut Vec<u8>| -> Result<(), String> {
         if !numbered {
-            out.extend_from_slice(bytes);
-            return;
+            return append(out, bytes);
         }
         for (i, line) in bytes.split_inclusive(|b| *b == b'\n').enumerate() {
-            out.extend_from_slice(format!("{:>6}\t", i + 1).as_bytes());
-            out.extend_from_slice(line);
+            append(out, format!("{:>6}\t", i + 1).as_bytes())?;
+            append(out, line)?;
         }
+        Ok(())
     };
     if files.is_empty() {
-        write(stdin.ok_or("cat with no file and no input")?, &mut stdout);
+        write(stdin.ok_or("cat with no file and no input")?, &mut stdout)?;
     }
     for f in files {
-        if let Some(bytes) = read_file("cat", dir, f, &mut stderr, &mut code) {
-            write(&bytes, &mut stdout);
+        if let Some(bytes) = read_file("cat", dir, f, &mut stderr, &mut code, &mut read_bytes)? {
+            write(&bytes, &mut stdout)?;
         }
     }
     Ok((stdout, stderr, code))
@@ -150,25 +147,27 @@ pub(crate) fn sed(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
     }
     let (mut stderr, mut code) = (String::new(), 0);
     let mut contents: Vec<Vec<u8>> = Vec::new();
+    let mut read_bytes = 0;
     if files.is_empty() {
         contents.push(stdin.ok_or("sed with no file and no input")?.to_vec());
     }
     for f in &files {
-        if let Some(bytes) = read_file("sed", dir, f, &mut stderr, &mut code) {
+        if let Some(bytes) = read_file("sed", dir, f, &mut stderr, &mut code, &mut read_bytes)? {
             contents.push(bytes);
         }
     }
-    let lines: Vec<&[u8]> = contents
-        .iter()
-        .flat_map(|c| c.split_inclusive(|b| *b == b'\n'))
-        .collect();
-    let total = lines.len();
+    let lines = || {
+        contents
+            .iter()
+            .flat_map(|c| c.split_inclusive(|b| *b == b'\n'))
+    };
+    let total = lines().count();
     let number = |a: Address| match a {
         Address::Line(n) => n,
         Address::Last => total,
     };
     let mut stdout = Vec::new();
-    for (i, line) in lines.iter().enumerate() {
+    for (i, line) in lines().enumerate() {
         let n = i + 1;
         for (start, end) in &ranges {
             let first = number(*start);
@@ -177,7 +176,7 @@ pub(crate) fn sed(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
                 Some(e) => n == first || (n > first && n <= number(*e)),
             };
             if inside {
-                stdout.extend_from_slice(line);
+                append(&mut stdout, line)?;
             }
         }
     }
@@ -249,15 +248,16 @@ pub(crate) fn head(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRe
     }
     let several = files.len() > 1;
     let mut first = true;
+    let mut read_bytes = 0;
     for f in files {
-        if let Some(bytes) = read_file("head", dir, f, &mut stderr, &mut code) {
+        if let Some(bytes) = read_file("head", dir, f, &mut stderr, &mut code, &mut read_bytes)? {
             if several {
                 if !first {
-                    stdout.push(b'\n');
+                    append(&mut stdout, b"\n")?;
                 }
-                stdout.extend_from_slice(format!("==> {} <==\n", f).as_bytes());
+                append(&mut stdout, format!("==> {} <==\n", f).as_bytes())?;
             }
-            stdout.extend(first_lines(&bytes));
+            append(&mut stdout, &first_lines(&bytes))?;
             first = false;
         }
     }
@@ -271,20 +271,28 @@ pub(crate) fn tail(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRe
         return Err("tail on several files".to_string());
     }
     let (mut stderr, mut code) = (String::new(), 0);
+    let mut read_bytes = 0;
     let bytes: Vec<u8> = match files.first() {
-        Some(f) => match read_file("tail", dir, f, &mut stderr, &mut code) {
+        Some(f) => match read_file("tail", dir, f, &mut stderr, &mut code, &mut read_bytes)? {
             Some(b) => b,
             None => return Ok((Vec::new(), stderr, code)),
         },
         None => stdin.ok_or("tail with no file and no input")?.to_vec(),
     };
-    let lines: Vec<&[u8]> = bytes.split_inclusive(|b| *b == b'\n').collect();
-    let start = if from_start {
-        n.saturating_sub(1).min(lines.len())
+    let line_count = bytes.split_inclusive(|b| *b == b'\n').count();
+    let start_line = if from_start {
+        n.saturating_sub(1).min(line_count)
     } else {
-        lines.len().saturating_sub(n)
+        line_count.saturating_sub(n)
     };
-    Ok((lines[start..].concat(), stderr, code))
+    let offset: usize = bytes
+        .split_inclusive(|b| *b == b'\n')
+        .take(start_line)
+        .map(<[u8]>::len)
+        .sum();
+    let mut out = Vec::new();
+    append(&mut out, &bytes[offset..])?;
+    Ok((out, stderr, code))
 }
 
 /// `wc [-lwc] [FILE...]`, with the column layout of the system tool.
@@ -316,7 +324,10 @@ pub(crate) fn wc(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageResu
             .count();
         (lines, words, b.len())
     };
-    let write = |(a, b, d): (usize, usize, usize), name: Option<&str>, out: &mut Vec<u8>| {
+    let write = |(a, b, d): (usize, usize, usize),
+                 name: Option<&str>,
+                 out: &mut Vec<u8>|
+     -> Result<(), String> {
         let mut s = String::new();
         if l {
             s.push_str(&format!(" {:>7}", a));
@@ -332,7 +343,7 @@ pub(crate) fn wc(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageResu
             s.push_str(n);
         }
         s.push('\n');
-        out.extend_from_slice(s.as_bytes());
+        append(out, s.as_bytes())
     };
     let (mut stdout, mut stderr, mut code) = (Vec::new(), String::new(), 0);
     if files.is_empty() {
@@ -340,19 +351,20 @@ pub(crate) fn wc(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageResu
             measure(stdin.ok_or("wc with no file and no input")?),
             None,
             &mut stdout,
-        );
+        )?;
         return Ok((stdout, stderr, code));
     }
     let mut total = (0, 0, 0);
+    let mut read_bytes = 0;
     for f in &files {
-        if let Some(bytes) = read_file("wc", dir, f, &mut stderr, &mut code) {
+        if let Some(bytes) = read_file("wc", dir, f, &mut stderr, &mut code, &mut read_bytes)? {
             let m = measure(&bytes);
             total = (total.0 + m.0, total.1 + m.1, total.2 + m.2);
-            write(m, Some(f), &mut stdout);
+            write(m, Some(f), &mut stdout)?;
         }
     }
     if files.len() > 1 {
-        write(total, Some("total"), &mut stdout);
+        write(total, Some("total"), &mut stdout)?;
     }
     Ok((stdout, stderr, code))
 }
@@ -448,23 +460,23 @@ pub(crate) fn cut(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
     }
     let (mut stderr, mut code) = (String::new(), 0);
     let mut input: Vec<u8> = Vec::new();
+    let mut read_bytes = 0;
     if files.is_empty() {
         input.extend_from_slice(stdin.ok_or("cut with no file and no input")?);
     }
     for f in &files {
-        if let Some(bytes) = read_file("cut", dir, f, &mut stderr, &mut code) {
+        if let Some(bytes) = read_file("cut", dir, f, &mut stderr, &mut code, &mut read_bytes)? {
             input.extend(bytes);
         }
     }
-    let mut lines: Vec<&[u8]> = input.split(|b| *b == b'\n').collect();
-    if input.last() == Some(&b'\n') || input.is_empty() {
-        lines.pop();
-    }
+    let lines = input
+        .split_inclusive(|b| *b == b'\n')
+        .map(|line| line.strip_suffix(b"\n").unwrap_or(line));
     // The system tool copies a line that holds no delimiter as it is, so a last line without
     // a newline stays without one. Every other line it writes ends with a newline.
     let unterminated_last = match input.last() {
         Some(b'\n') | None => None,
-        Some(_) => Some(lines.len() - 1),
+        Some(_) => Some(input.iter().filter(|b| **b == b'\n').count()),
     };
     let mut stdout = Vec::new();
     for (index, line) in lines.into_iter().enumerate() {
@@ -472,38 +484,39 @@ pub(crate) fn cut(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
             let text = std::str::from_utf8(line).map_err(|_| "cut: line is not UTF-8")?;
             if !text.contains(delimiter.as_str()) {
                 if !only_delimited {
-                    stdout.extend_from_slice(line);
+                    append(&mut stdout, line)?;
                     if unterminated_last != Some(index) {
-                        stdout.push(b'\n');
+                        append(&mut stdout, b"\n")?;
                     }
                 }
                 continue;
             }
-            let kept: Vec<&str> = text
-                .split(delimiter.as_str())
-                .enumerate()
-                .filter(|(k, _)| selected(k + 1))
-                .map(|(_, x)| x)
-                .collect();
-            stdout.extend_from_slice(kept.join(delimiter.as_str()).as_bytes());
+            let mut wrote = false;
+            for (k, field) in text.split(delimiter.as_str()).enumerate() {
+                if selected(k + 1) {
+                    if wrote {
+                        append(&mut stdout, delimiter.as_bytes())?;
+                    }
+                    append(&mut stdout, field.as_bytes())?;
+                    wrote = true;
+                }
+            }
         } else if by_chars {
             let text = std::str::from_utf8(line).map_err(|_| "cut: line is not UTF-8")?;
-            let kept: String = text
-                .chars()
-                .enumerate()
-                .filter(|(k, _)| selected(k + 1))
-                .map(|(_, c)| c)
-                .collect();
-            stdout.extend_from_slice(kept.as_bytes());
+            let mut encoded = [0; 4];
+            for (k, character) in text.chars().enumerate() {
+                if selected(k + 1) {
+                    append(&mut stdout, character.encode_utf8(&mut encoded).as_bytes())?;
+                }
+            }
         } else {
-            stdout.extend(
-                line.iter()
-                    .enumerate()
-                    .filter(|(k, _)| selected(k + 1))
-                    .map(|(_, b)| *b),
-            );
+            for (k, b) in line.iter().enumerate() {
+                if selected(k + 1) {
+                    append(&mut stdout, &[*b])?;
+                }
+            }
         }
-        stdout.push(b'\n');
+        append(&mut stdout, b"\n")?;
     }
     Ok((stdout, stderr, code))
 }
@@ -566,12 +579,15 @@ pub(crate) fn ls(args: &[String], dir: &Path) -> StageResult {
             continue;
         }
         names.push(name);
+        if names.len() > limits::MAX_FILES {
+            return Err("directory exceeds 10000 entries".to_string());
+        }
     }
     names.sort();
     let mut stdout = Vec::new();
     for name in names {
-        stdout.extend(name);
-        stdout.push(b'\n');
+        append(&mut stdout, &name)?;
+        append(&mut stdout, b"\n")?;
     }
     Ok((stdout, String::new(), 0))
 }

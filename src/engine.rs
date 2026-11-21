@@ -10,6 +10,7 @@
 
 use crate::builtins::{self, StageResult};
 use crate::grep::{self, Syntax};
+use crate::limits::{self, append, append_error};
 use crate::shell::{self, Link, Word};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -42,7 +43,10 @@ fn stage(words: &[Word], dir: &Path, stdin: Option<&[u8]>) -> StageResult {
         .position(|w| w.text != "command")
         .ok_or("empty command")?;
     let program = &words[first].text;
-    let name = program.rsplit('/').next().unwrap_or(program);
+    if program.contains('/') || words[..=first].iter().any(|w| w.glob) {
+        return Err("program paths or expansions".to_string());
+    }
+    let name = program.as_str();
     let rest = &words[first + 1..];
     // A word the shell would expand (`*.ts`, `{a,b}`, `=name`) is left to the shell.
     if rest.iter().any(|w| w.glob) {
@@ -80,7 +84,17 @@ fn change_directory(words: &[Word], dir: &mut PathBuf) -> Option<StageResult> {
     if words.len() > 2 || words.iter().any(|w| w.glob) {
         return Some(Err("cd with several arguments".to_string()));
     }
-    let wanted = words.get(1).map_or("~", |w| w.text.as_str());
+    let home;
+    let wanted = match words.get(1) {
+        Some(word) => word.text.as_str(),
+        None => {
+            home = match std::env::var("HOME") {
+                Ok(home) => home,
+                Err(_) => return Some(Err("cd without HOME".to_string())),
+            };
+            &home
+        }
+    };
     if wanted == "-" {
         return Some(Err("cd -".to_string()));
     }
@@ -120,25 +134,42 @@ fn pipeline(text: &str, dir: &mut PathBuf) -> StageResult {
         // `2>&1` and `2>/dev/null` are the two redirections the engine handles itself.
         let mut command = text.trim();
         let (mut merge, mut discard) = (false, false);
+        let mut redirections = 0;
         loop {
             if let Some(shorter) = command.strip_suffix("2>&1") {
+                if !shorter.ends_with(char::is_whitespace) {
+                    return Err("redirection without a separate file descriptor".to_string());
+                }
                 merge = true;
                 command = shorter.trim_end();
             } else if let Some(shorter) = command.strip_suffix("2>/dev/null") {
+                if !shorter.ends_with(char::is_whitespace) {
+                    return Err("redirection without a separate file descriptor".to_string());
+                }
                 discard = true;
                 command = shorter.trim_end();
             } else {
                 break;
             }
+            redirections += 1;
+        }
+        if redirections > 1 {
+            return Err("several redirections".to_string());
         }
         let words = shell::split_words(command).ok_or("shell syntax not handled")?;
         let (mut out, errors, status) = stage(&words, dir, stream.as_deref())?;
         if merge {
+            if !out.is_empty() && !errors.is_empty() {
+                return Err("2>&1 with interleaved output and errors".to_string());
+            }
             let mut merged = errors.into_bytes();
-            merged.extend(out);
+            append(&mut merged, &out)?;
             out = merged;
         } else if !discard {
-            stderr.push_str(&errors);
+            append_error(&mut stderr, &errors)?;
+        }
+        if out.len() > limits::MAX_OUTPUT_BYTES {
+            return Err("output exceeds 2 MiB".to_string());
         }
         stream = Some(out);
         code = status;
@@ -151,6 +182,9 @@ fn pipeline(text: &str, dir: &mut PathBuf) -> StageResult {
 /// This is how an agent sends several actions in one round trip, with the syntax it already
 /// knows. `Err(reason)` means the line is not covered: nothing is kept, not even a `cd`.
 pub fn run_native(command: &str, session: &mut Session) -> Result<Reply, String> {
+    if command.len() > limits::MAX_COMMAND_BYTES {
+        return Err("command exceeds 64 KiB".to_string());
+    }
     let items = shell::split_list(command).ok_or("background job or unbalanced quotes")?;
     if items.is_empty() {
         return Err("empty command".to_string());
@@ -168,8 +202,8 @@ pub fn run_native(command: &str, session: &mut Session) -> Result<Reply, String>
             continue;
         }
         let (out, errors, status) = pipeline(text, &mut dir)?;
-        stdout.extend(out);
-        stderr.push_str(&errors);
+        append(&mut stdout, &out)?;
+        append_error(&mut stderr, &errors)?;
         code = status;
     }
     session.dir = dir;

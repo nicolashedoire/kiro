@@ -49,6 +49,7 @@ commands themselves.
 | `engine` | Runs a command line: splits it into a list of pipelines, runs each stage in-process, keeps the working directory. |
 | `builtins` | `cat`, `sed -n`, `head`, `tail`, `wc`, `cut`, `echo`, `ls`, reproduced for the forms agents actually use. |
 | `grep` | `grep` with its usual options, on top of the `regex` crate. |
+| `limits` | Bounded regular-file reads, input and output budgets; exceeding a bound refuses the native command. |
 | `scout` | One-call map of an area of the code. |
 | `mcp` | The MCP server that exposes `run` and `scout`. |
 
@@ -90,6 +91,9 @@ One more hop is better than a different result.
 | `echo` with an option or a backslash | `echo -n x` | Shells disagree: `sh` prints `-n x`, `zsh` prints `x` without a newline. |
 | Wrappers | `rtk grep …`, `time grep …` | A different program, with its own output. |
 | Options not reproduced | `ls -l`, `sed` without `-n`, `tail -f`, `grep -P` | Not worth guessing. |
+| Ambiguous regex output | `grep -Eo 'a\|ab'`, `grep -w @` | Rust regex and BSD/POSIX semantics differ. `-o` alternatives and non-literal `-w` patterns are refused. |
+| Explicit program paths | `/custom/cat f`, `/usr/bin/grep x f` | A matching basename does not establish which program the user intended. |
+| Mixed or multiple redirections | `cat f missing 2>&1`, `2>&1 2>/dev/null` | Output/error interleaving is not preserved by separate buffers; these cases are refused. |
 
 ### Fidelity details
 
@@ -99,7 +103,10 @@ matter, all covered by tests:
 - **`grep -r` order.** The system tool visits files in directory order, not sorted. The
   engine does the same, otherwise `grep -r … | head` would return different lines.
 - **`grep -r dir/`.** Some macOS versions print `dir//file`, others `dir/file`. The engine
-  asks the system tool once per process and does the same.
+  refuses this form without starting a probe or writing temporary files. `dir` is supported.
+- **Quoted paths and shell parameters.** Quoted or escaped `~` is literal. Only the parser
+  expands an unquoted home-directory prefix. Special parameters such as `$$`, `$?` and `$@`
+  are refused rather than printed literally.
 - **Basic regular expressions.** `\|`, `\(`, `\+`, `\?` are operators; a bare `+ ? | ( ) {`
   is a literal. `$` is an anchor only at the very end or before `\)`: before `\|` the system
   `grep` takes it as a literal dollar sign. A `*` right after a leading `^` is a literal star.
@@ -117,8 +124,10 @@ Anything outside what has been verified returns `Err` instead.
 
 ## The MCP server
 
-One process per session, speaking JSON-RPC over standard input and output. Because it stays
-alive, nothing is started per command and the working directory persists.
+One process per session, speaking JSON-RPC over standard input and output. Native `run`
+starts no subprocess; `scout` intentionally invokes system Git for file discovery. The
+working directory persists between calls. The tools use the server's filesystem permissions
+and may read outside the initial project directory: they are not an OS sandbox.
 
 ### `run`
 
@@ -131,20 +140,39 @@ $ sed -n '12,30p' src/api.ts
 …
 ```
 
-- **Read-only by construction.** There is no fallback here: a command the engine does not
-  cover is refused and nothing is executed. One permission therefore covers every call, and
-  the tool carries the `readOnlyHint` annotation.
+- **Reading only.** There is no shell fallback in MCP. An unsupported native command returns
+  a refusal and does not commit a directory change. The tool carries `readOnlyHint`; it is
+  not marked idempotent because a relative `cd` changes persistent state.
 - **Grouped listings.** When every line of an output is `path:line:text` for an existing
-  file, the path is written once and each line keeps `line:text`. Nothing is lost; pass
-  `exact: true` for the byte-for-byte output.
+  file, the path is written once and each line keeps `line:text`. Pass `exact: true` to
+  disable grouping. MCP returns UTF-8 text, with stderr and exit codes formatted into the
+  response; it does not expose raw binary stdout/stderr streams. Non-UTF-8 output is refused.
+
+### Resource bounds
+
+Native reads require regular files, at most 8 MiB per file and 16 MiB of input per stage.
+Known FIFOs and devices are refused before opening; Darwin's nonblocking-open flag also
+prevents a FIFO replacement from blocking `open`. Reads remain capped if a file grows.
+Output/error buffers and the accumulated command response are capped at 2 MiB each. A bound
+returns `Err`, never a successful truncated native result. CLI fallback is the ordinary
+shell and is not subject to these native limits.
+
+MCP accepts 128 commands per call, 64 KiB per command, and one JSON message per line up to
+1 MiB. An oversized transport message returns an error and ends the server, avoiding an
+unbounded read or an attempt to parse the remainder as another message. These are memory
+and enumeration bounds, not a wall-clock deadline for all filesystem operations.
 
 ### `scout`
 
 Takes `terms` (plain text, case-insensitive) and optionally `paths` and `budget`. It answers
 "where does this live?" in one call:
 
-1. **Files.** The files git tracks (plus untracked, non-ignored ones); a filtered directory
-   walk when there is no repository. Binary and very large files are skipped.
+1. **Files.** `/usr/bin/git ls-files` lists tracked and untracked, non-ignored files. Git
+   hooks, fsmonitor, optional locks and global/system configuration are disabled; local
+   `.gitignore` and `.git/info/exclude` remain effective. Discovery has a two-second timeout
+   and a 2 MiB listing limit. Outside a repository, a filtered directory walk is used.
+   An empty successful Git listing stays empty instead of falling back to ignored files.
+   Binary files and files over 400,000 bytes are skipped.
 2. **Matches.** One pass per file with a set of all the terms.
 3. **Ranking by rarity.** A term that appears on 14 lines says more than one that appears on
    232. A line is worth the rarity of the terms it contains; a file is worth its best lines.
@@ -159,10 +187,16 @@ Takes `terms` (plain text, case-insensitive) and optionally `paths` and `budget`
 The scout is a text search. It says so in its output: code that does the same thing without
 the words is not listed.
 
+Discovery accepts at most 10,000 candidates; directory walking is bounded to 50,000 entries
+and depth 64. Input and stored matching content are each capped at 16 MiB; transient
+parsing, ranking and rendering allocations are additional. A partial scan is
+explicitly marked. The answer budget is a strict UTF-8 byte cap, at most 64 KiB, including
+any truncation notice. This limits work as well as presentation.
+
 ## Why batching is the point
 
-Measured on real sessions (see [benchmarks.md](benchmarks.md)), running a command in-process
-saves 15 to 45 ms. A round trip with the model costs tens of seconds and re-reads the whole
-conversation. The in-process engine matters because it makes a different way of driving the
-terminal cheap and safe: many commands per call, and a first call that already returns the
-map. That is where the round trips, the time and the tokens go away.
+The intended benefit is fewer model interactions: many independent reads per call, and a
+first call that returns a useful map. The public replay fixture checks command equivalence;
+historical live-session measurements are archived in [benchmarks.md](benchmarks.md), with
+their limitations. They have not been rerun after the audit fixes and do not establish a
+current general speedup or isolate the benefit of the engine, batching and scout.

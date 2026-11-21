@@ -18,6 +18,7 @@
 mod builtins;
 pub mod engine;
 pub mod grep;
+mod limits;
 pub mod mcp;
 pub mod scout;
 pub mod shell;

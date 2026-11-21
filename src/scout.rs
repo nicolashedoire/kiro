@@ -12,8 +12,10 @@
 use regex::bytes::{RegexSet, RegexSetBuilder};
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::io::Read;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
 
 /// Files larger than this are skipped: generated or vendored, rarely what an agent wants.
 const MAX_FILE_BYTES: u64 = 400_000;
@@ -21,6 +23,14 @@ const MAX_FILE_BYTES: u64 = 400_000;
 const MAX_LINE_CHARS: usize = 200;
 /// At most this many terms are searched (one bit each in a `u64`).
 const MAX_TERMS: usize = 60;
+const MAX_TERM_BYTES: usize = 512;
+const MAX_QUERY_BYTES: usize = 16_384;
+const MAX_PATHS: usize = 128;
+const MAX_LISTING_BYTES: usize = 2 * 1024 * 1024;
+const MAX_WALK_ENTRIES: usize = 50_000;
+const MAX_RETAINED_BYTES: usize = 16 * 1024 * 1024;
+const MAX_ANSWER_BYTES: usize = 64 * 1024;
+const GIT_TIMEOUT: Duration = Duration::from_secs(2);
 /// Matching lines shown for a detailed file, and for a previewed one.
 const LINES_PER_FILE: usize = 14;
 const LINES_PER_PREVIEW: usize = 2;
@@ -70,7 +80,7 @@ pub struct Request {
     pub terms: Vec<String>,
     /// Directories or files to restrict the search to, relative to the project.
     pub paths: Vec<String>,
-    /// Maximum size of the answer, in characters.
+    /// Maximum size of the answer, in UTF-8 bytes (at most 64 KiB).
     pub budget: usize,
 }
 
@@ -159,11 +169,29 @@ fn is_skipped(path: &str) -> bool {
     })
 }
 
-/// The files of the project: what git tracks (plus untracked, non-ignored files) when there
-/// is a repository, a filtered directory walk otherwise.
-fn project_files(dir: &Path, paths: &[String]) -> Vec<String> {
-    let listed = Command::new("git")
-        .arg("-C")
+struct Candidates {
+    paths: Vec<String>,
+    truncated: bool,
+}
+
+/// A bounded Git listing. Command-line configuration takes precedence over repository
+/// configuration: even a configured fsmonitor hook must never run during discovery.
+/// Use the system Git, not a program selected through the caller's PATH.
+fn git_files(dir: &Path, paths: &[String]) -> Result<Option<Vec<u8>>, String> {
+    let mut child = match Command::new("/usr/bin/git")
+        .args([
+            "-c",
+            "core.fsmonitor=false",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "-c",
+            "core.untrackedCache=false",
+            "-c",
+            "core.preloadIndex=false",
+            "-c",
+            "core.excludesFile=/dev/null",
+            "-C",
+        ])
         .arg(dir)
         .args([
             "ls-files",
@@ -174,58 +202,178 @@ fn project_files(dir: &Path, paths: &[String]) -> Vec<String> {
             "--",
         ])
         .args(paths)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_OPTIONAL_LOCKS", "0")
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .env_remove("GIT_COMMON_DIR")
         .stdin(Stdio::null())
+        .stdout(Stdio::piped())
         .stderr(Stdio::null())
-        .output();
-    if let Ok(output) = listed {
-        if output.status.success() && !output.stdout.is_empty() {
-            return output
-                .stdout
-                .split(|b| *b == 0)
-                .filter(|name| !name.is_empty())
-                .map(|name| String::from_utf8_lossy(name).into_owned())
-                .collect();
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(_) => return Ok(None),
+    };
+    let stdout = child.stdout.take().expect("piped stdout");
+    let reader = std::thread::spawn(move || {
+        let mut bytes = Vec::new();
+        stdout
+            .take((MAX_LISTING_BYTES + 1) as u64)
+            .read_to_end(&mut bytes)?;
+        Ok::<_, std::io::Error>(bytes)
+    });
+    let started = Instant::now();
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break Ok(status),
+            Ok(None) if started.elapsed() < GIT_TIMEOUT => {
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            Ok(None) => break Err("Git file discovery timed out; restrict paths".to_string()),
+            Err(error) => break Err(format!("Git file discovery failed: {error}")),
         }
+    };
+    if status.is_err() {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+    let bytes = reader
+        .join()
+        .map_err(|_| "Git file discovery reader failed".to_string())?
+        .map_err(|error| format!("Git file discovery failed: {error}"))?;
+    if bytes.len() > MAX_LISTING_BYTES {
+        return Err("Git file listing exceeds 2 MiB; restrict paths".to_string());
+    }
+    let status = status?;
+    if status.success() {
+        // An empty successful listing is authoritative. Do not walk ignored files instead.
+        return Ok(Some(bytes));
+    }
+    if dir.ancestors().any(|parent| parent.join(".git").exists()) {
+        return Err("Git file discovery failed; search not run".to_string());
+    }
+    Ok(None)
+}
+
+/// Tracked and untracked, non-ignored files in a repository; a filtered walk otherwise.
+/// Both paths are bounded, and report incomplete enumeration instead of claiming a full map.
+fn project_files(dir: &Path, paths: &[String]) -> Result<Candidates, String> {
+    let mut files = Vec::new();
+    let mut seen = HashSet::new();
+    if let Some(bytes) = git_files(dir, paths)? {
+        for name in bytes.split(|b| *b == 0).filter(|name| !name.is_empty()) {
+            let name = String::from_utf8_lossy(name).into_owned();
+            if seen.contains(&name) {
+                continue;
+            }
+            if files.len() == crate::limits::MAX_FILES {
+                return Ok(Candidates {
+                    paths: files,
+                    truncated: true,
+                });
+            }
+            seen.insert(name.clone());
+            files.push(name);
+        }
+        return Ok(Candidates {
+            paths: files,
+            truncated: false,
+        });
     }
     let roots: Vec<&str> = if paths.is_empty() {
         vec!["."]
     } else {
         paths.iter().map(String::as_str).collect()
     };
-    let mut files = Vec::new();
+    let mut entries = 0;
     for root in roots {
         let walker = walkdir::WalkDir::new(dir.join(root))
             .follow_links(false)
+            .max_depth(64)
             .into_iter()
             .filter_entry(|entry| {
                 entry.depth() == 0
                     || !entry.file_type().is_dir()
                     || !SKIPPED_DIRS.contains(&entry.file_name().to_string_lossy().as_ref())
             });
-        for entry in walker.flatten().filter(|e| e.file_type().is_file()) {
+        for entry in walker {
+            entries += 1;
+            if entries > MAX_WALK_ENTRIES {
+                return Ok(Candidates {
+                    paths: files,
+                    truncated: true,
+                });
+            }
+            let Ok(entry) = entry else { continue };
+            if entry.file_type().is_dir() && entry.depth() == 64 {
+                return Ok(Candidates {
+                    paths: files,
+                    truncated: true,
+                });
+            }
+            if !entry.file_type().is_file() {
+                continue;
+            }
             if let Ok(relative) = entry.path().strip_prefix(dir) {
                 let relative = relative.to_string_lossy();
-                files.push(relative.trim_start_matches("./").to_string());
+                let relative = relative.trim_start_matches("./");
+                if seen.contains(relative) {
+                    continue;
+                }
+                if files.len() == crate::limits::MAX_FILES {
+                    return Ok(Candidates {
+                        paths: files,
+                        truncated: true,
+                    });
+                }
+                seen.insert(relative.to_string());
+                files.push(relative.to_string());
             }
         }
     }
-    files
+    Ok(Candidates {
+        paths: files,
+        truncated: false,
+    })
 }
 
 /// Reads one file and returns its matching lines, or `None` when it has none.
-fn search_file(dir: &Path, path: &str, terms: &RegexSet) -> Option<FileHits> {
+fn search_file(
+    dir: &Path,
+    path: &str,
+    terms: &RegexSet,
+    remaining_input: &mut usize,
+) -> Result<Option<FileHits>, ()> {
     if is_skipped(path) {
-        return None;
+        return Ok(None);
     }
     let absolute = dir.join(path);
-    let meta = std::fs::metadata(&absolute).ok()?;
+    let Ok(meta) = std::fs::metadata(&absolute) else {
+        return Ok(None);
+    };
     if !meta.is_file() || meta.len() > MAX_FILE_BYTES {
-        return None;
+        return Ok(None);
     }
-    let bytes = std::fs::read(&absolute).ok()?;
+    if meta.len() > *remaining_input as u64 {
+        return Err(());
+    }
+    let Ok(bytes) = crate::limits::read_regular_file(&absolute) else {
+        return Ok(None);
+    };
+    if bytes.len() > *remaining_input {
+        return Err(());
+    }
+    *remaining_input -= bytes.len();
+    if bytes.len() as u64 > MAX_FILE_BYTES {
+        return Ok(None);
+    }
     let is_binary = bytes[..bytes.len().min(8192)].contains(&0);
     if is_binary || !terms.is_match(&bytes) {
-        return None;
+        return Ok(None);
     }
     let content: Vec<String> = String::from_utf8_lossy(&bytes)
         .lines()
@@ -243,13 +391,42 @@ fn search_file(dir: &Path, path: &str, terms: &RegexSet) -> Option<FileHits> {
         })
         .collect();
     if hits.is_empty() {
-        return None;
+        return Ok(None);
     }
-    Some(FileHits {
+    Ok(Some(FileHits {
         path: path.to_string(),
         content,
         hits,
-    })
+    }))
+}
+
+/// Charge allocations as well as text: many very short lines cost much more than their
+/// raw byte count once each line and each hit has its own entry.
+fn retained_bytes(file: &FileHits) -> usize {
+    file.path.capacity()
+        + file.content.capacity() * std::mem::size_of::<String>()
+        + file.content.iter().map(String::capacity).sum::<usize>()
+        + file.hits.capacity() * std::mem::size_of::<Hit>()
+}
+
+/// The last step is a strict UTF-8 byte cap, including the truncation notice. This also
+/// covers headers and the first detailed section, which cannot be assumed to fit.
+fn bounded_answer(mut answer: String, budget: usize) -> String {
+    let budget = budget.min(MAX_ANSWER_BYTES);
+    if answer.len() <= budget {
+        return answer;
+    }
+    const NOTICE: &str = "\n[output truncated; narrow terms or paths]\n";
+    if budget < NOTICE.len() {
+        return "[truncated]".chars().take(budget).collect();
+    }
+    let mut end = budget - NOTICE.len();
+    while !answer.is_char_boundary(end) {
+        end -= 1;
+    }
+    answer.truncate(end);
+    answer.push_str(NOTICE);
+    answer
 }
 
 fn directory_of(path: &str) -> &str {
@@ -488,37 +665,84 @@ fn render(
 
 /// Maps where the terms of the request live in the project rooted at `dir`.
 pub fn scout(dir: &Path, request: &Request) -> String {
+    let budget = request.budget.min(MAX_ANSWER_BYTES);
+    if request.terms.len() > MAX_TERMS
+        || request.terms.iter().any(|term| term.len() > MAX_TERM_BYTES)
+        || request.terms.iter().map(String::len).sum::<usize>() > MAX_QUERY_BYTES
+    {
+        return bounded_answer(
+            "scout: too many or oversized terms (maximum 60 terms, 512 bytes each, 16 KiB total)"
+                .to_string(),
+            budget,
+        );
+    }
+    if request.paths.len() > MAX_PATHS
+        || request.paths.iter().map(String::len).sum::<usize>() > MAX_QUERY_BYTES
+    {
+        return bounded_answer(
+            "scout: too many or oversized paths (maximum 128 paths, 16 KiB total)".to_string(),
+            budget,
+        );
+    }
     let terms: Vec<String> = request
         .terms
         .iter()
         .map(|term| term.trim().to_string())
         .filter(|term| !term.is_empty())
-        .take(MAX_TERMS)
         .collect();
     if terms.is_empty() {
-        return "scout: give at least one term".to_string();
+        return bounded_answer("scout: give at least one term".to_string(), budget);
     }
     let Ok(set) = RegexSetBuilder::new(terms.iter().map(|term| regex::escape(term)))
         .case_insensitive(true)
         .build()
     else {
-        return "scout: unreadable terms".to_string();
+        return bounded_answer("scout: unreadable terms".to_string(), budget);
     };
-    let candidates = project_files(dir, &request.paths);
-    let found: Vec<FileHits> = candidates
-        .iter()
-        .filter_map(|path| search_file(dir, path, &set))
-        .collect();
-    if found.is_empty() {
-        return format!(
-            "scout: nothing found for {:?} in {} files",
-            terms,
-            candidates.len()
+    let candidates = match project_files(dir, &request.paths) {
+        Ok(candidates) => candidates,
+        Err(reason) => return bounded_answer(format!("scout: {reason}"), budget),
+    };
+    let mut found = Vec::new();
+    let mut scanned = 0;
+    let mut remaining_input = crate::limits::MAX_INPUT_BYTES;
+    let mut retained = 0;
+    let mut limited = candidates.truncated;
+    for path in &candidates.paths {
+        let hit = match search_file(dir, path, &set, &mut remaining_input) {
+            Ok(hit) => hit,
+            Err(()) => {
+                limited = true;
+                break;
+            }
+        };
+        scanned += 1;
+        if let Some(hit) = hit {
+            let bytes = retained_bytes(&hit);
+            if bytes > MAX_RETAINED_BYTES - retained {
+                limited = true;
+                break;
+            }
+            retained += bytes;
+            found.push(hit);
+        }
+    }
+    let mut answer = if found.is_empty() {
+        format!("scout: nothing found for {:?} in {} files", terms, scanned)
+    } else {
+        let scores = Scores::new(terms.len(), &found);
+        let ranked = rank(found, &scores);
+        render(&terms, &ranked, scanned, &scores, budget)
+    };
+    if limited {
+        // Place this before the result, so a small answer budget cannot hide the fact that
+        // the search was incomplete. No completeness claim is made for a limited scan.
+        answer.insert_str(
+            0,
+            "[search incomplete: resource limit reached; restrict paths]\n",
         );
     }
-    let scores = Scores::new(terms.len(), &found);
-    let ranked = rank(found, &scores);
-    render(&terms, &ranked, candidates.len(), &scores, request.budget)
+    bounded_answer(answer, budget)
 }
 
 #[cfg(test)]

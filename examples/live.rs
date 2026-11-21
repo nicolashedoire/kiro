@@ -5,10 +5,10 @@
 //! - `regular`: Claude Code as it is on this machine (its shell tool, its hooks);
 //! - `engine`: the same, plus kiro served over MCP (`kiro mcp`).
 //!
-//! File edits are disabled in both, sessions are not saved, and each session is capped at
-//! half a dollar. For each run it reports whether the answer is right (it must mention every
-//! expected string), the number of round trips with the model, the time, the tokens and the
-//! cost, and how the agent used its tools.
+//! Edit/Write tools are disabled in both, but Bash remains available: use a disposable
+//! checkout or an externally read-only filesystem if writes must be prevented. Sessions are
+//! not saved and each session is capped at half a dollar. The expected-paths metric checks
+//! substrings only; it does not grade semantic correctness or false positives.
 //!
 //! This costs real model calls. Results vary a lot from one session to the next: run several
 //! repetitions and several tasks before concluding anything.
@@ -28,7 +28,7 @@ use std::time::{Duration, Instant};
 struct Outcome {
     setup: String,
     finished: bool,
-    correct: bool,
+    expected_paths_mentioned: bool,
     turns: u64,
     seconds: f64,
     cost: f64,
@@ -228,7 +228,7 @@ fn print_row(o: &Outcome) {
     println!(
         "{:<8} {:<6} {:>3} trips {:>6.0} s {:>8} tok {:>6} out {:>6.3} $ | shell {:>2} read {:>2} search {:>2} scout {:>2} engine {:>2} calls / {:>2} commands ({} refused) | {:>7} chars | denied {}",
         o.setup,
-        if !o.finished { "STOP" } else if o.correct { "right" } else { "WRONG" },
+        if !o.finished { "STOP" } else if o.expected_paths_mentioned { "paths" } else { "missing" },
         o.turns,
         o.seconds,
         o.tokens,
@@ -244,6 +244,27 @@ fn print_row(o: &Outcome) {
         o.tool_chars,
         o.denied
     );
+}
+
+fn setup_order(repetition: usize) -> [bool; 2] {
+    if repetition % 2 == 1 {
+        [false, true]
+    } else {
+        [true, false]
+    }
+}
+
+fn mentions_expected_paths(answer: &str, expected: &[String]) -> bool {
+    let answer = answer.to_lowercase();
+    !expected.is_empty()
+        && !answer.is_empty()
+        && expected.iter().all(|entry| {
+            entry
+                .split('|')
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .any(|alternative| answer.contains(alternative))
+        })
 }
 
 fn main() {
@@ -264,6 +285,10 @@ fn main() {
         .map(|x| x.trim().to_lowercase())
         .filter(|x| !x.is_empty())
         .collect();
+    if repetitions == 0 || expected.is_empty() {
+        eprintln!("repetitions and expected paths must be non-empty");
+        std::process::exit(2);
+    }
     let mut task = String::new();
     std::io::stdin()
         .read_to_string(&mut task)
@@ -284,12 +309,23 @@ fn main() {
 
     // Optional sixth argument: run only one setup (`regular` or `engine`).
     let only: Option<String> = args.get(5).cloned();
+    if only
+        .as_deref()
+        .is_some_and(|name| !matches!(name, "regular" | "engine"))
+    {
+        eprintln!("setup must be regular or engine");
+        std::process::exit(2);
+    }
+    eprintln!("Edit/Write tools are disabled; Bash can still write. Run in a disposable checkout. Expected-paths coverage is a substring check, not a correctness score.");
     let mut outcomes: Vec<Outcome> = Vec::new();
     for r in 1..=repetitions {
-        for (setup, config, with_engine) in [
-            ("regular", &regular_config, false),
-            ("engine", &engine_config, true),
-        ] {
+        // Counterbalance order across repetitions instead of always warming regular first.
+        for with_engine in setup_order(r) {
+            let (setup, config) = if with_engine {
+                ("engine", &engine_config)
+            } else {
+                ("regular", &regular_config)
+            };
             if only.as_deref().is_some_and(|o| o != setup) {
                 continue;
             }
@@ -301,11 +337,7 @@ fn main() {
                 with_engine,
                 &out.join(format!("{}-{}.jsonl", setup, r)),
             );
-            let answer = o.answer.to_lowercase();
-            o.correct = !answer.is_empty()
-                && expected
-                    .iter()
-                    .all(|e| e.split('|').any(|x| answer.contains(x)));
+            o.expected_paths_mentioned = mentions_expected_paths(&o.answer, &expected);
             print_row(&o);
             outcomes.push(o);
         }
@@ -316,9 +348,9 @@ fn main() {
         let n = group.len().max(1) as f64;
         let mean = |f: &dyn Fn(&Outcome) -> f64| group.iter().map(|o| f(o)).sum::<f64>() / n;
         println!(
-            "mean {:<8} right {}/{}  {:>5.1} trips  {:>6.1} s  {:>8.0} tokens  {:>6.0} output tokens  {:>6.3} $  {:>8.0} chars read",
+            "mean {:<8} expected paths mentioned {}/{}  {:>5.1} trips  {:>6.1} s  {:>8.0} tokens  {:>6.0} output tokens  {:>6.3} $  {:>8.0} chars read",
             setup,
-            group.iter().filter(|o| o.correct).count(),
+            group.iter().filter(|o| o.expected_paths_mentioned).count(),
             group.len(),
             mean(&|o| o.turns as f64),
             mean(&|o| o.seconds),
@@ -334,7 +366,7 @@ fn main() {
     );
     let summary: Vec<Value> = outcomes
         .iter()
-        .map(|o| json!({ "setup": o.setup, "finished": o.finished, "correct": o.correct, "trips": o.turns, "seconds": o.seconds, "cost_usd": o.cost, "tokens": o.tokens, "output_tokens": o.output_tokens,
+        .map(|o| json!({ "setup": o.setup, "finished": o.finished, "expected_paths_mentioned": o.expected_paths_mentioned, "trips": o.turns, "seconds": o.seconds, "cost_usd": o.cost, "tokens": o.tokens, "output_tokens": o.output_tokens,
             "shell_calls": o.shell_calls, "read_calls": o.read_calls, "search_calls": o.search_calls, "engine_calls": o.engine_calls, "engine_commands": o.engine_commands, "engine_refused": o.engine_refused,
             "tool_chars": o.tool_chars, "denied": o.denied, "answer": o.answer }))
         .collect();
@@ -342,4 +374,25 @@ fn main() {
         out.join("results.json"),
         serde_json::to_string_pretty(&summary).unwrap_or_default(),
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn path_metric_does_not_pass_on_empty_alternatives() {
+        assert!(!mentions_expected_paths("anything", &["missing|".into()]));
+        assert!(!mentions_expected_paths("anything", &[]));
+        assert!(mentions_expected_paths(
+            "src/App.ts and schema.ts",
+            &["src/app.ts".into(), "db.ts|schema.ts".into()]
+        ));
+    }
+
+    #[test]
+    fn repetitions_counterbalance_setup_order() {
+        assert_eq!(setup_order(1), [false, true]);
+        assert_eq!(setup_order(2), [true, false]);
+    }
 }

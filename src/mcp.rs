@@ -4,33 +4,33 @@
 //! process lives for the whole session, so the working directory is remembered between
 //! calls and nothing has to be started again for each command.
 //!
-//! Both tools are read-only by construction: `run` refuses any command the engine does not
-//! cover instead of passing it to a shell, and `scout` only reads files. One permission
-//! therefore covers every call.
+//! `run` never falls back to a shell. `scout` lists files with the system Git (hooks and
+//! filesystem-monitor commands disabled), then reads them. This is not an OS sandbox.
 
 use crate::engine::{self, Session};
+use crate::limits;
 use crate::scout;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::io::{BufRead, Write};
+use std::io::{BufRead, Read, Write};
 use std::path::Path;
 
 const DEFAULT_SCOUT_BUDGET: usize = 12_000;
 
-const INSTRUCTIONS: &str = "To find where something lives in the code, START with `scout`: one call with all your terms returns the files, the matching lines and the functions they sit in. For reading and searching files (cat, sed -n, head, tail, wc, cut, ls, grep, pipelines and `;`/`&&` lists of those), ALWAYS call `run` instead of the regular shell or the file-reading tools: same commands, no shell started. Every call to any tool is a full round trip that re-reads the whole conversation, so the number of calls is what costs: before calling, think about everything you will need next and send it all in ONE call through `commands`. `run` and `scout` cannot modify anything; use the regular shell only for what `run` refuses.";
+const INSTRUCTIONS: &str = "To find where something lives in the code, start with `scout`: one call with all your terms returns matching files and context. For reading and searching, prefer `run` with familiar commands and batch independent reads in `commands`. Unsupported syntax, non-regular files and requests exceeding resource limits are refused; use the regular shell for those. `run` starts no shell or program. `scout` uses system Git with hooks and filesystem-monitor commands disabled. These tools are designed for reading, but do not provide an OS sandbox or confine access to the project directory.";
 
 fn tools() -> Value {
     json!([
         {
             "name": "run",
             "description": "Fast, read-only terminal. Runs read/search commands exactly as written (cat, sed -n 'A,Bp', head, tail, wc, cut, ls, grep with its usual options, pipelines, `;`/`&&`/`||` lists, `cd dir`) without starting a shell or a program. Each call is one full round trip, so batch: put EVERYTHING you need next in `commands` and get all the answers at once. Search listings come back grouped by file (the path once, then `line:text`). The working directory is remembered between calls. Commands it does not cover are refused (nothing is executed): use the regular shell for those.",
-            "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false },
+            "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": false, "openWorldHint": false },
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "commands": { "type": "array", "items": { "type": "string" }, "description": "The commands to run, in order; all outputs come back together. Prefer this, with everything you need." },
+                    "commands": { "type": "array", "maxItems": 128, "items": { "type": "string", "maxLength": 65536 }, "description": "The commands to run, in order; all outputs come back together. Prefer this, with everything you need." },
                     "command": { "type": "string", "description": "A single command, when there is really only one thing to ask." },
-                    "exact": { "type": "boolean", "description": "Return the output byte for byte, without grouping search listings by file." }
+                    "exact": { "type": "boolean", "description": "Return UTF-8 text without grouping search listings by file; errors and exit codes are still formatted as text." }
                 }
             }
         },
@@ -43,7 +43,7 @@ fn tools() -> Value {
                 "properties": {
                     "terms": { "type": "array", "items": { "type": "string" }, "description": "Plain-text terms, case-insensitive: words, phrases, identifiers. Give many (5 to 15)." },
                     "paths": { "type": "array", "items": { "type": "string" }, "description": "Optional directories or files to restrict the search to." },
-                    "budget": { "type": "integer", "description": "Maximum size of the answer in characters (default 12000)." }
+                    "budget": { "type": "integer", "description": "Maximum answer size in UTF-8 bytes (default 12000, capped at 65536)." }
                 },
                 "required": ["terms"]
             }
@@ -111,21 +111,31 @@ pub fn group_by_file(text: &str, dir: &Path) -> Option<String> {
 /// Runs one command inside the engine and formats the answer for the agent.
 /// Returns the text and whether the command was refused.
 fn run_one(command: &str, session: &mut Session, exact: bool) -> (String, bool) {
-    match engine::run_native(command, session) {
+    let mut pending = Session {
+        dir: session.dir.clone(),
+    };
+    match engine::run_native(command, &mut pending) {
         Ok(reply) => {
-            let mut text = String::from_utf8_lossy(&reply.stdout).into_owned();
+            let Ok(mut text) = String::from_utf8(reply.stdout) else {
+                return ("[not run: non-UTF-8 output cannot be returned as MCP text; use the regular shell]".to_string(), true);
+            };
             if !exact {
-                if let Some(grouped) = group_by_file(&text, &session.dir) {
+                if let Some(grouped) = group_by_file(&text, &pending.dir) {
                     text = grouped;
                 }
             }
-            text.push_str(&reply.stderr);
+            if let Err(reason) = limits::append_error(&mut text, &reply.stderr) {
+                return (format!("[not run: {reason}; use the regular shell]"), true);
+            }
             if reply.code != 0 {
                 if !text.is_empty() && !text.ends_with('\n') {
                     text.push('\n');
                 }
-                text.push_str(&format!("[exit code {}]", reply.code));
+                if let Err(reason) = limits::append_error(&mut text, &format!("[exit code {}]", reply.code)) {
+                    return (format!("[not run: {reason}; use the regular shell]"), true);
+                }
             }
+            session.dir = pending.dir;
             (text, false)
         }
         Err(reason) => (
@@ -152,6 +162,14 @@ fn strings(arguments: &Value, key: &str) -> Vec<String> {
 fn call(session: &mut Session, name: &str, arguments: &Value) -> Result<String, String> {
     match name {
         "run" => {
+            let count = arguments
+                .get("commands")
+                .and_then(Value::as_array)
+                .map_or(0, Vec::len)
+                + usize::from(arguments.get("command").is_some());
+            if count > limits::MAX_COMMANDS {
+                return Err("at most 128 commands per call".to_string());
+            }
             let mut commands: Vec<String> = Vec::new();
             if let Some(single) = arguments.get("command").and_then(Value::as_str) {
                 commands.push(single.to_string());
@@ -169,13 +187,17 @@ fn call(session: &mut Session, name: &str, arguments: &Value) -> Result<String, 
                 return if refused { Err(text) } else { Ok(text) };
             }
             let mut out = String::new();
+            let mut pending = Session {
+                dir: session.dir.clone(),
+            };
             for command in &commands {
-                let (text, _) = run_one(command, session, exact);
-                out.push_str(&format!("$ {command}\n{text}"));
+                let (text, _) = run_one(command, &mut pending, exact);
+                limits::append_error(&mut out, &format!("$ {command}\n{text}"))?;
                 if !out.ends_with('\n') {
-                    out.push('\n');
+                    limits::append_error(&mut out, "\n")?;
                 }
             }
+            session.dir = pending.dir;
             Ok(out)
         }
         "scout" => {
@@ -186,7 +208,7 @@ fn call(session: &mut Session, name: &str, arguments: &Value) -> Result<String, 
             let budget = arguments
                 .get("budget")
                 .and_then(Value::as_u64)
-                .map_or(DEFAULT_SCOUT_BUDGET, |b| b as usize);
+                .map_or(DEFAULT_SCOUT_BUDGET, |b| b.min(65_536) as usize);
             let request = scout::Request {
                 terms,
                 paths: strings(arguments, "paths"),
@@ -250,12 +272,28 @@ pub fn serve(project: &Path) -> std::io::Result<()> {
     };
     let stdin = std::io::stdin();
     let mut stdout = std::io::stdout();
-    for line in stdin.lock().lines() {
-        let line = line?;
-        if line.trim().is_empty() {
+    let mut stdin = stdin.lock();
+    loop {
+        let mut line = Vec::new();
+        (&mut stdin)
+            .take(limits::MAX_MESSAGE_BYTES as u64 + 1)
+            .read_until(b'\n', &mut line)?;
+        if line.is_empty() {
+            break;
+        }
+        if line.len() > limits::MAX_MESSAGE_BYTES {
+            writeln!(
+                stdout,
+                "{}",
+                json!({"jsonrpc":"2.0","id":null,"error":{"code":-32600,"message":"message exceeds 1 MiB"}})
+            )?;
+            stdout.flush()?;
+            break;
+        }
+        if line.iter().all(u8::is_ascii_whitespace) {
             continue;
         }
-        let answer = match serde_json::from_str::<Value>(&line) {
+        let answer = match serde_json::from_slice::<Value>(&line) {
             Ok(message) => respond(&mut session, &message),
             Err(_) => Some(json!({
                 "jsonrpc": "2.0",

@@ -133,7 +133,6 @@ const COMMANDS: &[&str] = &[
     "grep export src/app.ts",
     "grep -c export src/app.ts src/lib/util.ts",
     "grep -rn export src",
-    "grep -rn export src/",
     "grep -rl export .",
     "grep -r export",
     "grep -rn export . --include='*.ts'",

@@ -27,6 +27,9 @@ pub struct Word {
 
 /// Splits a simple command into words (single quotes, double quotes, backslash, leading `~`).
 pub fn split_words(command: &str) -> Option<Vec<Word>> {
+    if command.len() > crate::limits::MAX_COMMAND_BYTES {
+        return None;
+    }
     #[derive(PartialEq)]
     enum State {
         Bare,
@@ -35,11 +38,12 @@ pub fn split_words(command: &str) -> Option<Vec<Word>> {
     }
     let mut words = Vec::new();
     let mut current = String::new();
+    let mut completed_bytes = 0usize;
     let mut open = false;
     let mut glob = false;
     let mut state = State::Bare;
     let mut chars = command.chars().peekable();
-    let is_expansion = |next: Option<&char>| matches!(next, Some(c) if c.is_ascii_alphanumeric() || matches!(*c, '{' | '(' | '_'));
+    let is_expansion = |next: Option<&char>| matches!(next, Some(c) if c.is_ascii_alphanumeric() || matches!(*c, '{' | '(' | '_' | '$' | '?' | '@' | '*' | '#' | '-' | '!' | '+' | '[' | '=' | '^' | '~' | '<'));
     while let Some(c) = chars.next() {
         match state {
             State::Single => {
@@ -52,6 +56,9 @@ pub fn split_words(command: &str) -> Option<Vec<Word>> {
             State::Double => match c {
                 '"' => state = State::Bare,
                 '\\' => match chars.peek() {
+                    Some('\n') => {
+                        chars.next();
+                    }
                     Some(&n) if matches!(n, '"' | '\\' | '$' | '`') => {
                         current.push(n);
                         chars.next();
@@ -70,6 +77,7 @@ pub fn split_words(command: &str) -> Option<Vec<Word>> {
             State::Bare => match c {
                 ' ' | '\t' => {
                     if open {
+                        completed_bytes = completed_bytes.saturating_add(current.len());
                         words.push(Word {
                             text: std::mem::take(&mut current),
                             glob,
@@ -88,13 +96,15 @@ pub fn split_words(command: &str) -> Option<Vec<Word>> {
                     open = true;
                 }
                 '\\' => {
-                    if let Some(n) = chars.next() {
+                    let n = chars.next()?;
+                    if n != '\n' {
                         current.push(n);
                         open = true;
                     }
                 }
                 '$' => {
-                    if is_expansion(chars.peek()) {
+                    if is_expansion(chars.peek()) || matches!(chars.peek(), Some('\'') | Some('"'))
+                    {
                         return None;
                     }
                     current.push('$');
@@ -110,8 +120,11 @@ pub fn split_words(command: &str) -> Option<Vec<Word>> {
                     current.push(c);
                     open = true;
                 }
-                '~' if !open && matches!(chars.peek(), None | Some('/') | Some(' ')) => {
-                    current.push_str(&std::env::var("HOME").unwrap_or_default());
+                '~' if !open => {
+                    if !matches!(chars.peek(), None | Some('/') | Some(' ') | Some('\t')) {
+                        return None;
+                    }
+                    current.push_str(&std::env::var("HOME").ok()?);
                     open = true;
                 }
                 _ => {
@@ -119,6 +132,9 @@ pub fn split_words(command: &str) -> Option<Vec<Word>> {
                     open = true;
                 }
             },
+        }
+        if completed_bytes.saturating_add(current.len()) > crate::limits::MAX_COMMAND_BYTES {
+            return None;
         }
     }
     if state != State::Bare {
@@ -140,7 +156,7 @@ pub fn split_pipe(command: &str) -> (&str, &str) {
     let mut i = 0;
     while i < bytes.len() {
         match bytes[i] {
-            b'\\' => i += 1,
+            b'\\' if !single => i += 1,
             b'\'' if !double => single = !single,
             b'"' if !single => double = !double,
             b'|' if !single && !double => {

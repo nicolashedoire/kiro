@@ -4,10 +4,9 @@
 //! pattern is not covered, we give up (`Err`) and the engine runs the real program: one more
 //! hop is better than a different result.
 
+use crate::limits::{self, ReadError, MAX_FILES, MAX_INPUT_BYTES, MAX_OUTPUT_BYTES};
 use regex::bytes::{Regex, RegexBuilder};
 use std::path::Path;
-use std::process::Command;
-use std::sync::OnceLock;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Syntax {
@@ -116,6 +115,17 @@ pub fn parse(args: &[String], syntax: Syntax) -> Result<Options, String> {
                     | "after-context"
                     | "before-context"
             );
+            if matches!(name, "color" | "colour") {
+                match inline.as_deref().unwrap_or("auto") {
+                    "auto" | "never" => {}
+                    _ => return Err("colored grep output".to_string()),
+                }
+                i += 1;
+                continue;
+            }
+            if inline.is_some() && !needs_value {
+                return Err(format!("unexpected value for --{}", name));
+            }
             let value = if needs_value {
                 match inline {
                     Some(v) => v,
@@ -148,7 +158,6 @@ pub fn parse(args: &[String], syntax: Syntax) -> Result<Options, String> {
                 "fixed-strings" => o.syntax = Syntax::Fixed,
                 "basic-regexp" => o.syntax = Syntax::Basic,
                 "text" => o.binary_as_text = true,
-                "color" | "colour" => {}
                 "include" => o.include.push(value),
                 "exclude" => o.exclude.push(value),
                 "exclude-dir" => o.exclude_dir.push(value),
@@ -398,6 +407,30 @@ fn build_regex(o: &Options, whole_file: bool) -> Result<Regex, String> {
             });
         }
     }
+    // Rust regex chooses the first successful alternative; POSIX grep chooses the longest
+    // one. This cannot affect a yes/no line match, but it changes the substrings printed by
+    // -o. Refuse ambiguous patterns rather than return different matches.
+    if o.only_matching && (branches.len() != 1 || has_alternation(&branches[0])) {
+        return Err("-o with alternatives requires POSIX longest-match semantics".to_string());
+    }
+    // A word-boundary assertion is exact for literal words, but not for arbitrary patterns
+    // such as @ (which grep -w can match between two non-word characters). Keep only this
+    // well-defined subset until the full POSIX word predicate is implemented.
+    if o.word
+        && o.patterns.iter().any(|pattern| {
+            pattern.is_empty()
+                || !pattern
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        })
+    {
+        return Err("-w with a pattern other than a literal word".to_string());
+    }
+    for branch in &branches {
+        if has_regex_extension(branch) {
+            return Err("non-POSIX regular-expression extension".to_string());
+        }
+    }
     let mut body = if branches.len() == 1 {
         branches.remove(0)
     } else {
@@ -421,6 +454,77 @@ fn build_regex(o: &Options, whole_file: bool) -> Result<Regex, String> {
         .multi_line(whole_file)
         .build()
         .map_err(|e| format!("pattern not supported: {}", e))
+}
+
+/// Whether a translated expression contains an actual alternation, not an escaped pipe
+/// or a pipe inside a bracket class.
+fn has_alternation(pattern: &str) -> bool {
+    let mut escaped = false;
+    let mut bracket = false;
+    for c in pattern.chars() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match c {
+            '\\' => escaped = true,
+            '[' => bracket = true,
+            ']' => bracket = false,
+            '|' if !bracket => return true,
+            _ => {}
+        }
+    }
+    false
+}
+
+/// Reject regex-crate extensions whose interpretation does not match the BSD tool.
+fn has_regex_extension(pattern: &str) -> bool {
+    let mut chars = pattern.chars().peekable();
+    let mut bracket = false;
+    let mut previous_quantifier = false;
+    while let Some(c) = chars.next() {
+        if c == '\\' {
+            let _ = chars.next();
+            previous_quantifier = false;
+            continue;
+        }
+        if c == '[' {
+            bracket = true;
+        } else if c == ']' {
+            bracket = false;
+        }
+        if !bracket {
+            if c == '(' && chars.peek() == Some(&'?') {
+                return true;
+            }
+            if c == '?' && previous_quantifier {
+                return true;
+            }
+        }
+        previous_quantifier = !bracket && matches!(c, '*' | '+' | '?' | '}');
+    }
+    false
+}
+
+#[derive(Default)]
+struct LimitedOutput {
+    bytes: Vec<u8>,
+    exceeded: bool,
+}
+
+impl LimitedOutput {
+    fn extend_from_slice(&mut self, bytes: &[u8]) {
+        if self.bytes.len().saturating_add(bytes.len()) > MAX_OUTPUT_BYTES {
+            self.exceeded = true;
+        }
+        if !self.exceeded {
+            self.bytes.extend_from_slice(bytes);
+        }
+    }
+
+    fn push(&mut self, byte: u8) {
+        self.extend_from_slice(&[byte]);
+    }
 }
 
 /// File-name matching in the style of `fnmatch` (`*`, `?`, simple `[...]` classes).
@@ -475,12 +579,14 @@ struct Search<'a> {
     /// search almost every file holds no match: there is no need to split those into lines.
     whole_file: &'a Regex,
     show_name: bool,
-    stdout: Vec<u8>,
+    stdout: LimitedOutput,
     stderr: String,
     found: bool,
     failed: bool,
     group_printed: bool,
     done: bool,
+    files: usize,
+    input_bytes: usize,
 }
 
 impl Search<'_> {
@@ -554,6 +660,10 @@ impl Search<'_> {
                             self.prefix(name, i + 1, b':');
                             self.stdout.extend_from_slice(m.as_bytes());
                             self.stdout.push(b'\n');
+                            if self.stdout.exceeded {
+                                self.done = true;
+                                return;
+                            }
                         }
                     } else {
                         // Leading context lines, then the matching line.
@@ -589,6 +699,10 @@ impl Search<'_> {
                 last_printed = Some(i);
                 trailing -= 1;
             }
+            if self.stdout.exceeded {
+                self.done = true;
+                return;
+            }
         }
         let shown = name.unwrap_or("(standard input)");
         if o.files_with_matches {
@@ -612,10 +726,30 @@ impl Search<'_> {
         }
     }
 
-    fn file(&mut self, shown: &str, path: &Path) {
-        match std::fs::read(path) {
-            Ok(bytes) => self.search(Some(shown), &bytes),
-            Err(e) => self.report(shown, &e),
+    fn file(&mut self, shown: &str, path: &Path) -> Result<(), String> {
+        if self.files >= MAX_FILES {
+            return Err("grep file-count limit exceeded".to_string());
+        }
+        self.files += 1;
+        match limits::read_regular_file(path) {
+            Ok(bytes) => {
+                self.input_bytes = self.input_bytes.saturating_add(bytes.len());
+                if self.input_bytes > MAX_INPUT_BYTES {
+                    return Err("grep input-byte limit exceeded".to_string());
+                }
+                self.search(Some(shown), &bytes);
+            }
+            Err(ReadError::Io(e)) => self.report(shown, &e),
+            Err(ReadError::Refused(reason)) => return Err(reason),
+        }
+        self.check_output()
+    }
+
+    fn check_output(&self) -> Result<(), String> {
+        if self.stdout.exceeded || self.stderr.len() > MAX_OUTPUT_BYTES {
+            Err("grep output-byte limit exceeded".to_string())
+        } else {
+            Ok(())
         }
     }
 
@@ -627,35 +761,15 @@ impl Search<'_> {
                 std::io::ErrorKind::PermissionDenied => "Permission denied".to_string(),
                 _ => e.to_string(),
             };
-            self.stderr
-                .push_str(&format!("grep: {}: {}\n", shown, reason));
+            let message = format!("grep: {}: {}\n", shown, reason);
+            if self.stderr.len().saturating_add(message.len()) > MAX_OUTPUT_BYTES {
+                self.stdout.exceeded = true;
+                self.done = true;
+            } else {
+                self.stderr.push_str(&message);
+            }
         }
     }
-}
-
-/// Whether the system grep keeps the slash of `dir/` in the paths it prints (`dir//file`).
-///
-/// This differs between macOS versions, so the engine asks the tool itself, once per process:
-/// it searches a one-file directory and looks at the path that comes back. `None` when the
-/// question cannot be answered; the search is then left to the system tool.
-fn system_grep_keeps_trailing_slash() -> Option<bool> {
-    static ANSWER: OnceLock<Option<bool>> = OnceLock::new();
-    *ANSWER.get_or_init(|| {
-        let dir = std::env::temp_dir().join(format!("kiro-grep-probe-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).ok()?;
-        std::fs::write(dir.join("f"), "x\n").ok()?;
-        let output = Command::new("grep")
-            .arg("-r")
-            .arg("x")
-            .arg(format!("{}/", dir.display()))
-            .output();
-        let _ = std::fs::remove_dir_all(&dir);
-        let printed = String::from_utf8_lossy(&output.ok()?.stdout).into_owned();
-        if printed.is_empty() {
-            return None;
-        }
-        Some(printed.contains("//f:"))
-    })
 }
 
 /// Runs the search. `stdin` is the text received from a pipeline (`… | grep pattern`).
@@ -673,20 +787,27 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
         regex: &regex,
         whole_file: &whole_file,
         show_name,
-        stdout: Vec::new(),
+        stdout: LimitedOutput::default(),
         stderr: String::new(),
         found: false,
         failed: false,
         group_printed: false,
         done: false,
+        files: 0,
+        input_bytes: 0,
     };
 
     if paths.is_empty() {
         let Some(bytes) = stdin else {
             return Err("no file and no input".to_string());
         };
+        if bytes.len() > MAX_INPUT_BYTES {
+            return Err("grep input-byte limit exceeded".to_string());
+        }
         s.search(None, bytes);
+        s.check_output()?;
     }
+    let mut visited = 0usize;
     for path in &paths {
         if s.done {
             break;
@@ -700,29 +821,23 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
             }
         };
         if !meta.is_dir() {
-            s.file(path, &absolute);
+            s.file(path, &absolute)?;
             continue;
         }
         if !o.recursive {
             s.failed = true;
             if !o.no_messages {
-                s.stderr
-                    .push_str(&format!("grep: {}: Is a directory\n", path));
+                limits::append_error(&mut s.stderr, &format!("grep: {}: Is a directory\n", path))?;
             }
             continue;
         }
-        // `grep -r x dir/`: the root is printed as the system grep prints it.
-        let root = match path.strip_suffix('/') {
-            None => path.as_str(),
-            Some(trimmed) if trimmed.ends_with('/') || trimmed.is_empty() => {
-                return Err("directory written with several slashes".to_string());
-            }
-            Some(trimmed) => match system_grep_keeps_trailing_slash() {
-                Some(true) => path.as_str(),
-                Some(false) => trimmed,
-                None => return Err("cannot tell how the system grep prints `dir/`".to_string()),
-            },
-        };
+        // BSD grep differs between macOS releases in how it prints a trailing slash.
+        // Determining that by running grep would violate the native path's no-spawn promise.
+        // Refuse this spelling; the caller may use `dir` or its regular shell instead.
+        if path.ends_with('/') {
+            return Err("recursive directory with a trailing slash".to_string());
+        }
+        let root = path.as_str();
         let excluded = &o.exclude_dir;
         // No sorting: the system grep visits entries in directory order, and so do we, so that
         // `grep -r … | head` returns the same lines.
@@ -739,6 +854,10 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
         for entry in walker {
             if s.done {
                 break;
+            }
+            visited += 1;
+            if visited > MAX_FILES {
+                return Err("grep directory-entry limit exceeded".to_string());
             }
             let Ok(x) = entry else { continue };
             if !x.file_type().is_file() {
@@ -758,9 +877,10 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
                 .to_string_lossy()
                 .into_owned();
             let shown = format!("{}/{}", root, relative);
-            s.file(&shown, x.path());
+            s.file(&shown, x.path())?;
         }
     }
+    s.check_output()?;
     let code = if s.failed && !(o.quiet && s.found) {
         2
     } else if s.found {
@@ -769,7 +889,7 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
         1
     };
     Ok(Output {
-        stdout: s.stdout,
+        stdout: s.stdout.bytes,
         stderr: s.stderr,
         code,
     })
@@ -867,5 +987,85 @@ mod tests {
         assert!(!name_matches("*.ts", "a.tsx"));
         assert!(name_matches("*.test.*", "a.test.ts"));
         assert!(name_matches("[ab]?.rs", "a1.rs"));
+    }
+
+    #[test]
+    fn refuses_word_patterns_with_non_word_edges() {
+        for arguments in ["-w @", "-w .foo", "-w foo.", "-w a.*b"] {
+            let o = parse(&args(arguments), Syntax::Basic).unwrap();
+            let error = run(&o, Path::new("."), Some(b"@\na@b\n @ \n"))
+                .err()
+                .expect("ambiguous -w pattern must be refused");
+            assert!(error.contains("literal word"), "{arguments}: {error}");
+        }
+    }
+
+    #[test]
+    fn refuses_only_matching_with_posix_ambiguous_alternatives() {
+        for arguments in ["-Eo a|ab", "-o a\\|ab", "-Fo -e a -e ab"] {
+            let o = parse(&args(arguments), Syntax::Basic).unwrap();
+            let error = run(&o, Path::new("."), Some(b"ab\n"))
+                .err()
+                .expect("longest-match ambiguity must be refused");
+            assert!(error.contains("longest-match"), "{arguments}: {error}");
+        }
+        // A literal pipe is safe; it must not be mistaken for an alternative.
+        assert_eq!(grep("-Fo a|ab", "a|ab\n"), "a|ab\n");
+        assert_eq!(grep("-o a|ab", "a|ab\n"), "a|ab\n");
+    }
+
+    #[test]
+    fn refuses_lazy_and_other_rust_regex_extensions() {
+        for arguments in ["-Eo a+?", "-Eo a{1,2}?", "-E (?i)a"] {
+            let o = parse(&args(arguments), Syntax::Basic).unwrap();
+            assert!(run(&o, Path::new("."), Some(b"aaa\n")).is_err());
+        }
+        assert_eq!(grep("-Eo a*", "baaaab\n"), "aaaa\n");
+    }
+
+    #[test]
+    fn color_modes_are_never_silently_ignored() {
+        for option in ["--color=always", "--colour=always", "--color=invalid"] {
+            assert!(parse(&[option.to_string(), "x".to_string()], Syntax::Basic).is_err());
+        }
+        for option in ["--color=never", "--color=auto", "--color"] {
+            assert_eq!(grep(&format!("{option} x"), "x\n"), "x\n");
+        }
+        assert!(parse(&args("--count=ignored x"), Syntax::Basic).is_err());
+    }
+
+    #[test]
+    fn bounded_output_is_refused_instead_of_truncated() {
+        let o = parse(&args("x"), Syntax::Basic).unwrap();
+        let input = vec![b'x'; MAX_OUTPUT_BYTES + 1];
+        let error = run(&o, Path::new("."), Some(&input)).err().unwrap();
+        assert!(error.contains("output-byte limit"), "{error}");
+    }
+
+    #[test]
+    fn refuses_an_oversized_pipeline_input() {
+        let o = parse(&args("x"), Syntax::Basic).unwrap();
+        let input = vec![b'x'; MAX_INPUT_BYTES + 1];
+        let error = run(&o, Path::new("."), Some(&input)).err().unwrap();
+        assert!(error.contains("input-byte limit"), "{error}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn refuses_devices_before_reading_them() {
+        let o = parse(&args("x /dev/zero"), Syntax::Basic).unwrap();
+        let error = run(&o, Path::new("."), None).err().unwrap();
+        assert!(error.contains("non-regular"), "{error}");
+    }
+
+    #[test]
+    fn trailing_slash_is_refused_without_a_probe() {
+        let dir = std::env::temp_dir().join(format!("kiro-grep-slash-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("src")).unwrap();
+        std::fs::write(dir.join("src/file"), "x\n").unwrap();
+        let o = parse(&args("-r x src/"), Syntax::Basic).unwrap();
+        let error = run(&o, &dir, None).err().unwrap();
+        assert!(error.contains("trailing slash"), "{error}");
+        std::fs::remove_dir_all(dir).unwrap();
     }
 }
