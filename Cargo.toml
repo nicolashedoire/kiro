@@ -1,10 +1,10 @@
 [package]
-name = "itto"
+name = "kiro"
 version = "0.1.0"
 edition = "2021"
 description = "A terminal engine for AI coding agents: same commands, no shell, fewer round trips"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/nicolashedoire/itto"
+repository = "https://github.com/nicolashedoire/kiro"
 readme = "README.md"
 keywords = ["terminal", "ai", "agents", "mcp", "cli"]
 categories = ["command-line-utilities", "development-tools"]

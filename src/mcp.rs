@@ -212,7 +212,7 @@ pub fn respond(session: &mut Session, message: &Value) -> Option<Value> {
             json!({
                 "protocolVersion": version,
                 "capabilities": { "tools": {} },
-                "serverInfo": { "name": "itto", "version": env!("CARGO_PKG_VERSION") },
+                "serverInfo": { "name": "kiro", "version": env!("CARGO_PKG_VERSION") },
                 "instructions": INSTRUCTIONS
             })
         }
@@ -277,7 +277,7 @@ mod tests {
     use std::path::PathBuf;
 
     fn fixture(name: &str) -> (Session, PathBuf) {
-        let dir = std::env::temp_dir().join(format!("itto-mcp-{}-{}", name, std::process::id()));
+        let dir = std::env::temp_dir().join(format!("kiro-mcp-{}-{}", name, std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("src")).unwrap();
         std::fs::write(dir.join("src/a.txt"), "one\ntwo\nthree\n").unwrap();
@@ -318,7 +318,7 @@ mod tests {
             json!({ "protocolVersion": "2025-06-18" }),
         );
         assert_eq!(answer["result"]["protocolVersion"], "2025-06-18");
-        assert_eq!(answer["result"]["serverInfo"]["name"], "itto");
+        assert_eq!(answer["result"]["serverInfo"]["name"], "kiro");
         let answer = request(&mut session, 2, "tools/list", Value::Null);
         let names: Vec<&str> = answer["result"]["tools"]
             .as_array()

@@ -641,7 +641,7 @@ impl Search<'_> {
 fn system_grep_keeps_trailing_slash() -> Option<bool> {
     static ANSWER: OnceLock<Option<bool>> = OnceLock::new();
     *ANSWER.get_or_init(|| {
-        let dir = std::env::temp_dir().join(format!("itto-grep-probe-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("kiro-grep-probe-{}", std::process::id()));
         std::fs::create_dir_all(&dir).ok()?;
         std::fs::write(dir.join("f"), "x\n").ok()?;
         let output = Command::new("grep")

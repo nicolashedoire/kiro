@@ -27,7 +27,7 @@ need fewer round trips does.
 
 `examples/replay.rs` takes the read/search command lines that agents really ran, keeps those
 that are read-only by construction, and runs each one through the regular shell and through
-the itto MCP server.
+the kiro MCP server.
 
 Run of 2026-11-21, commands recorded on the monorepo, sent one by one over MCP:
 
@@ -51,7 +51,7 @@ reproduced (14).
 
 Over the 320 commands answered identically:
 
-| | Regular shell | With RTK 0.39 | itto |
+| | Regular shell | With RTK 0.39 | kiro |
 | --- | ---: | ---: | ---: |
 | Programs started | 904 | 1,224 | 0 |
 | Median time per command | 8.04 ms | 23.86 ms | 0.22 ms |
@@ -67,7 +67,7 @@ Reading the table:
   table because it is the tool these sessions were already using. In this replay it rewrote
   219 of the 320 commands, cut the output by 4 %, and added processes: one for its hook and
   one for each wrapper.
-- itto returns the same output as the shell, so it saves almost no characters by itself.
+- kiro returns the same output as the shell, so it saves almost no characters by itself.
   Grouping search listings by file is lossless but only helps listings that span several
   files, which are rare here.
 
@@ -76,10 +76,10 @@ costs inside a real session, where the model and the harness dominate. The in-pr
 matters because it makes batching and one-call exploration cheap and safe, which is what the
 next section measures.
 
-## Live: real sessions, with and without itto
+## Live: real sessions, with and without kiro
 
 `examples/live.rs` runs the same task several times with a real Claude Code session,
-alternating two setups: Claude Code as configured on the machine, and the same plus the itto
+alternating two setups: Claude Code as configured on the machine, and the same plus the kiro
 MCP server. File edits are disabled, sessions are not saved, and an answer counts as complete
 only if it names every expected location.
 
@@ -89,13 +89,13 @@ task and per setup, model `sonnet`:
 | Task | Setup | Complete | Round trips | Time | Tokens | Cost |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | A (3 locations, one of them hidden in a schema) | regular | 1 / 5 | 21.2 | 135 s | 484,800 | $0.35 |
-| | itto | 3 / 5 | 5.2 | 61 s | 140,200 | $0.13 |
+| | kiro | 3 / 5 | 5.2 | 61 s | 140,200 | $0.13 |
 | B (3 locations) | regular | 5 / 5 | 14.8 | 225 s | 310,400 | $0.30 |
-| | itto | 5 / 5 | 6.4 | 57 s | 178,300 | $0.19 |
+| | kiro | 5 / 5 | 6.4 | 57 s | 178,300 | $0.19 |
 | C (2 locations) | regular | 5 / 5 | 7.4 | 131 s | 130,400 | $0.13 |
-| | itto | 5 / 5 | 4.6 | 26 s | 120,600 | $0.11 |
+| | kiro | 5 / 5 | 4.6 | 26 s | 120,600 | $0.11 |
 | **All** | regular | **11 / 15** | **14.5** | **164 s** | **308,500** | **$0.26** |
-| | itto | **13 / 15** | **5.4** | **48 s** | **146,400** | **$0.14** |
+| | kiro | **13 / 15** | **5.4** | **48 s** | **146,400** | **$0.14** |
 
 That is 2.7 times fewer round trips, 3.4 times less time and 2.1 times fewer tokens, with
 answers at least as complete.
@@ -131,9 +131,9 @@ reads had already been read by an earlier session on the same project.
 ```sh
 # Replay your own recorded sessions (read-only; nothing is modified).
 cargo run --release --example replay -- --max 600
-cargo run --release --example replay -- --project ~/code/app --mcp target/release/itto
+cargo run --release --example replay -- --project ~/code/app --mcp target/release/kiro
 
 # Live comparison (this spends real model calls: about $0.15 to $0.35 per session).
 echo "List every place in the code to change so that …" > task.txt
-cargo run --release --example live -- ~/code/app target/release/itto out 5 "file-a.ts,file-b.ts" < task.txt
+cargo run --release --example live -- ~/code/app target/release/kiro out 5 "file-a.ts,file-b.ts" < task.txt
 ```

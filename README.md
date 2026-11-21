@@ -1,13 +1,13 @@
-# itto
+# kiro
 
 **A terminal engine for AI coding agents: same commands, no shell, fewer round trips.**
 
-[![CI](https://github.com/nicolashedoire/itto/actions/workflows/ci.yml/badge.svg)](https://github.com/nicolashedoire/itto/actions/workflows/ci.yml)
-
-*itto* (一刀) is Japanese for "one stroke of the sword": one call instead of twenty.
+[![CI](https://github.com/nicolashedoire/kiro/actions/workflows/ci.yml/badge.svg)](https://github.com/nicolashedoire/kiro/actions/workflows/ci.yml)
 
 > Status: early. macOS only for now. The numbers below come from one machine and one code
 > base; read the [limits](#limits) before relying on them.
+>
+> Not affiliated with [Kiro](https://kiro.dev), the IDE from AWS.
 
 ## Why
 
@@ -18,7 +18,7 @@ with the model that re-reads the whole conversation**. An agent that explores a 
 `grep` at a time pays that price a dozen times before it changes a single line.
 
 The idea comes from container engines such as [Kiri](https://github.com/libracoder/kiri): keep
-the interface people already use, and replace the chain behind it. itto keeps the commands the
+the interface people already use, and replace the chain behind it. kiro keeps the commands the
 agent already writes (`grep`, `sed -n`, `cat`, …) and removes what sits behind them.
 
 ## What it does
@@ -47,7 +47,7 @@ Three rules hold it together:
 **Live, with real Claude Code sessions.** Three "find every place to change" tasks on a private
 TypeScript monorepo, five sessions per task and per setup, same model, file edits disabled:
 
-| Mean over 15 sessions | Regular terminal | With itto |
+| Mean over 15 sessions | Regular terminal | With kiro |
 | --- | ---: | ---: |
 | Complete answers | 11 / 15 | 13 / 15 |
 | Round trips with the model | 14.5 | 5.4 |
@@ -56,9 +56,9 @@ TypeScript monorepo, five sessions per task and per setup, same model, file edit
 | Cost per session | $0.26 | $0.14 |
 
 **Replay, on recorded commands.** 394 read/search commands that agents really ran on
-that code base, sent one by one to the itto MCP server and to the regular shell:
+that code base, sent one by one to the kiro MCP server and to the regular shell:
 
-| Over the 320 commands answered identically | Regular shell | itto |
+| Over the 320 commands answered identically | Regular shell | kiro |
 | --- | ---: | ---: |
 | Programs started | 904 | 0 |
 | Median time per command | 8.04 ms | 0.22 ms |
@@ -78,15 +78,15 @@ The method, the raw numbers, and the ideas that were measured and **did not** wo
 Requires a Rust toolchain ([rustup.rs](https://rustup.rs)).
 
 ```sh
-cargo install --git https://github.com/nicolashedoire/itto
+cargo install --git https://github.com/nicolashedoire/kiro
 ```
 
 Or from a clone:
 
 ```sh
-git clone https://github.com/nicolashedoire/itto
-cd itto
-cargo build --release      # the binary is target/release/itto
+git clone https://github.com/nicolashedoire/kiro
+cd kiro
+cargo build --release      # the binary is target/release/kiro
 ```
 
 ## Use
@@ -94,17 +94,17 @@ cargo build --release      # the binary is target/release/itto
 ### From the command line
 
 ```sh
-$ itto run --stats "grep -rn 'export function' src | head -3"
+$ kiro run --stats "grep -rn 'export function' src | head -3"
 src/api.ts:12:export function load(id: number) {
 src/api.ts:40:export function save(item: Item) {
 src/store.ts:8:export function createStore() {
-[itto] inside the engine, 0 program started, 0.41 ms
+[kiro] inside the engine, 0 program started, 0.41 ms
 
-$ itto run --stats "ls -la"
+$ kiro run --stats "ls -la"
 …
-[itto] handed to the regular shell (ls -l), 2 programs started, 9.80 ms
+[kiro] handed to the regular shell (ls -l), 2 programs started, 9.80 ms
 
-$ itto scout "retry" "max attempts" "backoff"
+$ kiro scout "retry" "max attempts" "backoff"
 SCOUT - 7 files mention these terms (412 files scanned)
 …
 ```
@@ -116,18 +116,18 @@ SCOUT - 7 files mention these terms (412 files scanned)
 In the project where you want it:
 
 ```sh
-claude mcp add itto -- itto mcp
+claude mcp add kiro -- kiro mcp
 ```
 
 To let the agent call it without a prompt each time, allow the two read-only tools in your
 Claude Code settings:
 
 ```json
-{ "permissions": { "allow": ["mcp__itto__run", "mcp__itto__scout"] } }
+{ "permissions": { "allow": ["mcp__kiro__run", "mcp__kiro__scout"] } }
 ```
 
-Remove it with `claude mcp remove itto`. Any other MCP client works the same way: the server
-speaks JSON-RPC over standard input and output (`itto mcp --project DIR`).
+Remove it with `claude mcp remove kiro`. Any other MCP client works the same way: the server
+speaks JSON-RPC over standard input and output (`kiro mcp --project DIR`).
 
 ### What the agent sees
 
@@ -173,13 +173,13 @@ file, background jobs, and any program not in this table. See
 
 - **macOS only.** The engine reproduces the BSD tools that ship with macOS. On Linux the GNU
   tools format some outputs differently; that port is not done.
-- **Search and read only.** itto does nothing for the commands that take most of the wall
+- **Search and read only.** kiro does nothing for the commands that take most of the wall
   time in real sessions: tests, type-checks, builds.
 - **Small evidence.** The live comparison is one code base, three search tasks, one model and
   five sessions per cell. Sessions vary a lot from one run to the next.
 - **A text search.** `scout` finds words. Code that does the same thing without the words is
   not listed; on the hardest of the three tasks the agent still missed one location in two
-  sessions out of five (four out of five without itto).
+  sessions out of five (four out of five without kiro).
 - **Coverage.** On the recorded sessions, read/search command lines the engine can take are
   about 10 % of all the shell commands the agents ran. The rest still goes through the shell.
 

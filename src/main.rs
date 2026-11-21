@@ -1,30 +1,30 @@
-//! `itto`: the command-line entry point.
+//! `kiro`: the command-line entry point.
 //!
-//! - `itto run COMMAND` runs a command through the engine (and tells how, with `--stats`).
-//! - `itto mcp` serves the engine and the scout to an AI agent over MCP.
-//! - `itto scout TERM...` prints the map of an area of the code.
+//! - `kiro run COMMAND` runs a command through the engine (and tells how, with `--stats`).
+//! - `kiro mcp` serves the engine and the scout to an AI agent over MCP.
+//! - `kiro scout TERM...` prints the map of an area of the code.
 
-use itto::engine::{self, Session};
-use itto::scout::{self, Request};
+use kiro::engine::{self, Session};
+use kiro::scout::{self, Request};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::Instant;
 
 const HELP: &str = "\
-itto - a terminal engine for AI coding agents
+kiro - a terminal engine for AI coding agents
 
 USAGE:
-    itto run [--stats] COMMAND      run a command through the engine
-    itto scout [--project DIR] TERM...
+    kiro run [--stats] COMMAND      run a command through the engine
+    kiro scout [--project DIR] TERM...
                                     map where the terms live in the code
-    itto mcp [--project DIR]        serve the engine to an AI agent (MCP, stdio)
-    itto --version
-    itto --help
+    kiro mcp [--project DIR]        serve the engine to an AI agent (MCP, stdio)
+    kiro --version
+    kiro --help
 
 Reading and searching (cat, sed -n, head, tail, wc, cut, ls, grep, pipelines and
 `;` / `&&` / `||` lists of those) run inside the engine, with no shell and no program
-started. `itto run` hands anything else to the regular shell (ITTO_SHELL, then SHELL,
+started. `kiro run` hands anything else to the regular shell (KIRO_SHELL, then SHELL,
 then /bin/sh). The MCP server never does: it refuses what the engine does not cover.
 ";
 
@@ -60,7 +60,7 @@ fn run(mut args: Vec<String>) -> ExitCode {
     let stats = take_flag(&mut args, "--stats");
     let command = args.join(" ");
     if command.trim().is_empty() {
-        eprintln!("itto run: the command is missing");
+        eprintln!("kiro run: the command is missing");
         return ExitCode::from(2);
     }
     let mut session = Session {
@@ -73,10 +73,10 @@ fn run(mut args: Vec<String>) -> ExitCode {
     eprint!("{}", reply.stderr);
     if stats {
         if reply.native {
-            eprintln!("[itto] inside the engine, 0 program started, {milliseconds:.2} ms");
+            eprintln!("[kiro] inside the engine, 0 program started, {milliseconds:.2} ms");
         } else {
             eprintln!(
-                "[itto] handed to the regular shell ({}), {} programs started, {milliseconds:.2} ms",
+                "[kiro] handed to the regular shell ({}), {} programs started, {milliseconds:.2} ms",
                 reply.fallback_reason, reply.spawned
             );
         }
@@ -96,7 +96,7 @@ fn main() -> ExitCode {
         "scout" => {
             let project = project_dir(&mut args);
             if args.is_empty() {
-                eprintln!("itto scout: give at least one term");
+                eprintln!("kiro scout: give at least one term");
                 return ExitCode::from(2);
             }
             let request = Request {
@@ -109,16 +109,16 @@ fn main() -> ExitCode {
         }
         "mcp" => {
             let project = project_dir(&mut args);
-            match itto::mcp::serve(&project) {
+            match kiro::mcp::serve(&project) {
                 Ok(()) => ExitCode::SUCCESS,
                 Err(error) => {
-                    eprintln!("itto mcp: {error}");
+                    eprintln!("kiro mcp: {error}");
                     ExitCode::from(1)
                 }
             }
         }
         "-V" | "--version" | "version" => {
-            println!("itto {}", env!("CARGO_PKG_VERSION"));
+            println!("kiro {}", env!("CARGO_PKG_VERSION"));
             ExitCode::SUCCESS
         }
         "-h" | "--help" | "help" => {
@@ -126,7 +126,7 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         other => {
-            eprintln!("itto: unknown command `{other}` (try: itto --help)");
+            eprintln!("kiro: unknown command `{other}` (try: kiro --help)");
             ExitCode::from(2)
         }
     }

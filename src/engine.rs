@@ -183,9 +183,9 @@ pub fn run_native(command: &str, session: &mut Session) -> Result<Reply, String>
     })
 }
 
-/// The shell used for what the engine does not cover: `ITTO_SHELL`, then `SHELL`, then `/bin/sh`.
+/// The shell used for what the engine does not cover: `KIRO_SHELL`, then `SHELL`, then `/bin/sh`.
 fn fallback_shell() -> String {
-    ["ITTO_SHELL", "SHELL"]
+    ["KIRO_SHELL", "SHELL"]
         .iter()
         .filter_map(|name| std::env::var(name).ok())
         .find(|value| !value.is_empty())
@@ -235,7 +235,7 @@ mod tests {
     use super::*;
 
     fn fixture(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("itto-engine-{}-{}", name, std::process::id()));
+        let dir = std::env::temp_dir().join(format!("kiro-engine-{}-{}", name, std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("g/s")).unwrap();
         std::fs::write(dir.join("g/n.txt"), "one\ntwo\nthree\nfour\nfive\nsix\n").unwrap();

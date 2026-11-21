@@ -6,22 +6,22 @@
 //! 1. the regular terminal: a fresh shell, then the programs;
 //! 2. optionally, the same with [RTK](https://github.com/rtk-ai/rtk) in front (its hook, then
 //!    its wrappers), when `--rtk DIR` is given;
-//! 3. itto, either in-process or, with `--mcp PATH --project DIR`, through its MCP server
+//! 3. kiro, either in-process or, with `--mcp PATH --project DIR`, through its MCP server
 //!    exactly as an agent would call it.
 //!
 //! For each way it reports the programs started, the time and the size of the output, and it
-//! checks that itto returns exactly what the regular terminal returns.
+//! checks that kiro returns exactly what the regular terminal returns.
 //!
 //! Only commands that are read-only by construction are replayed: lists and pipelines made
 //! solely of known read-only programs, with no redirection to a file and no substitution.
 //!
 //! ```text
 //! cargo run --release --example replay -- --max 600
-//! cargo run --release --example replay -- --project ~/code/app --mcp target/release/itto
+//! cargo run --release --example replay -- --project ~/code/app --mcp target/release/kiro
 //! ```
 
-use itto::engine::{self, Session};
-use itto::shell;
+use kiro::engine::{self, Session};
+use kiro::shell;
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader, Read};
@@ -248,7 +248,7 @@ fn median(values: &mut [f64]) -> f64 {
     values[values.len() / 2]
 }
 
-/// A client for the `itto mcp` server: one long-lived process, one JSON message per line.
+/// A client for the `kiro mcp` server: one long-lived process, one JSON message per line.
 struct McpClient {
     child: std::process::Child,
     stdin: std::process::ChildStdin,
@@ -275,7 +275,7 @@ impl McpClient {
             stdout,
             next_id: 1,
         };
-        client.request("initialize", serde_json::json!({"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "itto-replay", "version": "0"}}))?;
+        client.request("initialize", serde_json::json!({"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "kiro-replay", "version": "0"}}))?;
         use std::io::Write;
         writeln!(
             client.stdin,
@@ -374,7 +374,7 @@ fn main() {
         }
     }
     // The regular terminal: the user's own shell.
-    let shell_path = ["ITTO_SHELL", "SHELL"]
+    let shell_path = ["KIRO_SHELL", "SHELL"]
         .iter()
         .filter_map(|name| std::env::var(name).ok())
         .find(|value| !value.is_empty())

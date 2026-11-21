@@ -6,7 +6,7 @@
 //! there.
 #![cfg(target_os = "macos")]
 
-use itto::engine::{run_native, Session};
+use kiro::engine::{run_native, Session};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -42,7 +42,7 @@ export const limit = 10;
 const NOTES: &str = "alpha: first\nbeta: second end\nAlpha: third\ngamma end";
 
 fn fixture(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("itto-diff-{}-{}", name, std::process::id()));
+    let dir = std::env::temp_dir().join(format!("kiro-diff-{}-{}", name, std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(dir.join("src/lib")).unwrap();
     std::fs::create_dir_all(dir.join("dir with space")).unwrap();

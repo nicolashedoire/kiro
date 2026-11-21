@@ -1,9 +1,9 @@
-//! Live comparison: the same task, run by a real Claude Code session, with and without itto.
+//! Live comparison: the same task, run by a real Claude Code session, with and without kiro.
 //!
 //! Runs a task several times, alternating two setups:
 //!
 //! - `regular`: Claude Code as it is on this machine (its shell tool, its hooks);
-//! - `engine`: the same, plus itto served over MCP (`itto mcp`).
+//! - `engine`: the same, plus kiro served over MCP (`kiro mcp`).
 //!
 //! File edits are disabled in both, sessions are not saved, and each session is capped at
 //! half a dollar. For each run it reports whether the answer is right (it must mention every
@@ -14,7 +14,7 @@
 //! repetitions and several tasks before concluding anything.
 //!
 //! ```text
-//! cargo run --release --example live -- <project dir> <path to itto> <output dir> \
+//! cargo run --release --example live -- <project dir> <path to kiro> <output dir> \
 //!     <repetitions> <expected,expected,...> [regular|engine] < task.txt
 //! ```
 
@@ -96,7 +96,7 @@ fn run_claude(
         .args(["--permission-mode", "auto"])
         .args(["--disallowedTools", "Edit,Write,NotebookEdit,Agent,Task"]);
     if with_engine {
-        command.args(["--allowedTools", "mcp__itto__run,mcp__itto__scout"]);
+        command.args(["--allowedTools", "mcp__kiro__run,mcp__kiro__scout"]);
     }
     command
         .stdin(Stdio::piped())
@@ -152,8 +152,8 @@ fn run_claude(
                         "Bash" => o.shell_calls += 1,
                         "Read" => o.read_calls += 1,
                         "Grep" | "Glob" => o.search_calls += 1,
-                        "mcp__itto__scout" => o.scout_calls += 1,
-                        "mcp__itto__run" => {
+                        "mcp__kiro__scout" => o.scout_calls += 1,
+                        "mcp__kiro__run" => {
                             o.engine_calls += 1;
                             let input = b.get("input");
                             let several = input
@@ -249,13 +249,13 @@ fn print_row(o: &Outcome) {
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.len() < 5 {
-        eprintln!("usage: live <project dir> <path to itto> <output dir> <repetitions> <expected,expected,...> [regular|engine] < task.txt");
+        eprintln!("usage: live <project dir> <path to kiro> <output dir> <repetitions> <expected,expected,...> [regular|engine] < task.txt");
         std::process::exit(2);
     }
     let project = PathBuf::from(&args[0]);
     let binary = PathBuf::from(&args[1])
         .canonicalize()
-        .expect("itto binary not found");
+        .expect("kiro binary not found");
     std::fs::create_dir_all(&args[2]).expect("output dir");
     let out = PathBuf::from(&args[2]).canonicalize().expect("output dir");
     let repetitions: usize = args[3].parse().expect("repetitions");
@@ -274,7 +274,7 @@ fn main() {
     let engine_config = out.join("mcp-engine.json");
     std::fs::write(
         &engine_config,
-        json!({ "mcpServers": { "itto": {
+        json!({ "mcpServers": { "kiro": {
             "command": binary.to_string_lossy(),
             "args": ["mcp", "--project", project.to_string_lossy()]
         } } })

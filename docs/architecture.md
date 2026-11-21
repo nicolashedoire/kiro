@@ -19,7 +19,7 @@ the model**, and each round trip re-reads the whole conversation. An agent that 
 code base with one `grep` or one `sed` per call pays that price a dozen times before it has
 changed a single line.
 
-itto removes both kinds of layers while keeping the interface the agent already knows: the
+kiro removes both kinds of layers while keeping the interface the agent already knows: the
 commands themselves.
 
 ## The pieces
@@ -71,7 +71,7 @@ A command line is either run entirely inside the engine or not at all. As soon a
 is not covered, the engine returns `Err(reason)` and keeps nothing, not even a `cd` that came
 before in the same line. The caller then decides:
 
-- `itto run` hands the whole line, untouched, to the regular shell (`ITTO_SHELL`, then
+- `kiro run` hands the whole line, untouched, to the regular shell (`KIRO_SHELL`, then
   `SHELL`, then `/bin/sh`);
 - the MCP server refuses the command and tells the agent to use its regular shell.
 

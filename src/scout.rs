@@ -527,7 +527,7 @@ mod tests {
     use std::path::PathBuf;
 
     fn fixture(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join(format!("itto-scout-{}-{}", name, std::process::id()));
+        let dir = std::env::temp_dir().join(format!("kiro-scout-{}-{}", name, std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("src")).unwrap();
         std::fs::create_dir_all(dir.join("node_modules/x")).unwrap();
