@@ -34,6 +34,44 @@ impl Drop for Fixture {
 }
 
 #[test]
+fn cd_checks_directory_search_permission_and_keeps_session_on_refusal() {
+    use std::os::unix::fs::PermissionsExt;
+    let fixture = Fixture::new("cd-permission");
+    let sealed = fixture.0.join("sealed");
+    std::fs::create_dir(&sealed).unwrap();
+    std::fs::set_permissions(&sealed, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let expected = Command::new("/bin/sh")
+        .args(["-c", "cd sealed && echo entered"])
+        .current_dir(&fixture.0)
+        .output()
+        .unwrap();
+    let mut session = fixture.session();
+    let actual = run_native("cd sealed && echo entered", &mut session);
+    // A privileged test runner can still enter: test the OS decision, not mode bits.
+    if expected.status.success() {
+        assert_eq!(actual.unwrap().stdout, expected.stdout);
+    } else {
+        assert!(actual.is_err());
+        assert_eq!(session.dir, fixture.0);
+        let fallback = run("cd sealed && echo entered", &mut fixture.session());
+        assert!(!fallback.native);
+        assert_eq!(fallback.stdout, expected.stdout);
+        assert_eq!(fallback.code, expected.status.code().unwrap());
+    }
+    std::fs::set_permissions(&sealed, std::fs::Permissions::from_mode(0o700)).unwrap();
+    // Search permission alone is sufficient; directory listing permission is not needed.
+    std::fs::set_permissions(&sealed, std::fs::Permissions::from_mode(0o100)).unwrap();
+    let mut session = fixture.session();
+    assert_eq!(
+        run_native("cd sealed && echo entered", &mut session)
+            .unwrap()
+            .stdout,
+        b"entered\n"
+    );
+    std::fs::set_permissions(&sealed, std::fs::Permissions::from_mode(0o700)).unwrap();
+}
+
+#[test]
 fn quoted_and_escaped_tildes_are_literal() {
     let fixture = Fixture::new("tilde");
     for command in [

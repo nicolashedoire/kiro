@@ -275,3 +275,155 @@ fn locale_sensitive_and_ambiguous_forms_are_explicitly_refused() {
         commands.len()
     );
 }
+
+#[test]
+fn bsd_options_stop_at_the_first_operand() {
+    let fixture = Fixture::new("option-order");
+    // These spellings are operands after `lines`, even when they look like supported
+    // options. Cover both nonexistent paths (diagnostics/status) and real dash names.
+    let cases = [
+        "cat lines -n",
+        "cat -n lines -n",
+        "head lines -n1",
+        "head -1 lines -n1",
+        "wc lines -l",
+        "wc -l lines -c",
+        "cut -c1 lines -c2",
+        "cut -d: -f1 lines -f2",
+    ];
+    for locale in LOCALES {
+        for command in cases {
+            fixture.compare(command, locale);
+        }
+    }
+    for name in ["-n", "-n1", "-l", "-c", "-c2", "-f2"] {
+        std::fs::write(fixture.0.join(name), "four:4\nfive:5\n").unwrap();
+    }
+    for locale in LOCALES {
+        for command in cases {
+            fixture.compare(command, locale);
+        }
+        for command in [
+            "cat -- -n",
+            "head -1 -- -n1",
+            "tail -n1 -- -n1",
+            "wc -l -- -l",
+            "cut -c1 -- -c2",
+            "ls -- -n",
+        ] {
+            fixture.compare(command, locale);
+        }
+    }
+    for command in ["tail lines -n1", "ls lines -1", "ls . -A"] {
+        assert!(
+            run_native(command, &mut fixture.session()).is_err(),
+            "multi-operand form must be refused: {command}"
+        );
+    }
+    for command in [
+        "cat lines -",
+        "head lines -",
+        "tail lines -",
+        "wc lines -",
+        "cut -c1 lines -",
+    ] {
+        assert!(
+            run_native(command, &mut fixture.session()).is_err(),
+            "stdin marker must be refused: {command}"
+        );
+    }
+}
+
+#[test]
+fn cut_normalizes_large_repeated_and_overlapping_selections() {
+    let fixture = Fixture::new("cut-selection");
+    for locale in LOCALES {
+        for list in [
+            "3,1,2,2",
+            "4-,1-3,2-5",
+            "2-4,1-2,4-6",
+            "4,2",
+            "1-2,5-6,3-4",
+            "1-5,6-",
+            "1-,99",
+            "6-",
+        ] {
+            for form in [
+                format!("-b{list}"),
+                format!("-c{list}"),
+                format!("-d: -f{list}"),
+            ] {
+                for source in ["lines", "unicode", "partial lines"] {
+                    fixture.compare(&format!("cut {form} {source}"), locale);
+                }
+            }
+        }
+    }
+    // The original range-by-byte loop performed billions of range checks here.
+    // Keep the regression deterministic: compare the bytes, not a wall-clock threshold.
+    std::fs::write(
+        fixture.0.join("wide"),
+        format!("{}\n", "x".repeat(2000)).repeat(975),
+    )
+    .unwrap();
+    let list = (1..=2000)
+        .rev()
+        .map(|n| n.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+    for mode in ["b", "c"] {
+        fixture.compare(&format!("cut -{mode}{list} wide"), "en_US.UTF-8");
+    }
+}
+
+#[test]
+fn ls_uses_byte_sort_only_when_collation_is_safe() {
+    let fixture = Fixture::new("ls-collation");
+    let names = fixture.0.join("names");
+    std::fs::create_dir(&names).unwrap();
+    for name in ["e", "é", "ä", "z", "漢", "_name"] {
+        std::fs::write(names.join(name), "").unwrap();
+    }
+    fixture.compare("ls names", "C");
+    fixture.compare("ls -A names | head -4", "C");
+    // Use MCP to distinguish a native refusal from the CLI's intentional shell fallback.
+    let request = serde_json::json!({
+        "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+        "params": {"name": "run", "arguments": {"command": "ls names | head -4"}}
+    });
+    let mut child = Command::new(env!("CARGO_BIN_EXE_kiro"))
+        .args(["mcp", "--project", fixture.0.to_str().unwrap()])
+        .env("LC_ALL", "en_US.UTF-8")
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    use std::io::Write;
+    writeln!(child.stdin.take().unwrap(), "{request}").unwrap();
+    let answer: serde_json::Value =
+        serde_json::from_slice(&child.wait_with_output().unwrap().stdout).unwrap();
+    assert_eq!(answer["result"]["isError"], true);
+    assert!(answer["result"]["content"][0]["text"]
+        .as_str()
+        .unwrap()
+        .contains("collation"));
+    // LC_COLLATE overrides LANG independently of LC_CTYPE when LC_ALL is unset.
+    let actual = Command::new(env!("CARGO_BIN_EXE_kiro"))
+        .args(["run", "--stats", "ls names"])
+        .current_dir(&fixture.0)
+        .env_remove("LC_ALL")
+        .env("LC_COLLATE", "C")
+        .env("LANG", "en_US.UTF-8")
+        .output()
+        .unwrap();
+    assert!(String::from_utf8(actual.stderr)
+        .unwrap()
+        .contains("inside the engine, 0 program started"));
+    let expected = Command::new("/bin/ls")
+        .arg("names")
+        .current_dir(&fixture.0)
+        .env("LC_ALL", "C")
+        .output()
+        .unwrap();
+    assert_eq!(actual.stdout, expected.stdout);
+}

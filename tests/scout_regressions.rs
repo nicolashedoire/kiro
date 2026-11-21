@@ -1,4 +1,4 @@
-use kiro::scout::{scout, scout_result, Request};
+use kiro::scout::{scout, scout_report, scout_result, Request, ScoutStatus};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -367,4 +367,164 @@ fn separated_matches_on_a_long_line_do_not_claim_the_whole_line_is_shown() {
         answer.contains("\"other-term\": 1 lines in 1 files"),
         "{answer}"
     );
+}
+
+#[test]
+fn structured_references_are_direct_and_survive_a_zero_display_budget() {
+    let fixture = Fixture::new("structured-zero");
+    std::fs::write(
+        fixture.0.join("strange:17-name.rs"),
+        "unrelated\nNeEdLe first\nneedle other\n",
+    )
+    .unwrap();
+    let report = scout_report(
+        &fixture.0,
+        &Request {
+            terms: vec!["  needle  ".into(), "other".into()],
+            paths: Vec::new(),
+            budget: 0,
+        },
+    );
+    assert_eq!(report.status, ScoutStatus::Complete);
+    assert_eq!(report.status.as_str(), "complete");
+    assert!(report.reason.is_none());
+    assert_eq!(report.text, "");
+    assert!(report.display_truncated);
+    assert!(!report.metadata_truncated);
+    assert_eq!(report.terms, ["needle", "other"]);
+    assert_eq!(report.counts.candidates, 1);
+    assert_eq!(report.counts.read, 1);
+    assert_eq!(report.counts.errors, 0);
+    assert_eq!(report.counts.matching_files, 1);
+    assert_eq!(report.counts.matching_lines, 2);
+    assert_eq!(report.matches.len(), 2);
+    assert_eq!(report.matches[0].path, "strange:17-name.rs");
+    assert_eq!(report.matches[0].line_number, 2);
+    assert_eq!(report.matches[0].term_indices, [0]);
+    assert_eq!(report.matches[1].line_number, 3);
+    assert_eq!(report.matches[1].term_indices, [0, 1]);
+}
+
+#[test]
+fn structured_absence_invalid_input_and_discovery_failure_remain_distinct() {
+    let fixture = Fixture::new("structured-status");
+    std::fs::write(fixture.0.join("plain.rs"), "unrelated\n").unwrap();
+    for budget in [0, 4000] {
+        let mut request = Request {
+            terms: vec!["needle".into()],
+            paths: Vec::new(),
+            budget,
+        };
+        let report = scout_report(&fixture.0, &request);
+        assert_eq!(report.status, ScoutStatus::Complete);
+        assert_eq!(report.counts.candidates, 1);
+        assert_eq!(report.counts.read, 1);
+        assert_eq!(report.counts.matching_files, 0);
+        assert_eq!(report.counts.matching_lines, 0);
+        assert!(report.matches.is_empty());
+        assert!(!report.metadata_truncated);
+        assert_eq!(report.display_truncated, budget == 0);
+        request.terms.clear();
+        let report = scout_report(&fixture.0, &request);
+        assert_eq!(report.status, ScoutStatus::Error);
+        assert!(report.reason.unwrap().contains("at least one term"));
+        assert_eq!(report.counts.candidates, 0);
+        request.terms.push("needle".into());
+        request.paths.push("nonexistent".into());
+        let report = scout_report(&fixture.0, &request);
+        assert_eq!(report.status, ScoutStatus::Error);
+        assert!(report.reason.unwrap().contains("discovery failed"));
+        assert_eq!(report.counts.read, 0);
+    }
+}
+
+#[test]
+fn structured_read_failures_keep_partial_counts_and_references_at_zero_budget() {
+    let fixture = Fixture::new("structured-partial");
+    git(&fixture.0, &["init", "--quiet"]);
+    std::fs::write(fixture.0.join("present.rs"), "needle\n").unwrap();
+    std::fs::write(fixture.0.join("removed.rs"), "needle\n").unwrap();
+    git(&fixture.0, &["add", "present.rs", "removed.rs"]);
+    std::fs::remove_file(fixture.0.join("removed.rs")).unwrap();
+    let report = scout_report(
+        &fixture.0,
+        &Request {
+            terms: vec!["needle".into()],
+            paths: Vec::new(),
+            budget: 0,
+        },
+    );
+    assert_eq!(report.status, ScoutStatus::Partial);
+    assert_eq!(report.status.as_str(), "partial");
+    assert!(report.reason.unwrap().contains("1 files could not be read"));
+    assert_eq!(report.text, "");
+    assert_eq!(report.counts.candidates, 2);
+    assert_eq!(report.counts.read, 1);
+    assert_eq!(report.counts.errors, 1);
+    assert_eq!(report.counts.matching_files, 1);
+    assert_eq!(report.counts.matching_lines, 1);
+    assert_eq!(report.matches[0].path, "present.rs");
+}
+
+#[test]
+fn structured_reference_limits_do_not_stop_scanning_or_hide_total_matches() {
+    let fixture = Fixture::new("structured-metadata-limit");
+    // More records than either metadata cap can retain, still below the file/input caps.
+    std::fs::write(fixture.0.join("many.rs"), "needle\n".repeat(6000)).unwrap();
+    let report = scout_report(
+        &fixture.0,
+        &Request {
+            terms: vec!["needle".into()],
+            paths: Vec::new(),
+            budget: 0,
+        },
+    );
+    assert_eq!(report.status, ScoutStatus::Complete);
+    assert_eq!(report.counts.read, 1);
+    assert_eq!(report.counts.matching_lines, 6000);
+    assert!(report.metadata_truncated);
+    assert!(report.matches.len() <= 4096);
+    assert!(!report.matches.is_empty());
+    let allocated = report.matches.capacity() * std::mem::size_of_val(&report.matches[0])
+        + report
+            .matches
+            .iter()
+            .map(|item| {
+                item.path.capacity() + item.term_indices.capacity() * std::mem::size_of::<usize>()
+            })
+            .sum::<usize>();
+    assert!(
+        allocated <= 256 * 1024,
+        "metadata allocated {allocated} bytes"
+    );
+    for (index, item) in report.matches.iter().enumerate() {
+        assert_eq!(item.line_number, index + 1);
+        assert_eq!(item.term_indices, [0]);
+    }
+}
+
+#[test]
+fn structured_resource_limit_remains_partial_without_display_text() {
+    let fixture = Fixture::new("structured-input-limit");
+    let mut contents = vec![b' '; 400_000];
+    contents[..7].copy_from_slice(b"needle\n");
+    for index in 0..50 {
+        std::fs::write(fixture.0.join(format!("file-{index:02}.rs")), &contents).unwrap();
+    }
+    let report = scout_report(
+        &fixture.0,
+        &Request {
+            terms: vec!["needle".into()],
+            paths: Vec::new(),
+            budget: 0,
+        },
+    );
+    assert_eq!(report.status, ScoutStatus::Partial);
+    assert!(report.reason.unwrap().contains("resource limit reached"));
+    assert_eq!(report.counts.candidates, 50);
+    assert!(report.counts.read > 0 && report.counts.read < 50);
+    assert_eq!(report.counts.matching_files, report.counts.read);
+    assert_eq!(report.counts.errors, 0);
+    assert_eq!(report.text, "");
+    assert!(report.display_truncated);
 }

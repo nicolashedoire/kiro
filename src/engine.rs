@@ -44,6 +44,9 @@ pub struct Reply {
     pub stdout: Vec<u8>,
     pub stderr: String,
     pub code: i32,
+    /// Search records refer to byte offsets in stdout. Present only for an unmodified
+    /// final grep stage in a single pipeline; arbitrary command output is never parsed.
+    pub search: Option<grep::SearchListing>,
     /// True when everything ran inside the engine, without starting a single program.
     pub native: bool,
     /// Number of programs started to answer.
@@ -52,8 +55,26 @@ pub struct Reply {
     pub fallback_reason: String,
 }
 
+struct StageOutput {
+    stdout: Vec<u8>,
+    stderr: String,
+    code: i32,
+    search: Option<grep::SearchListing>,
+}
+
+impl StageOutput {
+    fn plain((stdout, stderr, code): (Vec<u8>, String, i32)) -> Self {
+        Self {
+            stdout,
+            stderr,
+            code,
+            search: None,
+        }
+    }
+}
+
 /// Runs one stage of a pipeline inside the engine.
-fn stage(words: &[Word], dir: &Path, stdin: Option<&[u8]>) -> StageResult {
+fn stage(words: &[Word], dir: &Path, stdin: Option<&[u8]>) -> Result<StageOutput, String> {
     // `command grep` is grep. Any other wrapper in front is a different program with its
     // own output: it is left to the regular shell.
     let first = words
@@ -71,7 +92,7 @@ fn stage(words: &[Word], dir: &Path, stdin: Option<&[u8]>) -> StageResult {
         return Err("unquoted glob".to_string());
     }
     let args: Vec<String> = rest.iter().map(|w| w.text.clone()).collect();
-    match name {
+    let output = match name {
         "cat" => builtins::cat(&args, dir, stdin),
         "sed" => builtins::sed(&args, dir, stdin),
         "head" => builtins::head(&args, dir, stdin),
@@ -88,9 +109,39 @@ fn stage(words: &[Word], dir: &Path, stdin: Option<&[u8]>) -> StageResult {
             };
             let options = grep::parse(&args, syntax)?;
             let out = grep::run(&options, dir, stdin)?;
-            Ok((out.stdout, out.stderr, out.code))
+            return Ok(StageOutput {
+                stdout: out.stdout,
+                stderr: out.stderr,
+                code: out.code,
+                search: out.search,
+            });
         }
         other => Err(format!("command {other}")),
+    }?;
+    Ok(StageOutput::plain(output))
+}
+
+/// On the supported macOS target, ask the OS about directory search permission using
+/// effective credentials (including ACLs). is_dir() alone does not check chdir access.
+fn can_search_directory(path: &Path) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        use std::ffi::CString;
+        use std::os::unix::ffi::OsStrExt;
+        unsafe extern "C" {
+            fn faccessat(fd: i32, path: *const std::ffi::c_char, mode: i32, flags: i32) -> i32;
+        }
+        let Ok(path) = CString::new(path.as_os_str().as_bytes()) else {
+            return false;
+        };
+        // Darwin SDK: AT_FDCWD=-2, X_OK=1, AT_EACCESS=0x0010.
+        // SAFETY: path is a live, NUL-terminated CString. The call retains no pointer.
+        unsafe { faccessat(-2, path.as_ptr(), 1, 0x0010) == 0 }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        // Other userlands remain unsupported; preserve their previous behavior.
+        path.is_dir()
     }
 }
 
@@ -105,7 +156,7 @@ pub(crate) fn logical_directory(path: &Path) -> Option<PathBuf> {
             Component::CurDir => {}
             part => target.push(part.as_os_str()),
         }
-        if !target.is_dir() {
+        if !target.is_dir() || !can_search_directory(&target) {
             return None;
         }
     }
@@ -200,21 +251,31 @@ fn parsed_stage(text: &str) -> Result<(Vec<Word>, bool, bool), String> {
 }
 
 /// Runs one pipeline (`a | b | c`) or one `cd` inside the engine.
-fn pipeline(text: &str, dir: &mut PathBuf) -> StageResult {
+fn pipeline(text: &str, dir: &mut PathBuf) -> Result<StageOutput, String> {
     if let Some(words) = shell::split_words(text.trim()) {
         if let Some(result) = change_directory(&words, dir) {
-            return result;
+            return result.map(StageOutput::plain);
         }
     }
     let mut stream: Option<Vec<u8>> = None;
     let mut stderr = String::new();
     let mut code = 0;
+    let mut search = None;
     for text in pipeline_stages(text)? {
         let (words, merge, discard) = parsed_stage(text)?;
-        let (mut out, errors, status) = stage(&words, dir, stream.as_deref())?;
+        let StageOutput {
+            stdout: mut out,
+            stderr: errors,
+            code: status,
+            search: records,
+        } = stage(&words, dir, stream.as_deref())?;
+        search = records;
         if merge {
             if !out.is_empty() && !errors.is_empty() {
                 return Err("2>&1 with interleaved output and errors".to_string());
+            }
+            if !errors.is_empty() {
+                search = None;
             }
             let mut merged = errors.into_bytes();
             append(&mut merged, &out)?;
@@ -228,7 +289,12 @@ fn pipeline(text: &str, dir: &mut PathBuf) -> StageResult {
         stream = Some(out);
         code = status;
     }
-    Ok((stream.unwrap_or_default(), stderr, code))
+    Ok(StageOutput {
+        stdout: stream.unwrap_or_default(),
+        stderr,
+        code,
+        search,
+    })
 }
 
 /// Runs a whole command line inside the engine: pipelines linked by `;`, `&&` and `||`.
@@ -251,6 +317,8 @@ pub fn run_native(command: &str, session: &mut Session) -> Result<Reply, String>
     }
     // Work on a copy of the directory, committed only when every item is covered.
     let mut dir = session.dir.clone();
+    let single_pipeline = items.len() == 1;
+    let mut search = None;
     let (mut stdout, mut stderr, mut code) = (Vec::new(), String::new(), 0);
     for (link, text) in items {
         let wanted = match link {
@@ -261,7 +329,15 @@ pub fn run_native(command: &str, session: &mut Session) -> Result<Reply, String>
         if !wanted {
             continue;
         }
-        let (out, errors, status) = pipeline(text, &mut dir)?;
+        let StageOutput {
+            stdout: out,
+            stderr: errors,
+            code: status,
+            search: records,
+        } = pipeline(text, &mut dir)?;
+        if single_pipeline {
+            search = records;
+        }
         append(&mut stdout, &out)?;
         append_error(&mut stderr, &errors)?;
         code = status;
@@ -271,6 +347,7 @@ pub fn run_native(command: &str, session: &mut Session) -> Result<Reply, String>
         stdout,
         stderr,
         code,
+        search,
         native: true,
         spawned: 0,
         fallback_reason: String::new(),
@@ -298,6 +375,7 @@ fn fallback(command: &str, session: &Session, reason: String) -> Reply {
         .output();
     match output {
         Ok(output) => Reply {
+            search: None,
             stdout: output.stdout,
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
             code: output.status.code().unwrap_or(-1),
@@ -306,6 +384,7 @@ fn fallback(command: &str, session: &Session, reason: String) -> Reply {
             fallback_reason: reason,
         },
         Err(error) => Reply {
+            search: None,
             stdout: Vec::new(),
             stderr: format!("cannot start the command: {error}\n"),
             code: 127,

@@ -207,6 +207,13 @@ searches remain available. `grep -m 0` and negated filename classes are also ref
 Filename filters use an iterative matcher with a shared work budget instead of recursive
 backtracking; exhausting that budget returns a refusal.
 
+Both MCP tools also return **versioned structured results**, alongside the readable text.
+`run` keeps stdout, stderr and exit codes separate for each command, and reports refusals
+inside batches. Search records come directly from grep, with paths, line numbers and byte
+offsets into the original stdout. `scout` exposes completion status, scan counts and direct
+match references even when its text budget is zero. Each tool advertises an `outputSchema`.
+See the [structured result contract and examples](docs/structured-results.md).
+
 ## Limits
 
 - **macOS only.** The engine reproduces the BSD tools that ship with macOS. On Linux the GNU
@@ -221,7 +228,9 @@ backtracking; exhausting that budget returns a refusal.
 - **Bounded MCP requests.** At most 128 commands per call, 64 KiB per command and 2 MiB of
   combined response text. An input message over 1 MiB is rejected and the server exits.
   Non-UTF-8 output is refused; `exact: true` disables grouping but errors and exit codes
-  remain formatted as text.
+  remain formatted in the readable text. Structured stdout/stderr are always separate and
+  ungrouped. Encoded text plus structured data are limited to 8 MiB, checked while a batch
+  accumulates; exceeding a response bound rolls back the call's directory changes.
 - **Bounded scout.** At most 10,000 candidate files, 16 MiB of input and 16 MiB of retained
   content; files over 400,000 bytes are skipped. Answers are capped at 64 KiB of UTF-8 text,
   including notices for partial scans or truncated output. Repository `.gitignore` and
@@ -230,6 +239,9 @@ backtracking; exhausting that budget returns a refusal.
   counted as successfully read. An incomplete scan returns CLI exit status 1 or MCP
   `isError: true`, while retaining any partial answer. This status is preserved even with
   a zero-sized answer budget. Long-line previews show a match window and mark omissions.
+  Grep and Scout metadata are independently capped at 4,096 records and 256 KiB of retained
+  allocations each; omitted references are explicitly flagged, without truncating native
+  stdout or changing a completed Scout scan into a failed one.
 - **Small evidence.** The historical live comparison is one code base, three search tasks,
   one model and five sessions per cell. No current general speedup is claimed.
 - **A text search.** `scout` finds words. Code that does the same thing without the words is

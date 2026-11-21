@@ -641,6 +641,7 @@ mod tests {
             truncated: false,
         };
         let mut native = Reply {
+            search: None,
             stdout: reference.stdout.clone(),
             stderr: "error\n".into(),
             code: 1,

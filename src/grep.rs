@@ -50,7 +50,37 @@ pub struct Output {
     pub stdout: Vec<u8>,
     pub stderr: String,
     pub code: i32,
+    /// Positions emitted by the search itself, never inferred from arbitrary output text.
+    pub search: Option<SearchListing>,
 }
+
+/// Bounded metadata for line-oriented output. `stdout` remains complete if this is truncated.
+#[derive(Clone, Debug)]
+pub struct SearchListing {
+    pub records: Vec<SearchRecord>,
+    pub truncated: bool,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SearchKind {
+    Match,
+    Context,
+}
+
+/// All offsets are byte offsets into `Output::stdout`; text excludes prefixes and newline.
+#[derive(Clone, Debug)]
+pub struct SearchRecord {
+    pub path: Option<String>,
+    pub line_number: usize,
+    pub kind: SearchKind,
+    pub output_start: usize,
+    pub text_start: usize,
+    pub text_end: usize,
+    pub output_end: usize,
+}
+
+const MAX_SEARCH_RECORDS: usize = 4096;
+const MAX_SEARCH_METADATA_BYTES: usize = 256 * 1024;
 
 /// Parses `grep` arguments. `Err(reason)`: not covered, hand over to the real program.
 pub fn parse(args: &[String], syntax: Syntax) -> Result<Options, String> {
@@ -150,8 +180,14 @@ pub fn parse(args: &[String], syntax: Syntax) -> Result<Options, String> {
                 "word-regexp" => o.word = true,
                 "line-regexp" => o.whole_line = true,
                 "count" => o.count = true,
-                "files-with-matches" => o.files_with_matches = true,
-                "files-without-match" => o.files_without_match = true,
+                "files-with-matches" => {
+                    o.files_with_matches = true;
+                    o.files_without_match = false;
+                }
+                "files-without-match" => {
+                    o.files_without_match = true;
+                    o.files_with_matches = false;
+                }
                 "only-matching" => o.only_matching = true,
                 "quiet" | "silent" => o.quiet = true,
                 "no-messages" => o.no_messages = true,
@@ -160,7 +196,10 @@ pub fn parse(args: &[String], syntax: Syntax) -> Result<Options, String> {
                 "extended-regexp" => o.syntax = Syntax::Extended,
                 "fixed-strings" => o.syntax = Syntax::Fixed,
                 "basic-regexp" => o.syntax = Syntax::Basic,
-                "text" => o.binary_as_text = true,
+                "text" => {
+                    o.binary_as_text = true;
+                    o.skip_binary = false;
+                }
                 "include" => o.include.push(value),
                 "exclude" => o.exclude.push(value),
                 "exclude-dir" => o.exclude_dir.push(value),
@@ -198,15 +237,27 @@ pub fn parse(args: &[String], syntax: Syntax) -> Result<Options, String> {
                 'w' => o.word = true,
                 'x' => o.whole_line = true,
                 'c' => o.count = true,
-                'l' => o.files_with_matches = true,
-                'L' => o.files_without_match = true,
+                'l' => {
+                    o.files_with_matches = true;
+                    o.files_without_match = false;
+                }
+                'L' => {
+                    o.files_without_match = true;
+                    o.files_with_matches = false;
+                }
                 'o' => o.only_matching = true,
                 'q' => o.quiet = true,
                 's' => o.no_messages = true,
                 'H' => o.with_filename = Some(true),
                 'h' => o.with_filename = Some(false),
-                'I' => o.skip_binary = true,
-                'a' => o.binary_as_text = true,
+                'I' => {
+                    o.skip_binary = true;
+                    o.binary_as_text = false;
+                }
+                'a' => {
+                    o.binary_as_text = true;
+                    o.skip_binary = false;
+                }
                 'E' => o.syntax = Syntax::Extended,
                 'F' => o.syntax = Syntax::Fixed,
                 'G' => o.syntax = Syntax::Basic,
@@ -761,9 +812,105 @@ struct Search<'a> {
     files: usize,
     input_bytes: usize,
     refusal: Option<String>,
+    search: Option<SearchListing>,
+    metadata_path_bytes: usize,
 }
 
 impl Search<'_> {
+    fn line(&mut self, name: Option<&str>, line_number: usize, text: &[u8], kind: SearchKind) {
+        let output_start = self.stdout.bytes.len();
+        self.prefix(
+            name,
+            line_number,
+            if kind == SearchKind::Match {
+                b':'
+            } else {
+                b'-'
+            },
+        );
+        let text_start = self.stdout.bytes.len();
+        self.stdout.extend_from_slice(text);
+        let text_end = self.stdout.bytes.len();
+        self.stdout.push(b'\n');
+        let output_end = self.stdout.bytes.len();
+        if self.stdout.exceeded {
+            return;
+        }
+        if let Some(listing) = self.search.as_mut() {
+            if listing.truncated {
+                return;
+            }
+            let record_bytes = std::mem::size_of::<SearchRecord>();
+            let next_path_bytes = self
+                .metadata_path_bytes
+                .saturating_add(name.map_or(0, str::len));
+            let max_capacity =
+                MAX_SEARCH_METADATA_BYTES.saturating_sub(next_path_bytes) / record_bytes;
+            if listing.records.len() >= MAX_SEARCH_RECORDS
+                || listing.records.len().saturating_add(1) > max_capacity
+                || listing.records.capacity() > max_capacity
+            {
+                listing.truncated = true;
+                return;
+            }
+            if listing.records.len() == listing.records.capacity() {
+                let capacity = listing
+                    .records
+                    .capacity()
+                    .max(8)
+                    .saturating_mul(2)
+                    .min(MAX_SEARCH_RECORDS)
+                    .min(max_capacity);
+                if listing
+                    .records
+                    .try_reserve_exact(capacity - listing.records.len())
+                    .is_err()
+                {
+                    listing.truncated = true;
+                    return;
+                }
+                // reserve_exact need not return the requested capacity on every allocator.
+                // Keep the retained allocations bounded even with an unusual allocator.
+                if listing
+                    .records
+                    .capacity()
+                    .saturating_mul(record_bytes)
+                    .saturating_add(self.metadata_path_bytes)
+                    > MAX_SEARCH_METADATA_BYTES
+                {
+                    listing.records = Vec::new();
+                    self.metadata_path_bytes = 0;
+                    listing.truncated = true;
+                    return;
+                }
+            }
+            let path = name.map(str::to_string);
+            let next_path_bytes = self
+                .metadata_path_bytes
+                .saturating_add(path.as_ref().map_or(0, String::capacity));
+            if listing
+                .records
+                .capacity()
+                .saturating_mul(record_bytes)
+                .saturating_add(next_path_bytes)
+                > MAX_SEARCH_METADATA_BYTES
+            {
+                listing.truncated = true;
+                return;
+            }
+            self.metadata_path_bytes = next_path_bytes;
+            listing.records.push(SearchRecord {
+                path,
+                line_number,
+                kind,
+                output_start,
+                text_start,
+                text_end,
+                output_end,
+            });
+        }
+    }
+
     fn prefix(&mut self, name: Option<&str>, line_number: usize, separator: u8) {
         if self.show_name {
             self.stdout
@@ -830,6 +977,7 @@ impl Search<'_> {
                 }
                 if !o.count {
                     if binary {
+                        self.search = None;
                         self.stdout.extend_from_slice(
                             format!(
                                 "Binary file {} matches\n",
@@ -844,9 +992,7 @@ impl Search<'_> {
                             if m.start() == m.end() {
                                 continue;
                             }
-                            self.prefix(name, i + 1, b':');
-                            self.stdout.extend_from_slice(m.as_bytes());
-                            self.stdout.push(b'\n');
+                            self.line(name, i + 1, m.as_bytes(), SearchKind::Match);
                             if self.stdout.exceeded {
                                 self.done = true;
                                 return;
@@ -864,13 +1010,9 @@ impl Search<'_> {
                             self.stdout.extend_from_slice(b"--\n");
                         }
                         for (k, context) in lines.iter().enumerate().take(i).skip(from) {
-                            self.prefix(name, k + 1, b'-');
-                            self.stdout.extend_from_slice(context);
-                            self.stdout.push(b'\n');
+                            self.line(name, k + 1, context, SearchKind::Context);
                         }
-                        self.prefix(name, i + 1, b':');
-                        self.stdout.extend_from_slice(line);
-                        self.stdout.push(b'\n');
+                        self.line(name, i + 1, line, SearchKind::Match);
                         last_printed = Some(i);
                         self.group_printed = true;
                         trailing = o.after;
@@ -880,9 +1022,7 @@ impl Search<'_> {
                     break;
                 }
             } else if trailing > 0 && !o.count && !names_only && !binary {
-                self.prefix(name, i + 1, b'-');
-                self.stdout.extend_from_slice(line);
-                self.stdout.push(b'\n');
+                self.line(name, i + 1, line, SearchKind::Context);
                 last_printed = Some(i);
                 trailing -= 1;
             }
@@ -987,6 +1127,15 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
         files: 0,
         input_bytes: 0,
         refusal: None,
+        search: if o.count || o.files_with_matches || o.files_without_match || o.quiet {
+            None
+        } else {
+            Some(SearchListing {
+                records: Vec::new(),
+                truncated: false,
+            })
+        },
+        metadata_path_bytes: 0,
     };
 
     if paths.is_empty() {
@@ -1046,32 +1195,88 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
             .follow_links(false)
             .into_iter()
             .filter_entry(|x| {
-                x.depth() == 0
-                    || !x.file_type().is_dir()
-                    || match any_name_matches(
-                        &excluded_dirs,
-                        &x.file_name().to_string_lossy(),
-                        &glob_work,
-                    ) {
-                        Ok(excluded) => !excluded,
-                        Err(_) => {
-                            glob_failed.set(true);
-                            false
-                        }
+                if excluded_dirs.is_empty() || !x.file_type().is_dir() {
+                    return true;
+                }
+                let shown = if x.depth() == 0 {
+                    root.to_string()
+                } else {
+                    format!(
+                        "{root}/{}",
+                        x.path()
+                            .strip_prefix(&absolute)
+                            .unwrap_or(x.path())
+                            .to_string_lossy()
+                    )
+                };
+                // BSD checks the operand spelling as well as its basename, including an
+                // explicitly requested root (notably `.` and `./excluded`).
+                let basename = shown.rsplit('/').next().unwrap_or(&shown);
+                match any_name_matches(&excluded_dirs, basename, &glob_work).and_then(|excluded| {
+                    if excluded {
+                        Ok(true)
+                    } else {
+                        any_name_matches(&excluded_dirs, &shown, &glob_work)
                     }
+                }) {
+                    Ok(excluded) => !excluded,
+                    Err(_) => {
+                        glob_failed.set(true);
+                        false
+                    }
+                }
             });
         for entry in walker {
             if glob_failed.get() {
                 return Err("grep filename-pattern work limit exceeded".to_string());
             }
-            if s.done {
+            if s.done && !o.quiet {
                 break;
             }
             visited += 1;
             if visited > MAX_FILES {
                 return Err("grep directory-entry limit exceeded".to_string());
             }
-            let Ok(x) = entry else { continue };
+            let x = match entry {
+                Ok(x) => x,
+                Err(error) => {
+                    if o.quiet && s.found {
+                        // BSD FTS and WalkDir can discover unreadable directories in a
+                        // different order. After a quiet hit, reporting this error (or
+                        // dropping it) could both differ from BSD. Refuse that ambiguity.
+                        return Err("quiet recursive search with traversal errors".to_string());
+                    }
+                    let shown = error.path().map_or_else(
+                        || root.to_string(),
+                        |path| match path.strip_prefix(&absolute) {
+                            Ok(relative) if relative.as_os_str().is_empty() => root.to_string(),
+                            Ok(relative) => format!("{root}/{}", relative.to_string_lossy()),
+                            Err(_) => path.to_string_lossy().into_owned(),
+                        },
+                    );
+                    let Some(io_error) = error.io_error() else {
+                        return Err(
+                            "grep directory traversal error cannot be represented".to_string()
+                        );
+                    };
+                    if !matches!(
+                        io_error.kind(),
+                        std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::NotFound
+                    ) {
+                        return Err(
+                            "grep directory traversal error cannot be represented".to_string()
+                        );
+                    }
+                    s.report(&shown, io_error);
+                    s.check_output()?;
+                    continue;
+                }
+            };
+            if s.done {
+                // Check the remainder of this root for ambiguous traversal errors, but
+                // never read more file contents after a quiet match.
+                continue;
+            }
             if !x.file_type().is_file() {
                 continue;
             }
@@ -1107,6 +1312,7 @@ pub fn run(o: &Options, dir: &Path, stdin: Option<&[u8]>) -> Result<Output, Stri
         stdout: s.stdout.bytes,
         stderr: s.stderr,
         code,
+        search: s.search,
     })
 }
 

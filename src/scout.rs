@@ -30,6 +30,9 @@ const MAX_LISTING_BYTES: usize = 2 * 1024 * 1024;
 const MAX_WALK_ENTRIES: usize = 50_000;
 const MAX_RETAINED_BYTES: usize = 16 * 1024 * 1024;
 const MAX_ANSWER_BYTES: usize = 64 * 1024;
+/// Bounds for references returned independently of the text display budget.
+const MAX_MATCH_RECORDS: usize = 4096;
+const MAX_METADATA_BYTES: usize = 256 * 1024;
 const GIT_TIMEOUT: Duration = Duration::from_secs(2);
 /// Matching lines shown for a detailed file, and for a previewed one.
 const LINES_PER_FILE: usize = 14;
@@ -82,6 +85,130 @@ pub struct Request {
     pub paths: Vec<String>,
     /// Maximum size of the answer, in UTF-8 bytes (at most 64 KiB).
     pub budget: usize,
+}
+
+/// Whether Scout finished the eligible text search, returned partial evidence, or failed
+/// before the scan could begin. `Complete` excludes the documented skipped file kinds;
+/// it does not claim semantic coverage or that every match fits in the text/metadata.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ScoutStatus {
+    Complete,
+    Partial,
+    Error,
+}
+
+impl ScoutStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Complete => "complete",
+            Self::Partial => "partial",
+            Self::Error => "error",
+        }
+    }
+}
+
+/// Counts of discovered candidates and outcomes. Matching counts cover all text files
+/// actually searched, even when the independent reference/display limits are reached.
+#[derive(Default, Debug)]
+pub struct ScoutCounts {
+    pub candidates: usize,
+    pub read: usize,
+    pub skipped: usize,
+    pub errors: usize,
+    pub matching_files: usize,
+    pub matching_lines: usize,
+}
+
+/// A direct source reference produced during scanning, in discovery order. Lines are
+/// one-based; term indices address `ScoutReport::terms` (the normalized search terms).
+#[derive(Debug)]
+pub struct ScoutMatch {
+    pub path: String,
+    pub line_number: usize,
+    pub term_indices: Vec<usize>,
+}
+
+/// A bounded machine-readable view of Scout, independent of presentation. `reason` and
+/// counts survive even a zero-byte text budget. `metadata_truncated` means that `matches`
+/// omits references; `display_truncated` means the rendered text exceeded its byte budget.
+/// The normal rendering also selects excerpts and clips long lines as documented in text.
+#[derive(Debug)]
+pub struct ScoutReport {
+    pub text: String,
+    pub status: ScoutStatus,
+    pub reason: Option<String>,
+    pub terms: Vec<String>,
+    pub counts: ScoutCounts,
+    pub matches: Vec<ScoutMatch>,
+    pub metadata_truncated: bool,
+    pub display_truncated: bool,
+}
+
+impl ScoutReport {
+    fn error(reason: String, text: String, budget: usize) -> Self {
+        let display_truncated = text.len() > budget;
+        Self {
+            text: bounded_answer(text, budget),
+            status: ScoutStatus::Error,
+            reason: Some(reason),
+            terms: Vec::new(),
+            counts: ScoutCounts::default(),
+            matches: Vec::new(),
+            metadata_truncated: false,
+            display_truncated,
+        }
+    }
+}
+
+#[derive(Default)]
+struct MatchReferences {
+    matches: Vec<ScoutMatch>,
+    /// Owned path/term storage, excluding the separately checked records allocation.
+    owned_bytes: usize,
+    truncated: bool,
+}
+
+impl MatchReferences {
+    fn add(&mut self, file: &FileHits) {
+        for hit in &file.hits {
+            if self.truncated {
+                break;
+            }
+            let owned =
+                file.path.len() + hit.terms.count_ones() as usize * std::mem::size_of::<usize>();
+            let capacity = if self.matches.len() == self.matches.capacity() {
+                self.matches
+                    .capacity()
+                    .max(4)
+                    .saturating_mul(2)
+                    .min(MAX_MATCH_RECORDS)
+            } else {
+                self.matches.capacity()
+            };
+            if self.matches.len() == MAX_MATCH_RECORDS
+                || capacity * std::mem::size_of::<ScoutMatch>() + self.owned_bytes + owned
+                    > MAX_METADATA_BYTES
+            {
+                self.truncated = true;
+                break;
+            }
+            if capacity > self.matches.capacity() {
+                self.matches.reserve_exact(capacity - self.matches.len());
+            }
+            let mut term_indices = Vec::with_capacity(hit.terms.count_ones() as usize);
+            for term in 0..MAX_TERMS {
+                if hit.terms & (1 << term) != 0 {
+                    term_indices.push(term);
+                }
+            }
+            self.matches.push(ScoutMatch {
+                path: file.path.clone(),
+                line_number: hit.line + 1,
+                term_indices,
+            });
+            self.owned_bytes += owned;
+        }
+    }
 }
 
 /// A line that contains at least one term.
@@ -350,13 +477,6 @@ enum FileSearch {
     Unreadable,
 }
 
-#[derive(Default)]
-struct ScanCounts {
-    read: usize,
-    skipped: usize,
-    errors: usize,
-}
-
 /// Reads one candidate. Resource exhaustion, expected exclusions and I/O failures remain
 /// distinct so that an unreadable file can never become a successful negative result.
 fn search_file(
@@ -596,7 +716,7 @@ fn write_lines(
 fn render(
     terms: &[String],
     files: &[FileHits],
-    counts: &ScanCounts,
+    counts: &ScoutCounts,
     scores: &Scores,
     preview: &Regex,
     budget: usize,
@@ -717,24 +837,33 @@ pub fn scout(dir: &Path, request: &Request) -> String {
 /// invalid input, discovery failures and incomplete scans. An error retains any partial
 /// result text. Both variants respect the requested display budget, even when it is zero.
 pub fn scout_result(dir: &Path, request: &Request) -> Result<String, String> {
+    let report = scout_report(dir, request);
+    if report.status == ScoutStatus::Complete {
+        Ok(report.text)
+    } else {
+        Err(report.text)
+    }
+}
+
+/// Search eligible text candidates and retain status, counts and direct match references
+/// independently of the display budget. A complete negative scan is `Complete`; inability
+/// to discover the candidate set is `Error`; read/resource failures during a scan are
+/// `Partial`. The reference limit never stops the scan or changes its completion status.
+pub fn scout_report(dir: &Path, request: &Request) -> ScoutReport {
     let budget = request.budget.min(MAX_ANSWER_BYTES);
+    let invalid = |reason: &str| ScoutReport::error(reason.to_string(), reason.to_string(), budget);
     if request.terms.len() > MAX_TERMS
         || request.terms.iter().any(|term| term.len() > MAX_TERM_BYTES)
         || request.terms.iter().map(String::len).sum::<usize>() > MAX_QUERY_BYTES
     {
-        return Err(bounded_answer(
-            "scout: too many or oversized terms (maximum 60 terms, 512 bytes each, 16 KiB total)"
-                .to_string(),
-            budget,
-        ));
+        return invalid(
+            "scout: too many or oversized terms (maximum 60 terms, 512 bytes each, 16 KiB total)",
+        );
     }
     if request.paths.len() > MAX_PATHS
         || request.paths.iter().map(String::len).sum::<usize>() > MAX_QUERY_BYTES
     {
-        return Err(bounded_answer(
-            "scout: too many or oversized paths (maximum 128 paths, 16 KiB total)".to_string(),
-            budget,
-        ));
+        return invalid("scout: too many or oversized paths (maximum 128 paths, 16 KiB total)");
     }
     let terms: Vec<String> = request
         .terms
@@ -743,19 +872,13 @@ pub fn scout_result(dir: &Path, request: &Request) -> Result<String, String> {
         .filter(|term| !term.is_empty())
         .collect();
     if terms.is_empty() {
-        return Err(bounded_answer(
-            "scout: give at least one term".to_string(),
-            budget,
-        ));
+        return invalid("scout: give at least one term");
     }
     let Ok(set) = RegexSetBuilder::new(terms.iter().map(|term| regex::escape(term)))
         .case_insensitive(true)
         .build()
     else {
-        return Err(bounded_answer(
-            "scout: unreadable terms".to_string(),
-            budget,
-        ));
+        return invalid("scout: unreadable terms");
     };
     let pattern = terms
         .iter()
@@ -763,22 +886,24 @@ pub fn scout_result(dir: &Path, request: &Request) -> Result<String, String> {
         .collect::<Vec<_>>()
         .join("|");
     let Ok(preview) = RegexBuilder::new(&pattern).case_insensitive(true).build() else {
-        return Err(bounded_answer(
-            "scout: unreadable terms".to_string(),
-            budget,
-        ));
+        return invalid("scout: unreadable terms");
     };
     let candidates = match project_files(dir, &request.paths) {
         Ok(candidates) => candidates,
         Err(reason) => {
-            return Err(bounded_answer(
+            return ScoutReport::error(
+                reason.clone(),
                 format!("[search incomplete: {reason}]"),
                 budget,
-            ))
+            )
         }
     };
     let mut found = Vec::new();
-    let mut counts = ScanCounts::default();
+    let mut counts = ScoutCounts {
+        candidates: candidates.paths.len(),
+        ..ScoutCounts::default()
+    };
+    let mut references = MatchReferences::default();
     let mut failed_paths = Vec::new();
     let mut remaining_input = crate::limits::MAX_INPUT_BYTES;
     let mut retained = 0;
@@ -810,6 +935,9 @@ pub fn scout_result(dir: &Path, request: &Request) -> Result<String, String> {
             }
         };
         if let Some(hit) = hit {
+            counts.matching_files += 1;
+            counts.matching_lines += hit.hits.len();
+            references.add(&hit);
             let bytes = retained_bytes(&hit);
             if bytes > MAX_RETAINED_BYTES - retained {
                 limited = true;
@@ -830,9 +958,10 @@ pub fn scout_result(dir: &Path, request: &Request) -> Result<String, String> {
         render(&terms, &ranked, &counts, &scores, &preview, budget)
     };
     let incomplete = limited || counts.errors > 0;
+    let mut reason = None;
     if incomplete {
-        // Put the warning before partial results. The Err status still carries the failure
-        // when the display budget is too small to show even this notice.
+        // Put the warning before partial results. Status/reason remain independent when
+        // the display budget is too small to show even this notice.
         let mut reasons = Vec::new();
         if limited {
             reasons.push("resource limit reached; restrict paths".to_string());
@@ -848,16 +977,24 @@ pub fn scout_result(dir: &Path, request: &Request) -> Result<String, String> {
         } else {
             format!("Unreadable candidates (up to 5): {:?}\n", failed_paths)
         };
-        answer.insert_str(
-            0,
-            &format!("[search incomplete: {}]\n{details}", reasons.join("; ")),
-        );
+        let explanation = reasons.join("; ");
+        answer.insert_str(0, &format!("[search incomplete: {explanation}]\n{details}"));
+        reason = Some(explanation);
     }
-    let answer = bounded_answer(answer, budget);
-    if incomplete {
-        Err(answer)
-    } else {
-        Ok(answer)
+    let display_truncated = answer.len() > budget;
+    ScoutReport {
+        text: bounded_answer(answer, budget),
+        status: if incomplete {
+            ScoutStatus::Partial
+        } else {
+            ScoutStatus::Complete
+        },
+        reason,
+        terms,
+        counts,
+        matches: references.matches,
+        metadata_truncated: references.truncated,
+        display_truncated,
     }
 }
 

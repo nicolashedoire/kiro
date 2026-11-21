@@ -11,7 +11,6 @@ use crate::engine::{self, Session};
 use crate::limits;
 use crate::scout;
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use std::io::{BufRead, Read, Write};
 use std::path::Path;
 
@@ -20,17 +19,17 @@ const DEFAULT_SCOUT_BUDGET: usize = 12_000;
 const INSTRUCTIONS: &str = "To find where something lives in the code, start with `scout`: one call with all your terms returns matching files and context. For reading and searching, prefer `run` with familiar commands and batch independent reads in `commands`. Unsupported syntax, non-regular files and requests exceeding resource limits are refused; use the regular shell for those. `run` starts no shell or program. `scout` uses system Git with hooks and filesystem-monitor commands disabled. These tools are designed for reading, but do not provide an OS sandbox or confine access to the project directory.";
 
 fn tools() -> Value {
-    json!([
+    let mut tools = json!([
         {
             "name": "run",
-            "description": "Fast, read-only terminal. Runs read/search commands exactly as written (cat, sed -n 'A,Bp', head, tail, wc, cut, ls, grep with its usual options, pipelines, `;`/`&&`/`||` lists, `cd dir`) without starting a shell or a program. Each call is one full round trip, so batch: put EVERYTHING you need next in `commands` and get all the answers at once. Search listings come back grouped by file (the path once, then `line:text`). The working directory is remembered between calls. Commands it does not cover are refused (nothing is executed): use the regular shell for those.",
+            "description": "Fast, read-only terminal. Runs read/search commands exactly as written (cat, sed -n 'A,Bp', head, tail, wc, cut, ls, grep with its usual options, pipelines, `;`/`&&`/`||` lists, `cd dir`) without starting a shell or a program. Each call is one full round trip, so batch: put EVERYTHING you need next in `commands` and get all the answers at once. Known grep line listings may be grouped by file (the path once, then `line:text`). Structured results retain original stdout, stderr, exit codes and bounded search records. The working directory is remembered between calls. Commands it does not cover are refused (nothing is executed): use the regular shell for those.",
             "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": false, "openWorldHint": false },
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "commands": { "type": "array", "maxItems": 128, "items": { "type": "string", "maxLength": 65536 }, "description": "The commands to run, in order; all outputs come back together. Prefer this, with everything you need." },
                     "command": { "type": "string", "description": "A single command, when there is really only one thing to ask." },
-                    "exact": { "type": "boolean", "description": "Return UTF-8 text without grouping search listings by file; errors and exit codes are still formatted as text." }
+                    "exact": { "type": "boolean", "description": "Disable grouping in the human-readable text. Structured stdout and stderr are always separate and ungrouped; search offsets refer to structured stdout." }
                 }
             }
         },
@@ -48,176 +47,368 @@ fn tools() -> Value {
                 "required": ["terms"]
             }
         }
-    ])
+    ]);
+    for tool in tools.as_array_mut().unwrap() {
+        tool["outputSchema"] = output_schema(tool["name"].as_str().unwrap());
+    }
+    tools
 }
 
-/// Groups a grep-style listing by file: the path is written once, each line keeps `12:text`.
-///
-/// Applied only when every line starts with the path of an existing file followed by a line
-/// number, so nothing is lost and nothing else is touched. Returns `None` when the text is
-/// not such a listing or when grouping would not make it shorter.
-pub fn group_by_file(text: &str, dir: &Path) -> Option<String> {
-    let mut known: HashMap<String, bool> = HashMap::new();
-    let mut is_file = |path: &str| -> bool {
-        *known
-            .entry(path.to_string())
-            .or_insert_with(|| dir.join(path).is_file())
-    };
-    // Finds where `path` ends in `path:12:text` or `path-12-text`.
-    let mut path_end = |line: &str| -> Option<usize> {
-        let bytes = line.as_bytes();
-        for i in 1..bytes.len() {
-            if bytes[i] != b':' && bytes[i] != b'-' {
-                continue;
+/// Versioned contracts shared by success, refusals and input errors.
+fn output_schema(name: &str) -> Value {
+    let nullable_string = json!({"type":["string","null"]});
+    let count = json!({"type":"integer","minimum":0});
+    let mut properties = json!({
+        "schema_version":{"const":1}, "tool":{"const":name},
+        "status":{"enum":["complete","partial","refused","error"]},
+        "reason":nullable_string, "cwd":{"type":"string"},
+    });
+    let mut required = vec!["schema_version", "tool", "status", "reason", "cwd"];
+    if name == "run" {
+        let record = json!({
+            "type":"object","additionalProperties":false,
+            "required":["path","line_number","kind","output_start","text_start","text_end","output_end"],
+            "properties":{
+                "path":nullable_string,"line_number":{"type":"integer","minimum":1},
+                "kind":{"enum":["match","context"]},
+                "output_start":count,"text_start":count,"text_end":count,"output_end":count,
             }
-            let separator = bytes[i];
-            let digits = bytes[i + 1..]
-                .iter()
-                .take_while(|b| b.is_ascii_digit())
-                .count();
-            let after = i + 1 + digits;
-            if digits > 0 && bytes.get(after) == Some(&separator) && is_file(&line[..i]) {
-                return Some(i);
+        });
+        properties["commands"] = json!({
+            "type":"array","maxItems":128,"items":{
+                "type":"object","additionalProperties":false,
+                "required":["command","status","reason","stdout","stderr","exit_code","cwd_before","cwd_after","search"],
+                "properties":{
+                    "command":{"type":"string"},"status":{"enum":["complete","refused"]},
+                    "reason":nullable_string,"stdout":{"type":"string"},"stderr":{"type":"string"},
+                    "exit_code":{"type":["integer","null"]},
+                    "cwd_before":{"type":"string"},"cwd_after":{"type":"string"},
+                    "search":{"anyOf":[{"type":"null"},{
+                        "type":"object","additionalProperties":false,
+                        "required":["metadata_truncated","records"],
+                        "properties":{"metadata_truncated":{"type":"boolean"},
+                            "records":{"type":"array","maxItems":4096,"items":record}},
+                    }]},
+                }
             }
-        }
-        None
-    };
+        });
+        required.push("commands");
+    } else {
+        properties["terms"] = json!({"type":"array","items":{"type":"string"},"maxItems":60});
+        properties["counts"] = json!({
+            "type":"object","additionalProperties":false,
+            "required":["candidates","read","skipped","errors","matching_files","matching_lines"],
+            "properties":{"candidates":count,"read":count,"skipped":count,"errors":count,"matching_files":count,"matching_lines":count},
+        });
+        properties["matches"] = json!({
+            "type":"array","maxItems":4096,"items":{
+                "type":"object","additionalProperties":false,"required":["path","line_number","term_indices"],
+                "properties":{"path":{"type":"string"},"line_number":{"type":"integer","minimum":1},
+                    "term_indices":{"type":"array","maxItems":60,"items":count}},
+            }
+        });
+        properties["metadata_truncated"] = json!({"type":"boolean"});
+        properties["display_truncated"] = json!({"type":"boolean"});
+        required.extend([
+            "terms",
+            "counts",
+            "matches",
+            "metadata_truncated",
+            "display_truncated",
+        ]);
+    }
+    json!({"type":"object","additionalProperties":false,"required":required,"properties":properties})
+}
+
+/// Group only records emitted by grep itself. Arbitrary stdout is never interpreted as
+/// a listing, and no filesystem probes or prefix caches are needed.
+fn group_search_output(text: &str, listing: &crate::grep::SearchListing) -> Option<String> {
+    if listing.truncated || listing.records.is_empty() {
+        return None;
+    }
     let mut out = String::with_capacity(text.len());
-    let mut current: Option<&str> = None;
-    let mut grouped = 0usize;
-    for line in text.lines() {
-        if line == "--" {
-            out.push_str("--\n");
-            continue;
+    let mut current = None;
+    let mut end = 0;
+    let mut grouped = false;
+    for record in &listing.records {
+        let path = record.path.as_deref()?;
+        if path.contains(['\n', '\r']) {
+            return None;
         }
-        let end = path_end(line)?;
-        let path = &line[..end];
+        let gap = text.get(end..record.output_start)?;
+        if !gap.is_empty() && gap != "--\n" {
+            return None;
+        }
+        out.push_str(gap);
+        let separator = match record.kind {
+            crate::grep::SearchKind::Match => ':',
+            crate::grep::SearchKind::Context => '-',
+        };
+        let prefix = format!("{path}{separator}{}{separator}", record.line_number);
+        if text.get(record.output_start..record.text_start)? != prefix {
+            return None;
+        }
         if current == Some(path) {
-            grouped += 1;
+            grouped = true;
         } else {
             out.push_str(path);
             out.push_str(":\n");
             current = Some(path);
         }
-        out.push_str(&line[end + 1..]);
-        out.push('\n');
+        // Preserve the original line-number separator, contents, and final newline.
+        out.push_str(text.get(record.output_start + path.len() + 1..record.output_end)?);
+        end = record.output_end;
     }
-    if grouped == 0 || out.len() >= text.len() {
+    if end != text.len() || !grouped || out.len() >= text.len() {
         return None;
     }
     Some(out)
 }
 
-/// Runs one command inside the engine and formats the answer for the agent.
-/// Returns the text and whether the command was refused.
-fn run_one(command: &str, session: &mut Session, exact: bool) -> (String, bool) {
+struct ToolAnswer {
+    text: String,
+    structured: Value,
+    is_error: bool,
+}
+
+fn search_json(search: &crate::grep::SearchListing) -> Value {
+    json!({
+        "metadata_truncated": search.truncated,
+        "records": search.records.iter().map(|record| json!({
+            "path": record.path,
+            "line_number": record.line_number,
+            "kind": match record.kind {
+                crate::grep::SearchKind::Match => "match",
+                crate::grep::SearchKind::Context => "context",
+            },
+            "output_start": record.output_start,
+            "text_start": record.text_start,
+            "text_end": record.text_end,
+            "output_end": record.output_end,
+        })).collect::<Vec<_>>()
+    })
+}
+
+/// Execution and presentation are separate: stdout offsets always refer to the ungrouped
+/// stdout field. Commit cd only after the command is representable in this transport.
+fn run_one(command: &str, session: &mut Session, exact: bool) -> (String, Value, bool) {
+    let before = session.dir.clone();
     let mut pending = Session {
-        dir: session.dir.clone(),
+        dir: before.clone(),
     };
-    match engine::run_native(command, &mut pending) {
-        Ok(reply) => {
-            let Ok(mut text) = String::from_utf8(reply.stdout) else {
-                return ("[not run: non-UTF-8 output cannot be returned as MCP text; use the regular shell]".to_string(), true);
-            };
-            if !exact {
-                if let Some(grouped) = group_by_file(&text, &pending.dir) {
-                    text = grouped;
-                }
-            }
-            if let Err(reason) = limits::append_error(&mut text, &reply.stderr) {
-                return (format!("[not run: {reason}; use the regular shell]"), true);
-            }
-            if reply.code != 0 {
-                if !text.is_empty() && !text.ends_with('\n') {
-                    text.push('\n');
-                }
-                if let Err(reason) = limits::append_error(&mut text, &format!("[exit code {}]", reply.code)) {
-                    return (format!("[not run: {reason}; use the regular shell]"), true);
-                }
-            }
-            session.dir = pending.dir;
-            (text, false)
+    let result = engine::run_native(command, &mut pending).and_then(|reply| {
+        let stdout = String::from_utf8(reply.stdout)
+            .map_err(|_| "non-UTF-8 output cannot be returned as MCP text".to_string())?;
+        let mut text = if exact {
+            None
+        } else {
+            reply
+                .search
+                .as_ref()
+                .and_then(|listing| group_search_output(&stdout, listing))
         }
-        Err(reason) => (
-            format!(
-                "[not run: the fast terminal does not cover this ({reason}). Use the regular shell for it.]"
-            ),
-            true,
-        ),
+        .unwrap_or_else(|| stdout.clone());
+        limits::append_error(&mut text, &reply.stderr)?;
+        if reply.code != 0 {
+            if !text.is_empty() && !text.ends_with('\n') {
+                limits::append_error(&mut text, "\n")?;
+            }
+            limits::append_error(&mut text, &format!("[exit code {}]", reply.code))?;
+        }
+        let data = json!({
+            "command": command, "status": "complete", "reason": null,
+            "stdout": stdout, "stderr": reply.stderr, "exit_code": reply.code,
+            "cwd_before": before.to_string_lossy(), "cwd_after": pending.dir.to_string_lossy(),
+            "search": reply.search.as_ref().map(search_json),
+        });
+        Ok((text, data))
+    });
+    match result {
+        Ok((text, data)) => {
+            session.dir = pending.dir;
+            (text, data, false)
+        }
+        Err(reason) => {
+            let text = format!("[not run: the fast terminal does not cover this ({reason}). Use the regular shell for it.]");
+            let data = json!({
+                "command": command, "status": "refused", "reason": reason,
+                "stdout": "", "stderr": "", "exit_code": null,
+                "cwd_before": before.to_string_lossy(), "cwd_after": before.to_string_lossy(), "search": null,
+            });
+            (text, data, true)
+        }
     }
 }
 
-fn strings(arguments: &Value, key: &str) -> Vec<String> {
-    arguments
-        .get(key)
-        .and_then(Value::as_array)
-        .map(|list| {
-            list.iter()
-                .filter_map(|x| x.as_str().map(String::from))
-                .collect()
+fn strings(arguments: &Value, key: &str) -> Result<Vec<String>, String> {
+    let Some(value) = arguments.get(key) else {
+        return Ok(Vec::new());
+    };
+    let list = value
+        .as_array()
+        .ok_or_else(|| format!("`{key}` must be an array of strings"))?;
+    list.iter()
+        .map(|value| {
+            value
+                .as_str()
+                .map(String::from)
+                .ok_or_else(|| format!("`{key}` must contain only strings"))
         })
-        .unwrap_or_default()
+        .collect()
 }
 
-fn call(session: &mut Session, name: &str, arguments: &Value) -> Result<String, String> {
+fn empty_report(name: &str, dir: &Path, reason: &str) -> Value {
+    let mut result = json!({
+        "schema_version": 1, "tool": name, "status": "error", "reason": reason, "cwd": dir.to_string_lossy(),
+    });
+    match name {
+        "run" => result["commands"] = json!([]),
+        "scout" => {
+            result["terms"] = json!([]);
+            result["matches"] = json!([]);
+            result["counts"] = json!({"candidates":0,"read":0,"skipped":0,"errors":0,"matching_files":0,"matching_lines":0});
+            result["metadata_truncated"] = json!(false);
+            result["display_truncated"] = json!(false);
+        }
+        _ => {}
+    }
+    result
+}
+
+fn call(session: &mut Session, name: &str, arguments: &Value) -> Result<ToolAnswer, String> {
+    if !arguments.is_object() {
+        return Err("arguments must be an object".to_string());
+    }
     match name {
         "run" => {
-            let count = arguments
-                .get("commands")
-                .and_then(Value::as_array)
-                .map_or(0, Vec::len)
-                + usize::from(arguments.get("command").is_some());
-            if count > limits::MAX_COMMANDS {
-                return Err("at most 128 commands per call".to_string());
+            let mut commands = Vec::new();
+            if let Some(single) = arguments.get("command") {
+                commands.push(
+                    single
+                        .as_str()
+                        .ok_or("`command` must be a string")?
+                        .to_string(),
+                );
             }
-            let mut commands: Vec<String> = Vec::new();
-            if let Some(single) = arguments.get("command").and_then(Value::as_str) {
-                commands.push(single.to_string());
-            }
-            commands.extend(strings(arguments, "commands"));
+            commands.extend(strings(arguments, "commands")?);
             if commands.is_empty() {
                 return Err("give `command` or `commands`".to_string());
             }
-            let exact = arguments
-                .get("exact")
-                .and_then(Value::as_bool)
-                .unwrap_or(false);
-            if let [only] = commands.as_slice() {
-                let (text, refused) = run_one(only, session, exact);
-                return if refused { Err(text) } else { Ok(text) };
+            if commands.len() > limits::MAX_COMMANDS {
+                return Err("at most 128 commands per call".to_string());
             }
-            let mut out = String::new();
+            let exact = match arguments.get("exact") {
+                None => false,
+                Some(value) => value.as_bool().ok_or("`exact` must be a boolean")?,
+            };
+            let mut text = String::new();
+            let mut reports = Vec::new();
+            let mut refused = 0;
+            let mut encoded = EncodedCounter(0);
             let mut pending = Session {
                 dir: session.dir.clone(),
             };
             for command in &commands {
-                let (text, _) = run_one(command, &mut pending, exact);
-                limits::append_error(&mut out, &format!("$ {command}\n{text}"))?;
-                if !out.ends_with('\n') {
-                    limits::append_error(&mut out, "\n")?;
+                let (output, report, failed) = run_one(command, &mut pending, exact);
+                let previous_len = text.len();
+                if commands.len() > 1 {
+                    limits::append_error(&mut text, &format!("$ {command}\n"))?;
                 }
+                limits::append_error(&mut text, &output)?;
+                if commands.len() > 1 && !text.ends_with('\n') {
+                    limits::append_error(&mut text, "\n")?;
+                }
+                // Account while accumulating, not after retaining up to 128 metadata
+                // arrays. A refusal drops pending state and every accumulated result.
+                serde_json::to_writer(&mut encoded, &report).map_err(|e| e.to_string())?;
+                serde_json::to_writer(&mut encoded, &text[previous_len..])
+                    .map_err(|e| e.to_string())?;
+                refused += usize::from(failed);
+                reports.push(report);
             }
+            let status = if refused == 0 {
+                "complete"
+            } else if refused == commands.len() {
+                "refused"
+            } else {
+                "partial"
+            };
+            let structured = json!({
+                "schema_version":1,"tool":"run","status":status,"reason":null,
+                "cwd":pending.dir.to_string_lossy(),"commands":reports,
+            });
+            let answer = ToolAnswer {
+                text,
+                structured,
+                is_error: refused > 0,
+            };
+            check_answer_size(&answer)?;
             session.dir = pending.dir;
-            Ok(out)
+            Ok(answer)
         }
         "scout" => {
-            let terms = strings(arguments, "terms");
+            let terms = strings(arguments, "terms")?;
             if terms.is_empty() {
                 return Err("give `terms`".to_string());
             }
-            let budget = arguments
-                .get("budget")
-                .and_then(Value::as_u64)
-                .map_or(DEFAULT_SCOUT_BUDGET, |b| b.min(65_536) as usize);
+            let budget = match arguments.get("budget") {
+                None => DEFAULT_SCOUT_BUDGET,
+                Some(value) => value
+                    .as_u64()
+                    .ok_or("`budget` must be a nonnegative integer")?
+                    .min(65_536) as usize,
+            };
             let request = scout::Request {
                 terms,
-                paths: strings(arguments, "paths"),
+                paths: strings(arguments, "paths")?,
                 budget,
             };
-            scout::scout_result(&session.dir, &request)
+            let report = scout::scout_report(&session.dir, &request);
+            let structured = json!({
+                "schema_version":1,"tool":"scout","status":report.status.as_str(),
+                "reason":report.reason,"cwd":session.dir.to_string_lossy(),"terms":report.terms,
+                "counts":{
+                    "candidates":report.counts.candidates,"read":report.counts.read,
+                    "skipped":report.counts.skipped,"errors":report.counts.errors,
+                    "matching_files":report.counts.matching_files,"matching_lines":report.counts.matching_lines,
+                },
+                "matches":report.matches.iter().map(|hit| json!({
+                    "path":hit.path,"line_number":hit.line_number,"term_indices":hit.term_indices,
+                })).collect::<Vec<_>>(),
+                "metadata_truncated":report.metadata_truncated,"display_truncated":report.display_truncated,
+            });
+            let answer = ToolAnswer {
+                text: report.text,
+                structured,
+                is_error: report.status != scout::ScoutStatus::Complete,
+            };
+            check_answer_size(&answer)?;
+            Ok(answer)
         }
         other => Err(format!("unknown tool: {other}")),
     }
+}
+
+// Bound the encoded content plus metadata too, including JSON escape expansion. Count
+// through a writer instead of allocating a second, potentially large serialized copy.
+const MAX_ENCODED_ANSWER: usize = 8 * 1024 * 1024;
+struct EncodedCounter(usize);
+impl Write for EncodedCounter {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.0 = self.0.saturating_add(bytes.len());
+        if self.0 > MAX_ENCODED_ANSWER {
+            return Err(std::io::Error::other("MCP response exceeds 8 MiB encoded"));
+        }
+        Ok(bytes.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+fn check_answer_size(answer: &ToolAnswer) -> Result<(), String> {
+    let mut counter = EncodedCounter(0);
+    serde_json::to_writer(&mut counter, &answer.text).map_err(|e| e.to_string())?;
+    serde_json::to_writer(&mut counter, &answer.structured).map_err(|e| e.to_string())
 }
 
 /// Answers one JSON-RPC message. Returns `None` for a notification (no answer expected).
@@ -230,7 +421,13 @@ pub fn respond(session: &mut Session, message: &Value) -> Option<Value> {
             let version = params
                 .get("protocolVersion")
                 .and_then(Value::as_str)
-                .unwrap_or("2024-11-05");
+                .filter(|version| {
+                    matches!(
+                        *version,
+                        "2024-11-05" | "2025-03-26" | "2025-06-18" | "2025-11-25"
+                    )
+                })
+                .unwrap_or("2025-11-25");
             json!({
                 "protocolVersion": version,
                 "capabilities": { "tools": {} },
@@ -243,14 +440,16 @@ pub fn respond(session: &mut Session, message: &Value) -> Option<Value> {
         "tools/call" => {
             let name = params.get("name").and_then(Value::as_str).unwrap_or("");
             let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
-            match call(session, name, &arguments) {
-                Ok(text) => {
-                    json!({ "content": [{ "type": "text", "text": text }], "isError": false })
-                }
-                Err(error) => {
-                    json!({ "content": [{ "type": "text", "text": error }], "isError": true })
-                }
-            }
+            let answer = match call(session, name, &arguments) {
+                Ok(answer) => answer,
+                Err(error) => ToolAnswer {
+                    structured: empty_report(name, &session.dir, &error),
+                    text: error,
+                    is_error: true,
+                },
+            };
+            json!({ "content": [{ "type": "text", "text": answer.text }],
+                "structuredContent": answer.structured, "isError": answer.is_error })
         }
         _ => {
             return Some(json!({

@@ -72,7 +72,9 @@ in a skipped branch cannot become a successful result or commit a preceding `cd`
 Native navigation follows logical `cd -L` semantics: symlink names remain in the session
 path and `..` removes a logical component. Startup honors `PWD` only if it identifies the
 actual current directory; CLI shell fallback receives the same logical `PWD`. Explicit
-`cd` options, `CDPATH`-dependent paths and failed directory lookups are refused.
+`cd` options, `CDPATH`-dependent paths and failed directory lookups are refused. Directory
+search permission is checked through Darwin `faccessat` with effective credentials, including
+ACLs; a successful metadata lookup alone does not authorize a directory change.
 
 ### The rule: never approximate
 
@@ -130,6 +132,17 @@ matter, all covered by tests:
 - **Numeric options.** Unsupported zero, negative or malformed head counts are refused;
   supported signed tail forms are checked against BSD rather than stripping arbitrary signs.
 - **Binary files.** `grep` prints `Binary file X matches` and `-I` skips them.
+- **Option order.** BSD `cat`, `head`, `tail`, `wc`, `cut` and `ls` stop parsing options at
+  the first operand. Later dash-prefixed words are filenames, subject to the supported
+  operand count. Conflicting grep `-l`/`-L` and `-a`/`-I` options use the last occurrence.
+- **Collation.** `ls` uses byte order only where established: non-ASCII directory names
+  under a non-C/POSIX `LC_ALL`/`LC_COLLATE`/`LANG` collation are refused.
+- **Recursive failures.** Grep reports traversal errors instead of treating unreadable
+  subdirectories as having no matches. `--exclude-dir` also applies to requested roots.
+  Recursive quiet searches with a traversal error discovered after a hit are refused when
+  BSD/WalkDir visitation differences could change the diagnostics.
+- **Column selection.** `cut` normalizes overlapping ranges and visits input positions
+  monotonically, avoiding a scan of every requested range for every character.
 - **Errors.** Messages and exit codes are those of the tools: `cat: f: No such file or
   directory` (1), `grep: f: No such file or directory` (2), `wc: f: open: No such file or
   directory` (1).
@@ -157,10 +170,22 @@ $ sed -n '12,30p' src/api.ts
 - **Reading only.** There is no shell fallback in MCP. An unsupported native command returns
   a refusal and does not commit a directory change. The tool carries `readOnlyHint`; it is
   not marked idempotent because a relative `cd` changes persistent state.
-- **Grouped listings.** When every line of an output is `path:line:text` for an existing
-  file, the path is written once and each line keeps `line:text`. Pass `exact: true` to
-  disable grouping. MCP returns UTF-8 text, with stderr and exit codes formatted into the
-  response; it does not expose raw binary stdout/stderr streams. Non-UTF-8 output is refused.
+- **Grouped listings.** Only known grep line records can be grouped. The engine emits
+  their source paths, line numbers, kinds and stdout byte offsets during the search; MCP
+  neither reparses arbitrary file contents nor probes possible filename prefixes. Complete
+  numbered, filename-prefixed listings can display a path once followed by `line:text`.
+  `exact: true` disables that presentation. Non-UTF-8 output is refused.
+- **Structured output.** Both tools advertise an `outputSchema` and return
+  `structuredContent` with `schema_version: 1`, alongside the compatible readable text.
+  Run stdout/stderr and exit codes remain separate; offsets always address original stdout,
+  never the grouped display. Records are exposed only for an unmodified final grep stage
+  in a single pipeline. Command lists and later transforms retain their exact stdout but
+  do not claim search provenance. See [the contract](structured-results.md).
+- **Batch outcomes.** A mixed covered/refused batch has status `partial` and `isError: true`;
+  every command retains its own refusal reason, exit code and working directories. Covered
+  commands still execute in order and retain directory changes. Whole-call validation or
+  response-size errors commit no directory changes. A covered command with nonzero exit
+  remains `complete`; callers must inspect `exit_code` (grep's no-match status is 1).
 
 ### Resource bounds
 
@@ -175,6 +200,13 @@ MCP accepts 128 commands per call, 64 KiB per command, and one JSON message per 
 1 MiB. An oversized transport message returns an error and ends the server, avoiding an
 unbounded read or an attempt to parse the remainder as another message. These are memory
 and enumeration bounds, not a wall-clock deadline for all filesystem operations.
+
+Grep and Scout references each retain at most 4,096 records and 256 KiB of allocations,
+including vector and nested capacities. The scan/output remains independent of metadata
+truncation. MCP also counts encoded JSON text plus structured content up to 8 MiB while
+accumulating batches, followed by a final envelope check, without allocating a serialized
+copy for counting. Exceeding a response bound returns an error and rolls back the call's
+directory state. The small outer JSON-RPC/content envelope is additional framing.
 
 Filename filters are compiled once and matched iteratively, without recursive backtracking.
 One search shares a budget of two million matching operations across include, exclude and

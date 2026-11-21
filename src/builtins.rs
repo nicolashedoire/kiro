@@ -63,11 +63,23 @@ fn read_file(
 pub(crate) fn cat(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageResult {
     let mut numbered = false;
     let mut files: Vec<&String> = Vec::new();
+    let mut options_done = false;
     for a in args {
-        match a.as_str() {
-            "-n" => numbered = true,
-            x if x.starts_with('-') => return Err(format!("cat {}", x)),
-            _ => files.push(a),
+        if a == "-" {
+            return Err("cat reading stdin through `-`".to_string());
+        }
+        if options_done {
+            files.push(a);
+        } else {
+            match a.as_str() {
+                "--" => options_done = true,
+                "-n" => numbered = true,
+                x if x.starts_with('-') => return Err(format!("cat {}", x)),
+                _ => {
+                    options_done = true;
+                    files.push(a);
+                }
+            }
         }
     }
     let (mut stdout, mut stderr, mut code) = (Vec::new(), String::new(), 0);
@@ -202,8 +214,22 @@ fn count_and_files<'a>(
     let mut from_start = false;
     let mut files = Vec::new();
     let mut i = 0;
+    let mut options_done = false;
     while i < args.len() {
         let a = &args[i];
+        if a == "-" {
+            return Err(format!("{program} reading stdin through `-`"));
+        }
+        if options_done {
+            files.push(a);
+            i += 1;
+            continue;
+        }
+        if a == "--" {
+            options_done = true;
+            i += 1;
+            continue;
+        }
         let mut value: Option<&str> = None;
         if a == "-n" {
             i += 1;
@@ -215,6 +241,7 @@ fn count_and_files<'a>(
         } else if a.starts_with('-') || (program == "tail" && a.starts_with('+')) {
             return Err(format!("{} {}", program, a));
         } else {
+            options_done = true;
             files.push(a);
         }
         if let Some(v) = value {
@@ -314,8 +341,14 @@ pub(crate) fn tail(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRe
 pub(crate) fn wc(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageResult {
     let (mut l, mut w, mut c) = (false, false, false);
     let mut files: Vec<&String> = Vec::new();
+    let mut options_done = false;
     for a in args {
-        if a.len() > 1 && a.starts_with('-') {
+        if a == "-" {
+            return Err("wc reading stdin through `-`".to_string());
+        }
+        if !options_done && a == "--" {
+            options_done = true;
+        } else if !options_done && a.len() > 1 && a.starts_with('-') {
             for x in a[1..].chars() {
                 match x {
                     'l' => l = true,
@@ -325,6 +358,7 @@ pub(crate) fn wc(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageResu
                 }
             }
         } else {
+            options_done = true;
             files.push(a);
         }
     }
@@ -407,7 +441,7 @@ pub(crate) fn echo(args: &[String]) -> StageResult {
 }
 
 /// Parses a `cut` list such as `1-200`, `-5`, `3-`, `1,4-6` into inclusive 1-based ranges.
-fn cut_list(list: &str) -> Option<Vec<(usize, usize)>> {
+fn cut_list(list: &str) -> Option<(Vec<(usize, usize)>, usize)> {
     let number = |text: &str| -> Option<usize> {
         if text.is_empty() || !text.bytes().all(|b| b.is_ascii_digit()) {
             return None;
@@ -431,10 +465,30 @@ fn cut_list(list: &str) -> Option<Vec<(usize, usize)>> {
         ranges.push(range);
     }
     if ranges.is_empty() {
-        None
-    } else {
-        Some(ranges)
+        return None;
     }
+    // BSD scans through the first open-ended start, or through the last finite
+    // position. Preserve that boundary before merging: it controls partial-line EOF.
+    let scan_to = ranges
+        .iter()
+        .filter(|(_, end)| *end == usize::MAX)
+        .map(|(start, _)| *start)
+        .min()
+        .unwrap_or_else(|| ranges.iter().map(|(_, end)| *end).max().unwrap());
+    // A cut list denotes a set, regardless of ordering or repetitions. Normalize once,
+    // rather than testing every range for every input byte/character/field.
+    ranges.sort_unstable();
+    let mut merged: Vec<(usize, usize)> = Vec::new();
+    for (start, end) in ranges {
+        if let Some(previous) = merged.last_mut() {
+            if start <= previous.1.saturating_add(1) {
+                previous.1 = previous.1.max(end);
+                continue;
+            }
+        }
+        merged.push((start, end));
+    }
+    Some((merged, scan_to))
 }
 
 /// `cut -c LIST`, `cut -b LIST`, `cut -d X -f LIST [-s]`.
@@ -447,9 +501,15 @@ pub(crate) fn cut(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
     let mut only_delimited = false;
     let mut files: Vec<&String> = Vec::new();
     let mut i = 0;
+    let mut options_done = false;
     while i < args.len() {
         let a = &args[i];
-        if a.len() > 1 && a.starts_with('-') {
+        if a == "-" {
+            return Err("cut reading stdin through `-`".to_string());
+        }
+        if !options_done && a == "--" {
+            options_done = true;
+        } else if !options_done && a.len() > 1 && a.starts_with('-') {
             let flag = a.as_bytes()[1] as char;
             if flag == 's' && a.len() == 2 {
                 only_delimited = true;
@@ -483,6 +543,7 @@ pub(crate) fn cut(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
                 }
             }
         } else {
+            options_done = true;
             files.push(a);
         }
         i += 1;
@@ -493,8 +554,7 @@ pub(crate) fn cut(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
         .or(bytes_list.as_ref())
         .or(fields.as_ref())
         .ok_or("cut without a list")?;
-    let ranges = cut_list(list).ok_or("cut: unreadable list")?;
-    let selected = |n: usize| ranges.iter().any(|(a, b)| *a <= n && n <= *b);
+    let (ranges, scan_to) = cut_list(list).ok_or("cut: unreadable list")?;
     if fields.is_none() && (explicit_delimiter || only_delimited) {
         return Err("cut field options without -f".to_string());
     }
@@ -519,6 +579,14 @@ pub(crate) fn cut(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
             Some(_) => Some(input.iter().filter(|b| **b == b'\n').count()),
         };
         for (index, line) in lines.into_iter().enumerate() {
+            let mut units = line.len();
+            let mut range = 0;
+            let mut selected = |n: usize| {
+                while range < ranges.len() && ranges[range].1 < n {
+                    range += 1;
+                }
+                range < ranges.len() && ranges[range].0 <= n
+            };
             if fields.is_some() {
                 let text = std::str::from_utf8(line).map_err(|_| "cut: line is not UTF-8")?;
                 if !text.contains(delimiter.as_str()) {
@@ -540,22 +608,30 @@ pub(crate) fn cut(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
                         wrote = true;
                     }
                 }
-            } else if by_chars {
+            } else if by_chars && !line.is_ascii() {
                 let text = std::str::from_utf8(line).map_err(|_| "cut: line is not UTF-8")?;
                 let mut encoded = [0; 4];
+                units = 0;
                 for (k, character) in text.chars().enumerate() {
+                    units = k + 1;
                     if selected(k + 1) {
                         append(&mut stdout, character.encode_utf8(&mut encoded).as_bytes())?;
                     }
                 }
             } else {
-                for (k, b) in line.iter().enumerate() {
-                    if selected(k + 1) {
-                        append(&mut stdout, &[*b])?;
+                // Byte mode, and character mode for ASCII, copy each normalized span.
+                for &(start, end) in &ranges {
+                    if start > line.len() {
+                        break;
                     }
+                    append(&mut stdout, &line[start - 1..end.min(line.len())])?;
                 }
             }
-            append(&mut stdout, b"\n")?;
+            // If BSD cut encounters EOF before reaching its selection boundary, it
+            // preserves the absence of a newline on the final partial line.
+            if fields.is_some() || unterminated_last != Some(index) || scan_to <= units {
+                append(&mut stdout, b"\n")?;
+            }
         }
         Ok(())
     };
@@ -574,8 +650,11 @@ pub(crate) fn cut(args: &[String], dir: &Path, stdin: Option<&[u8]>) -> StageRes
 pub(crate) fn ls(args: &[String], dir: &Path) -> StageResult {
     let (mut all, mut almost_all) = (false, false);
     let mut operands: Vec<&String> = Vec::new();
+    let mut options_done = false;
     for a in args {
-        if a.len() > 1 && a.starts_with('-') {
+        if !options_done && a == "--" {
+            options_done = true;
+        } else if !options_done && a.len() > 1 && a.starts_with('-') {
             for c in a[1..].chars() {
                 match c {
                     '1' => {}
@@ -585,6 +664,7 @@ pub(crate) fn ls(args: &[String], dir: &Path) -> StageResult {
                 }
             }
         } else {
+            options_done = true;
             operands.push(a);
         }
     }
@@ -621,8 +701,9 @@ pub(crate) fn ls(args: &[String], dir: &Path) -> StageResult {
         names.push(b".".to_vec());
         names.push(b"..".to_vec());
     }
-    for entry in entries.flatten() {
+    for entry in entries {
         use std::os::unix::ffi::OsStrExt;
+        let entry = entry.map_err(|e| format!("ls directory-entry error: {}", error_reason(&e)))?;
         let name = entry.file_name().as_bytes().to_vec();
         if name.first() == Some(&b'.') && !all && !almost_all {
             continue;
@@ -631,6 +712,16 @@ pub(crate) fn ls(args: &[String], dir: &Path) -> StageResult {
         if names.len() > limits::MAX_FILES {
             return Err("directory exceeds 10000 entries".to_string());
         }
+    }
+    // LC_COLLATE is independent of LC_CTYPE. A byte sort is guaranteed in the C/POSIX
+    // locale; non-ASCII names in other locales require the platform collation tables.
+    let collation = ["LC_ALL", "LC_COLLATE", "LANG"]
+        .into_iter()
+        .filter_map(|key| std::env::var(key).ok())
+        .find(|value| !value.is_empty())
+        .unwrap_or_else(|| "C".to_string());
+    if !matches!(collation.as_str(), "C" | "POSIX") && names.iter().any(|name| !name.is_ascii()) {
+        return Err("ls non-ASCII sorting requires the system collation locale".to_string());
     }
     names.sort();
     let mut stdout = Vec::new();
