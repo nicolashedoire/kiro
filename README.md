@@ -1,3 +1,5 @@
+![kiro - A terminal engine for AI coding agents](assets/kiro-banner.jpg)
+
 # kiro
 
 **A terminal engine for AI coding agents: same commands, no shell, fewer round trips.**
