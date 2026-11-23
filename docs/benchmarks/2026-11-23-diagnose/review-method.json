@@ -1,0 +1,14 @@
+{
+  "scope": "AI-assisted static source review; one reviewer per case evaluates three answers with condition labels hidden and randomly reassigned A/B/C. Self references may reveal tools.",
+  "coverage": 90,
+  "source_evidence_ranges_checked": 374,
+  "groups": 3,
+  "rubric": "review-rubric.json",
+  "timing": "All source/binary/runner inputs frozen before measured sessions; review did not tune the measured tool.",
+  "limits": [
+    "Reviewers are AI agents familiar with prototype/data preparation, not independent human raters.",
+    "No external project code/tests executed; no verified repairs.",
+    "Labels assess the main explanation and material errors, not every detail or exact prediction range.",
+    "Malformed JSON can still have a source-supported explanation; parser/location metrics remain separate."
+  ]
+}

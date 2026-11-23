@@ -1,0 +1,861 @@
+{
+  "source_commit": "c33384ace0e70394bc1e3387b158f128cdf4bf83",
+  "date": "2026-11-23",
+  "sessions": 90,
+  "cases": 30,
+  "conditions": {
+    "terminal": {
+      "sessions": 30,
+      "complete": 30,
+      "parsed_answers": 29,
+      "path_at5_hits": 29,
+      "region_overlap_at5_hits": 26,
+      "file_recall_at5": {
+        "reported": 30,
+        "median": 1.0,
+        "mean": 0.9055555555555556,
+        "sum": 27.166666666666668,
+        "min": 0.0,
+        "max": 1.0
+      },
+      "wall_seconds": {
+        "reported": 30,
+        "median": 57.55623335400014,
+        "mean": 72.77314426666611,
+        "sum": 2183.194327999983,
+        "min": 12.997773209004663,
+        "max": 390.8641732920005
+      },
+      "turns": {
+        "reported": 30,
+        "median": 9.0,
+        "mean": 9.4,
+        "sum": 282,
+        "min": 3,
+        "max": 24
+      },
+      "tokens": {
+        "reported": 30,
+        "median": 118447.0,
+        "mean": 149294.93333333332,
+        "sum": 4478848,
+        "min": 39046,
+        "max": 533403
+      },
+      "cost_usd": {
+        "reported": 30,
+        "median": 0.17522705,
+        "mean": 0.22070465333333333,
+        "sum": 6.6211396,
+        "min": 0.0590739,
+        "max": 0.7022342
+      },
+      "tool_calls": {
+        "Bash": 27,
+        "Glob": 53,
+        "Grep": 55,
+        "Read": 117
+      },
+      "sessions_using_kiro": 0,
+      "sessions_using_diagnose": 0,
+      "sessions_with_kiro_error_results": 0,
+      "sessions_with_permission_denials": 0,
+      "invalid_region_count": 9
+    },
+    "scout": {
+      "sessions": 30,
+      "complete": 30,
+      "parsed_answers": 27,
+      "path_at5_hits": 27,
+      "region_overlap_at5_hits": 24,
+      "file_recall_at5": {
+        "reported": 30,
+        "median": 1.0,
+        "mean": 0.8388888888888889,
+        "sum": 25.166666666666668,
+        "min": 0.0,
+        "max": 1.0
+      },
+      "wall_seconds": {
+        "reported": 30,
+        "median": 53.59936989599737,
+        "mean": 71.00420406939932,
+        "sum": 2130.1261220819797,
+        "min": 15.423725249995186,
+        "max": 267.0576530420003
+      },
+      "turns": {
+        "reported": 30,
+        "median": 7.5,
+        "mean": 8.866666666666667,
+        "sum": 266,
+        "min": 3,
+        "max": 21
+      },
+      "tokens": {
+        "reported": 30,
+        "median": 154394.0,
+        "mean": 167869.76666666666,
+        "sum": 5036093,
+        "min": 44542,
+        "max": 500003
+      },
+      "cost_usd": {
+        "reported": 30,
+        "median": 0.2125779,
+        "mean": 0.24272472666666667,
+        "sum": 7.2817418,
+        "min": 0.07074130000000001,
+        "max": 0.5796029
+      },
+      "tool_calls": {
+        "Bash": 3,
+        "Glob": 22,
+        "Grep": 33,
+        "Read": 114,
+        "run": 23,
+        "scout": 41
+      },
+      "sessions_using_kiro": 29,
+      "sessions_using_diagnose": 0,
+      "sessions_with_kiro_error_results": 1,
+      "sessions_with_permission_denials": 0,
+      "invalid_region_count": 5
+    },
+    "diagnose": {
+      "sessions": 30,
+      "complete": 30,
+      "parsed_answers": 28,
+      "path_at5_hits": 28,
+      "region_overlap_at5_hits": 25,
+      "file_recall_at5": {
+        "reported": 30,
+        "median": 1.0,
+        "mean": 0.8722222222222222,
+        "sum": 26.166666666666668,
+        "min": 0.0,
+        "max": 1.0
+      },
+      "wall_seconds": {
+        "reported": 30,
+        "median": 51.30615685449811,
+        "mean": 69.42124842510069,
+        "sum": 2082.6374527530206,
+        "min": 14.904635582999617,
+        "max": 279.4992485420007
+      },
+      "turns": {
+        "reported": 30,
+        "median": 8.0,
+        "mean": 9.033333333333333,
+        "sum": 271,
+        "min": 3,
+        "max": 30
+      },
+      "tokens": {
+        "reported": 30,
+        "median": 139418.5,
+        "mean": 181708.56666666668,
+        "sum": 5451257,
+        "min": 44692,
+        "max": 1236495
+      },
+      "cost_usd": {
+        "reported": 30,
+        "median": 0.19653815000000002,
+        "mean": 0.23998054,
+        "sum": 7.1994162,
+        "min": 0.0667948,
+        "max": 1.0462536999999998
+      },
+      "tool_calls": {
+        "Bash": 2,
+        "Glob": 23,
+        "Grep": 41,
+        "Read": 123,
+        "run": 10,
+        "scout": 42
+      },
+      "sessions_using_kiro": 29,
+      "sessions_using_diagnose": 0,
+      "sessions_with_kiro_error_results": 0,
+      "sessions_with_permission_denials": 0,
+      "invalid_region_count": 8
+    }
+  },
+  "quality_scope": "Top-5 production patch-file hit/recall and pre-fix changed-region overlap are localization proxies, not diagnosis correctness or verified fixes.",
+  "paired_scope": "One observation per case/configuration. Ratios are descriptive; no significance or causal claim.",
+  "paired_comparisons": {
+    "scout_vs_terminal": {
+      "pairs": [
+        {
+          "task_id": "astral-sh__ruff-15356",
+          "rep": 1,
+          "candidate_seconds": 130.08205679200182,
+          "baseline_seconds": 139.3857245830004,
+          "time_ratio": 0.9332523626875541
+        },
+        {
+          "task_id": "astral-sh__ruff-15443",
+          "rep": 1,
+          "candidate_seconds": 32.92384995799512,
+          "baseline_seconds": 24.140179083995463,
+          "time_ratio": 1.3638610485629363
+        },
+        {
+          "task_id": "astral-sh__ruff-15543",
+          "rep": 1,
+          "candidate_seconds": 35.677738749996934,
+          "baseline_seconds": 42.29585337499884,
+          "time_ratio": 0.8435280506974263
+        },
+        {
+          "task_id": "axios__axios-4731",
+          "rep": 1,
+          "candidate_seconds": 26.596478624996962,
+          "baseline_seconds": 41.220572541002184,
+          "time_ratio": 0.6452234160149375
+        },
+        {
+          "task_id": "axios__axios-5892",
+          "rep": 1,
+          "candidate_seconds": 16.332472583002527,
+          "baseline_seconds": 20.225775999999314,
+          "time_ratio": 0.8075078347057281
+        },
+        {
+          "task_id": "axios__axios-6539",
+          "rep": 1,
+          "candidate_seconds": 39.48088904200267,
+          "baseline_seconds": 33.52459920799447,
+          "time_ratio": 1.1776692331817
+        },
+        {
+          "task_id": "babel__babel-13928",
+          "rep": 1,
+          "candidate_seconds": 148.0946743329987,
+          "baseline_seconds": 163.23625016600272,
+          "time_ratio": 0.9072413399743878
+        },
+        {
+          "task_id": "babel__babel-15445",
+          "rep": 1,
+          "candidate_seconds": 41.09620745800203,
+          "baseline_seconds": 29.359299083000224,
+          "time_ratio": 1.3997680033784516
+        },
+        {
+          "task_id": "babel__babel-15649",
+          "rep": 1,
+          "candidate_seconds": 74.3800462079962,
+          "baseline_seconds": 65.33891225000116,
+          "time_ratio": 1.1383728875589734
+        },
+        {
+          "task_id": "burntsushi__ripgrep-2209",
+          "rep": 1,
+          "candidate_seconds": 150.54021116699732,
+          "baseline_seconds": 154.929850333996,
+          "time_ratio": 0.97166692436909
+        },
+        {
+          "task_id": "facebook__docusaurus-10130",
+          "rep": 1,
+          "candidate_seconds": 76.75424683399615,
+          "baseline_seconds": 85.2501145829956,
+          "time_ratio": 0.9003418612331804
+        },
+        {
+          "task_id": "facebook__docusaurus-10309",
+          "rep": 1,
+          "candidate_seconds": 59.717085333002615,
+          "baseline_seconds": 61.7754686249973,
+          "time_ratio": 0.9666796005305937
+        },
+        {
+          "task_id": "immutable-js__immutable-js-2006",
+          "rep": 1,
+          "candidate_seconds": 63.08645716700266,
+          "baseline_seconds": 77.58624608299579,
+          "time_ratio": 0.8131139261399196
+        },
+        {
+          "task_id": "mrdoob__three.js-25687",
+          "rep": 1,
+          "candidate_seconds": 35.280962666998676,
+          "baseline_seconds": 30.149413458995696,
+          "time_ratio": 1.170203948245364
+        },
+        {
+          "task_id": "mrdoob__three.js-26589",
+          "rep": 1,
+          "candidate_seconds": 49.5321135829945,
+          "baseline_seconds": 29.87208904200088,
+          "time_ratio": 1.6581402630847528
+        },
+        {
+          "task_id": "mrdoob__three.js-27395",
+          "rep": 1,
+          "candidate_seconds": 15.423725249995186,
+          "baseline_seconds": 12.997773209004663,
+          "time_ratio": 1.1866436659557855
+        },
+        {
+          "task_id": "nushell__nushell-12901",
+          "rep": 1,
+          "candidate_seconds": 93.73565108299954,
+          "baseline_seconds": 76.22408612500294,
+          "time_ratio": 1.2297379456839754
+        },
+        {
+          "task_id": "nushell__nushell-12950",
+          "rep": 1,
+          "candidate_seconds": 49.17182758299896,
+          "baseline_seconds": 39.219618250004714,
+          "time_ratio": 1.2537558950613459
+        },
+        {
+          "task_id": "preactjs__preact-3739",
+          "rep": 1,
+          "candidate_seconds": 82.87865712500206,
+          "baseline_seconds": 90.2897096250017,
+          "time_ratio": 0.9179191900075899
+        },
+        {
+          "task_id": "preactjs__preact-4182",
+          "rep": 1,
+          "candidate_seconds": 267.0576530420003,
+          "baseline_seconds": 390.8641732920005,
+          "time_ratio": 0.6832492494585611
+        },
+        {
+          "task_id": "sharkdp__bat-2201",
+          "rep": 1,
+          "candidate_seconds": 102.11236837499746,
+          "baseline_seconds": 59.34069075000298,
+          "time_ratio": 1.7207815932778359
+        },
+        {
+          "task_id": "sharkdp__bat-2260",
+          "rep": 1,
+          "candidate_seconds": 33.45841845800169,
+          "baseline_seconds": 40.978359041997464,
+          "time_ratio": 0.8164899532387615
+        },
+        {
+          "task_id": "tokio-rs__axum-1730",
+          "rep": 1,
+          "candidate_seconds": 48.730322832998354,
+          "baseline_seconds": 60.03346199999942,
+          "time_ratio": 0.8117193513344079
+        },
+        {
+          "task_id": "tokio-rs__axum-734",
+          "rep": 1,
+          "candidate_seconds": 53.08093937499507,
+          "baseline_seconds": 69.08645204200002,
+          "time_ratio": 0.7683263187799158
+        },
+        {
+          "task_id": "tokio-rs__tokio-6603",
+          "rep": 1,
+          "candidate_seconds": 102.91857387500204,
+          "baseline_seconds": 86.18291833299736,
+          "time_ratio": 1.1941876170558616
+        },
+        {
+          "task_id": "tokio-rs__tokio-7139",
+          "rep": 1,
+          "candidate_seconds": 54.11780041699967,
+          "baseline_seconds": 55.771775957997306,
+          "time_ratio": 0.9703438609836762
+        },
+        {
+          "task_id": "uutils__coreutils-6575",
+          "rep": 1,
+          "candidate_seconds": 31.253298957999505,
+          "baseline_seconds": 45.059753290996014,
+          "time_ratio": 0.6935967615305306
+        },
+        {
+          "task_id": "uutils__coreutils-6682",
+          "rep": 1,
+          "candidate_seconds": 30.598456750005425,
+          "baseline_seconds": 26.3470429999943,
+          "time_ratio": 1.1613620834038965
+        },
+        {
+          "task_id": "vuejs__core-11899",
+          "rep": 1,
+          "candidate_seconds": 120.28415154200047,
+          "baseline_seconds": 78.44218262500362,
+          "time_ratio": 1.5334115843897953
+        },
+        {
+          "task_id": "vuejs__core-11915",
+          "rep": 1,
+          "candidate_seconds": 65.72878691599908,
+          "baseline_seconds": 54.06598204200418,
+          "time_ratio": 1.2157142889762735
+        }
+      ],
+      "candidate_faster_cases": 16,
+      "median_paired_time_ratio": 0.9710053926763831,
+      "ratio_of_condition_medians": 0.9312522167031667
+    },
+    "diagnose_vs_terminal": {
+      "pairs": [
+        {
+          "task_id": "astral-sh__ruff-15356",
+          "rep": 1,
+          "candidate_seconds": 99.94594954200147,
+          "baseline_seconds": 139.3857245830004,
+          "time_ratio": 0.717045808249082
+        },
+        {
+          "task_id": "astral-sh__ruff-15443",
+          "rep": 1,
+          "candidate_seconds": 30.93365391700354,
+          "baseline_seconds": 24.140179083995463,
+          "time_ratio": 1.2814177479533297
+        },
+        {
+          "task_id": "astral-sh__ruff-15543",
+          "rep": 1,
+          "candidate_seconds": 38.616705541993724,
+          "baseline_seconds": 42.29585337499884,
+          "time_ratio": 0.9130139827092395
+        },
+        {
+          "task_id": "axios__axios-4731",
+          "rep": 1,
+          "candidate_seconds": 38.247889625003154,
+          "baseline_seconds": 41.220572541002184,
+          "time_ratio": 0.9278835122185143
+        },
+        {
+          "task_id": "axios__axios-5892",
+          "rep": 1,
+          "candidate_seconds": 14.904635582999617,
+          "baseline_seconds": 20.225775999999314,
+          "time_ratio": 0.7369129166169013
+        },
+        {
+          "task_id": "axios__axios-6539",
+          "rep": 1,
+          "candidate_seconds": 27.195210416997725,
+          "baseline_seconds": 33.52459920799447,
+          "time_ratio": 0.8112016566781982
+        },
+        {
+          "task_id": "babel__babel-13928",
+          "rep": 1,
+          "candidate_seconds": 279.4992485420007,
+          "baseline_seconds": 163.23625016600272,
+          "time_ratio": 1.712237620367808
+        },
+        {
+          "task_id": "babel__babel-15445",
+          "rep": 1,
+          "candidate_seconds": 30.734525708998262,
+          "baseline_seconds": 29.359299083000224,
+          "time_ratio": 1.0468412621878405
+        },
+        {
+          "task_id": "babel__babel-15649",
+          "rep": 1,
+          "candidate_seconds": 40.58182387499983,
+          "baseline_seconds": 65.33891225000116,
+          "time_ratio": 0.6210973289503929
+        },
+        {
+          "task_id": "burntsushi__ripgrep-2209",
+          "rep": 1,
+          "candidate_seconds": 200.5382815000048,
+          "baseline_seconds": 154.929850333996,
+          "time_ratio": 1.2943811735936406
+        },
+        {
+          "task_id": "facebook__docusaurus-10130",
+          "rep": 1,
+          "candidate_seconds": 72.58250612499978,
+          "baseline_seconds": 85.2501145829956,
+          "time_ratio": 0.8514065521206636
+        },
+        {
+          "task_id": "facebook__docusaurus-10309",
+          "rep": 1,
+          "candidate_seconds": 96.77115362499899,
+          "baseline_seconds": 61.7754686249973,
+          "time_ratio": 1.5664980902442036
+        },
+        {
+          "task_id": "immutable-js__immutable-js-2006",
+          "rep": 1,
+          "candidate_seconds": 55.38138395900023,
+          "baseline_seconds": 77.58624608299579,
+          "time_ratio": 0.7138041438395859
+        },
+        {
+          "task_id": "mrdoob__three.js-25687",
+          "rep": 1,
+          "candidate_seconds": 44.30678204200376,
+          "baseline_seconds": 30.149413458995696,
+          "time_ratio": 1.4695735989113885
+        },
+        {
+          "task_id": "mrdoob__three.js-26589",
+          "rep": 1,
+          "candidate_seconds": 20.04692770800466,
+          "baseline_seconds": 29.87208904200088,
+          "time_ratio": 0.6710922587241286
+        },
+        {
+          "task_id": "mrdoob__three.js-27395",
+          "rep": 1,
+          "candidate_seconds": 16.52789254199888,
+          "baseline_seconds": 12.997773209004663,
+          "time_ratio": 1.2715941628023333
+        },
+        {
+          "task_id": "nushell__nushell-12901",
+          "rep": 1,
+          "candidate_seconds": 83.26866508300009,
+          "baseline_seconds": 76.22408612500294,
+          "time_ratio": 1.0924193298486315
+        },
+        {
+          "task_id": "nushell__nushell-12950",
+          "rep": 1,
+          "candidate_seconds": 45.67415925000387,
+          "baseline_seconds": 39.219618250004714,
+          "time_ratio": 1.1645742943966155
+        },
+        {
+          "task_id": "preactjs__preact-3739",
+          "rep": 1,
+          "candidate_seconds": 75.79447299999447,
+          "baseline_seconds": 90.2897096250017,
+          "time_ratio": 0.8394585973837995
+        },
+        {
+          "task_id": "preactjs__preact-4182",
+          "rep": 1,
+          "candidate_seconds": 178.52117362500576,
+          "baseline_seconds": 390.8641732920005,
+          "time_ratio": 0.4567345533908503
+        },
+        {
+          "task_id": "sharkdp__bat-2201",
+          "rep": 1,
+          "candidate_seconds": 82.24732437499915,
+          "baseline_seconds": 59.34069075000298,
+          "time_ratio": 1.3860189919510673
+        },
+        {
+          "task_id": "sharkdp__bat-2260",
+          "rep": 1,
+          "candidate_seconds": 44.63667479200376,
+          "baseline_seconds": 40.978359041997464,
+          "time_ratio": 1.089274334930225
+        },
+        {
+          "task_id": "tokio-rs__axum-1730",
+          "rep": 1,
+          "candidate_seconds": 68.84958637499949,
+          "baseline_seconds": 60.03346199999942,
+          "time_ratio": 1.1468535060496787
+        },
+        {
+          "task_id": "tokio-rs__axum-734",
+          "rep": 1,
+          "candidate_seconds": 68.76317258299969,
+          "baseline_seconds": 69.08645204200002,
+          "time_ratio": 0.9953206533344078
+        },
+        {
+          "task_id": "tokio-rs__tokio-6603",
+          "rep": 1,
+          "candidate_seconds": 75.1422126250036,
+          "baseline_seconds": 86.18291833299736,
+          "time_ratio": 0.8718921809385219
+        },
+        {
+          "task_id": "tokio-rs__tokio-7139",
+          "rep": 1,
+          "candidate_seconds": 47.230929749995994,
+          "baseline_seconds": 55.771775957997306,
+          "time_ratio": 0.8468607810797782
+        },
+        {
+          "task_id": "uutils__coreutils-6575",
+          "rep": 1,
+          "candidate_seconds": 30.82703004200448,
+          "baseline_seconds": 45.059753290996014,
+          "time_ratio": 0.6841366805300383
+        },
+        {
+          "task_id": "uutils__coreutils-6682",
+          "rep": 1,
+          "candidate_seconds": 30.90367929200147,
+          "baseline_seconds": 26.3470429999943,
+          "time_ratio": 1.1729467816182695
+        },
+        {
+          "task_id": "vuejs__core-11899",
+          "rep": 1,
+          "candidate_seconds": 78.0102600829996,
+          "baseline_seconds": 78.44218262500362,
+          "time_ratio": 0.9944937465079362
+        },
+        {
+          "task_id": "vuejs__core-11915",
+          "rep": 1,
+          "candidate_seconds": 65.95354162500007,
+          "baseline_seconds": 54.06598204200418,
+          "time_ratio": 1.2198713337669587
+        }
+      ],
+      "candidate_faster_cases": 16,
+      "median_paired_time_ratio": 0.994907199921172,
+      "ratio_of_condition_medians": 0.8914092160781114
+    },
+    "diagnose_vs_scout": {
+      "pairs": [
+        {
+          "task_id": "astral-sh__ruff-15356",
+          "rep": 1,
+          "candidate_seconds": 99.94594954200147,
+          "baseline_seconds": 130.08205679200182,
+          "time_ratio": 0.7683300218862061
+        },
+        {
+          "task_id": "astral-sh__ruff-15443",
+          "rep": 1,
+          "candidate_seconds": 30.93365391700354,
+          "baseline_seconds": 32.92384995799512,
+          "time_ratio": 0.9395515395820747
+        },
+        {
+          "task_id": "astral-sh__ruff-15543",
+          "rep": 1,
+          "candidate_seconds": 38.616705541993724,
+          "baseline_seconds": 35.677738749996934,
+          "time_ratio": 1.082375366123702
+        },
+        {
+          "task_id": "axios__axios-4731",
+          "rep": 1,
+          "candidate_seconds": 38.247889625003154,
+          "baseline_seconds": 26.596478624996962,
+          "time_ratio": 1.4380809641865708
+        },
+        {
+          "task_id": "axios__axios-5892",
+          "rep": 1,
+          "candidate_seconds": 14.904635582999617,
+          "baseline_seconds": 16.332472583002527,
+          "time_ratio": 0.9125768010479391
+        },
+        {
+          "task_id": "axios__axios-6539",
+          "rep": 1,
+          "candidate_seconds": 27.195210416997725,
+          "baseline_seconds": 39.48088904200267,
+          "time_ratio": 0.688819605558159
+        },
+        {
+          "task_id": "babel__babel-13928",
+          "rep": 1,
+          "candidate_seconds": 279.4992485420007,
+          "baseline_seconds": 148.0946743329987,
+          "time_ratio": 1.8873011457085345
+        },
+        {
+          "task_id": "babel__babel-15445",
+          "rep": 1,
+          "candidate_seconds": 30.734525708998262,
+          "baseline_seconds": 41.09620745800203,
+          "time_ratio": 0.7478676892607958
+        },
+        {
+          "task_id": "babel__babel-15649",
+          "rep": 1,
+          "candidate_seconds": 40.58182387499983,
+          "baseline_seconds": 74.3800462079962,
+          "time_ratio": 0.5456009500386286
+        },
+        {
+          "task_id": "burntsushi__ripgrep-2209",
+          "rep": 1,
+          "candidate_seconds": 200.5382815000048,
+          "baseline_seconds": 150.54021116699732,
+          "time_ratio": 1.33212435365554
+        },
+        {
+          "task_id": "facebook__docusaurus-10130",
+          "rep": 1,
+          "candidate_seconds": 72.58250612499978,
+          "baseline_seconds": 76.75424683399615,
+          "time_ratio": 0.9456480796688814
+        },
+        {
+          "task_id": "facebook__docusaurus-10309",
+          "rep": 1,
+          "candidate_seconds": 96.77115362499899,
+          "baseline_seconds": 59.717085333002615,
+          "time_ratio": 1.6204935837938237
+        },
+        {
+          "task_id": "immutable-js__immutable-js-2006",
+          "rep": 1,
+          "candidate_seconds": 55.38138395900023,
+          "baseline_seconds": 63.08645716700266,
+          "time_ratio": 0.8778648611126547
+        },
+        {
+          "task_id": "mrdoob__three.js-25687",
+          "rep": 1,
+          "candidate_seconds": 44.30678204200376,
+          "baseline_seconds": 35.280962666998676,
+          "time_ratio": 1.255826901895954
+        },
+        {
+          "task_id": "mrdoob__three.js-26589",
+          "rep": 1,
+          "candidate_seconds": 20.04692770800466,
+          "baseline_seconds": 49.5321135829945,
+          "time_ratio": 0.4047258688934127
+        },
+        {
+          "task_id": "mrdoob__three.js-27395",
+          "rep": 1,
+          "candidate_seconds": 16.52789254199888,
+          "baseline_seconds": 15.423725249995186,
+          "time_ratio": 1.0715888849228585
+        },
+        {
+          "task_id": "nushell__nushell-12901",
+          "rep": 1,
+          "candidate_seconds": 83.26866508300009,
+          "baseline_seconds": 93.73565108299954,
+          "time_ratio": 0.8883350584429044
+        },
+        {
+          "task_id": "nushell__nushell-12950",
+          "rep": 1,
+          "candidate_seconds": 45.67415925000387,
+          "baseline_seconds": 49.17182758299896,
+          "time_ratio": 0.9288684495793603
+        },
+        {
+          "task_id": "preactjs__preact-3739",
+          "rep": 1,
+          "candidate_seconds": 75.79447299999447,
+          "baseline_seconds": 82.87865712500206,
+          "time_ratio": 0.9145234204950636
+        },
+        {
+          "task_id": "preactjs__preact-4182",
+          "rep": 1,
+          "candidate_seconds": 178.52117362500576,
+          "baseline_seconds": 267.0576530420003,
+          "time_ratio": 0.6684742848276647
+        },
+        {
+          "task_id": "sharkdp__bat-2201",
+          "rep": 1,
+          "candidate_seconds": 82.24732437499915,
+          "baseline_seconds": 102.11236837499746,
+          "time_ratio": 0.8054589829211881
+        },
+        {
+          "task_id": "sharkdp__bat-2260",
+          "rep": 1,
+          "candidate_seconds": 44.63667479200376,
+          "baseline_seconds": 33.45841845800169,
+          "time_ratio": 1.3340939843894133
+        },
+        {
+          "task_id": "tokio-rs__axum-1730",
+          "rep": 1,
+          "candidate_seconds": 68.84958637499949,
+          "baseline_seconds": 48.730322832998354,
+          "time_ratio": 1.4128694901314531
+        },
+        {
+          "task_id": "tokio-rs__axum-734",
+          "rep": 1,
+          "candidate_seconds": 68.76317258299969,
+          "baseline_seconds": 53.08093937499507,
+          "time_ratio": 1.2954400090250113
+        },
+        {
+          "task_id": "tokio-rs__tokio-6603",
+          "rep": 1,
+          "candidate_seconds": 75.1422126250036,
+          "baseline_seconds": 102.91857387500204,
+          "time_ratio": 0.7301132321971956
+        },
+        {
+          "task_id": "tokio-rs__tokio-7139",
+          "rep": 1,
+          "candidate_seconds": 47.230929749995994,
+          "baseline_seconds": 54.11780041699967,
+          "time_ratio": 0.872742967860158
+        },
+        {
+          "task_id": "uutils__coreutils-6575",
+          "rep": 1,
+          "candidate_seconds": 30.82703004200448,
+          "baseline_seconds": 31.253298957999505,
+          "time_ratio": 0.9863608345292484
+        },
+        {
+          "task_id": "uutils__coreutils-6682",
+          "rep": 1,
+          "candidate_seconds": 30.90367929200147,
+          "baseline_seconds": 30.598456750005425,
+          "time_ratio": 1.0099750959497653
+        },
+        {
+          "task_id": "vuejs__core-11899",
+          "rep": 1,
+          "candidate_seconds": 78.0102600829996,
+          "baseline_seconds": 120.28415154200047,
+          "time_ratio": 0.6485497805233318
+        },
+        {
+          "task_id": "vuejs__core-11915",
+          "rep": 1,
+          "candidate_seconds": 65.95354162500007,
+          "baseline_seconds": 65.72878691599908,
+          "time_ratio": 1.0034194257880984
+        }
+      ],
+      "candidate_faster_cases": 18,
+      "median_paired_time_ratio": 0.9342099945807175,
+      "ratio_of_condition_medians": 0.9572156716403768
+    }
+  },
+  "qualitative_review": {
+    "scope": "AI-assisted source-based review, condition names hidden. Not human-certified accuracy or validated repairs.",
+    "counts": {
+      "terminal": {
+        "supported": 27,
+        "mixed": 3,
+        "insufficient": 0
+      },
+      "scout": {
+        "supported": 26,
+        "mixed": 4,
+        "insufficient": 0
+      },
+      "diagnose": {
+        "supported": 26,
+        "mixed": 4,
+        "insufficient": 0
+      }
+    }
+  }
+}

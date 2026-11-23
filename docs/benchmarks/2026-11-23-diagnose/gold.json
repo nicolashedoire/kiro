@@ -1,0 +1,1746 @@
+{
+  "astral-sh__ruff-15356": {
+    "expected_paths": [
+      "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs",
+        "start_line": 534,
+        "end_line": 534,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "references": [
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs",
+        "start_line": 534,
+        "end_line": 534,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "cdec15869dda4c9b8b5ad1c2b822f1f501296414203ef7b10791da626b039b0f",
+    "test_patch_sha256": "1dfd6bc8f0a2b8eb86eaf4bd0c5576c596de034e7a40ffbe91f1385a20d0b7df",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "axios__axios-5892": {
+    "expected_paths": [
+      "lib/adapters/http.js"
+    ],
+    "expected_regions": [
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 474,
+        "end_line": 474,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "references": [
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 474,
+        "end_line": 474,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "ac0d497c471e5b17c9de2c6c86a00f99b1d742aa6eb3ad4e96a97bbf91311d9a",
+    "test_patch_sha256": "6c72b7b060d546b8cb1fe44b75aa49a59e6e182496dd1cb7c9244e17a1117293",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "babel__babel-15445": {
+    "expected_paths": [
+      "packages/babel-generator/src/source-map.ts"
+    ],
+    "expected_regions": [
+      {
+        "path": "packages/babel-generator/src/source-map.ts",
+        "start_line": 61,
+        "end_line": 61,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "references": [
+      {
+        "path": "packages/babel-generator/src/source-map.ts",
+        "start_line": 61,
+        "end_line": 61,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "a1952dd3a06494309e9b25ab63c7ba6052c07ee3f99622ccc2db44ad6a0ed1ea",
+    "test_patch_sha256": "24351f5d2a19b627a365e53baf12fac57239f9127c5537c07f35aee3e699195a",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "burntsushi__ripgrep-2209": {
+    "expected_paths": [
+      "crates/printer/src/util.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "crates/printer/src/util.rs",
+        "start_line": 85,
+        "end_line": 104,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "crates/printer/src/util.rs",
+        "start_line": 458,
+        "end_line": 460,
+        "kind": "insertion_context",
+        "before_old_line": 461
+      }
+    ],
+    "references": [
+      {
+        "path": "crates/printer/src/util.rs",
+        "start_line": 85,
+        "end_line": 104,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "crates/printer/src/util.rs",
+        "before_old_line": 461,
+        "kind": "pure_insertion",
+        "context_start_line": 458,
+        "context_end_line": 460
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "84e86c16481a9eb12fdea679c2faa612d819f529e68a0521e5985178323ac676",
+    "test_patch_sha256": "9ecd17e2c2ff5fb0a8c5a5a7f7fc1b446357b57cf4b6ad2223208affe90f2892",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "facebook__docusaurus-10309": {
+    "expected_paths": [
+      "packages/docusaurus-plugin-content-docs/src/client/docsClientUtils.ts"
+    ],
+    "expected_regions": [
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/client/docsClientUtils.ts",
+        "start_line": 66,
+        "end_line": 73,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "references": [
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/client/docsClientUtils.ts",
+        "start_line": 66,
+        "end_line": 73,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "da25bec7b94557bfeb64f9328fbe963e9c04517d95afd2ba774bdfd2fc3e35f3",
+    "test_patch_sha256": "949a66229ef1474e040f1f69f26870db9755acb8a5b85d058551aac8cbb15381",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "immutable-js__immutable-js-2006": {
+    "expected_paths": [
+      "src/Operations.js"
+    ],
+    "expected_regions": [
+      {
+        "path": "src/Operations.js",
+        "start_line": 411,
+        "end_line": 414,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 417,
+        "end_line": 417,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 418,
+        "end_line": 423,
+        "kind": "insertion_context",
+        "before_old_line": 421
+      }
+    ],
+    "references": [
+      {
+        "path": "src/Operations.js",
+        "start_line": 411,
+        "end_line": 414,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 417,
+        "end_line": 417,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/Operations.js",
+        "before_old_line": 421,
+        "kind": "pure_insertion",
+        "context_start_line": 418,
+        "context_end_line": 423
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "731c25ddabfc2a005c9019171b1245621233bf1b683214fc369ccdb95b65c5c7",
+    "test_patch_sha256": "0c6f4b5562044cea26347594d5945dc5a93c35e96930b5e45a04d47ca6e35bc2",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "mrdoob__three.js-26589": {
+    "expected_paths": [
+      "src/objects/Line.js",
+      "src/objects/Mesh.js",
+      "src/objects/Points.js"
+    ],
+    "expected_regions": [
+      {
+        "path": "src/objects/Line.js",
+        "start_line": 37,
+        "end_line": 37,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/objects/Mesh.js",
+        "start_line": 68,
+        "end_line": 68,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/objects/Points.js",
+        "start_line": 35,
+        "end_line": 35,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "references": [
+      {
+        "path": "src/objects/Line.js",
+        "start_line": 37,
+        "end_line": 37,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/objects/Mesh.js",
+        "start_line": 68,
+        "end_line": 68,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/objects/Points.js",
+        "start_line": 35,
+        "end_line": 35,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "eb3c70aa11e44ebd8da23e0f807b8e2df9bcb2870693ae3b05eb2f3a7e60a71a",
+    "test_patch_sha256": "e44a80bc6adedd0f129f4c2eb92f3f1964219c76f6caff3d623b8bcfbf2770c1",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "nushell__nushell-12950": {
+    "expected_paths": [
+      "crates/nu-command/src/system/run_external.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 315,
+        "end_line": 315,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 643,
+        "end_line": 648,
+        "kind": "insertion_context",
+        "before_old_line": 646
+      }
+    ],
+    "references": [
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 315,
+        "end_line": 315,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "before_old_line": 646,
+        "kind": "pure_insertion",
+        "context_start_line": 643,
+        "context_end_line": 648
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "d5586921112bf8435a759de89073ddfbfcc998a4c1a7a5e3d1ce5160320c64f5",
+    "test_patch_sha256": "b5e0a852dedba2a3d6b502bb8d04d4ba3e800e0e73465acf6565c88aebe30439",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "preactjs__preact-4182": {
+    "expected_paths": [
+      "src/diff/index.js"
+    ],
+    "expected_regions": [
+      {
+        "path": "src/diff/index.js",
+        "start_line": 271,
+        "end_line": 276,
+        "kind": "insertion_context",
+        "before_old_line": 274
+      }
+    ],
+    "references": [
+      {
+        "path": "src/diff/index.js",
+        "before_old_line": 274,
+        "kind": "pure_insertion",
+        "context_start_line": 271,
+        "context_end_line": 276
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "837189e4bb1370bf50a3d08da4d9a828b614b3d34afff8e0e13b6314de12982a",
+    "test_patch_sha256": "c0e73a118ec9bf7b7b396e286cecdb8aa638a899a868b3d75f5c9737bd13eb96",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "sharkdp__bat-2260": {
+    "expected_paths": [
+      "src/syntax_mapping.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "src/syntax_mapping.rs",
+        "start_line": 205,
+        "end_line": 205,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/syntax_mapping.rs",
+        "start_line": 191,
+        "end_line": 196,
+        "kind": "insertion_context",
+        "before_old_line": 194
+      }
+    ],
+    "references": [
+      {
+        "path": "src/syntax_mapping.rs",
+        "start_line": 205,
+        "end_line": 205,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/syntax_mapping.rs",
+        "before_old_line": 194,
+        "kind": "pure_insertion",
+        "context_start_line": 191,
+        "context_end_line": 196
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "2c7ab4304c992a9c0546e987cca025a79c2397e7ccfa9936ad7d34ffea380839",
+    "test_patch_sha256": "693a7b464dc22bd8d1b2850cf4f6485fcc4665f057542ed8b1b41a5c065e318f",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "tokio-rs__axum-734": {
+    "expected_paths": [
+      "axum-extra/src/routing/mod.rs",
+      "axum-extra/src/routing/resource.rs",
+      "axum/src/routing/future.rs",
+      "axum/src/routing/method_routing.rs",
+      "axum/src/routing/mod.rs",
+      "axum/src/routing/route.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "axum-extra/src/routing/mod.rs",
+        "start_line": 39,
+        "end_line": 39,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum-extra/src/routing/resource.rs",
+        "start_line": 57,
+        "end_line": 57,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/future.rs",
+        "start_line": 4,
+        "end_line": 5,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/future.rs",
+        "start_line": 11,
+        "end_line": 15,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/future.rs",
+        "start_line": 20,
+        "end_line": 20,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/future.rs",
+        "start_line": 24,
+        "end_line": 24,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 963,
+        "end_line": 963,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 983,
+        "end_line": 983,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 1017,
+        "end_line": 1023,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 84,
+        "end_line": 84,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 96,
+        "end_line": 96,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 464,
+        "end_line": 464,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 2,
+        "end_line": 2,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 6,
+        "end_line": 6,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 49,
+        "end_line": 49,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 61,
+        "end_line": 61,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 69,
+        "end_line": 72,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 79,
+        "end_line": 79,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 82,
+        "end_line": 83,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 100,
+        "end_line": 100,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 104,
+        "end_line": 127,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 129,
+        "end_line": 130,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 75,
+        "end_line": 80,
+        "kind": "insertion_context",
+        "before_old_line": 78
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 129,
+        "end_line": 134,
+        "kind": "insertion_context",
+        "before_old_line": 132
+      }
+    ],
+    "references": [
+      {
+        "path": "axum-extra/src/routing/mod.rs",
+        "start_line": 39,
+        "end_line": 39,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum-extra/src/routing/resource.rs",
+        "start_line": 57,
+        "end_line": 57,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/future.rs",
+        "start_line": 4,
+        "end_line": 5,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/future.rs",
+        "start_line": 11,
+        "end_line": 15,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/future.rs",
+        "start_line": 20,
+        "end_line": 20,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/future.rs",
+        "start_line": 24,
+        "end_line": 24,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 963,
+        "end_line": 963,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 983,
+        "end_line": 983,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 1017,
+        "end_line": 1023,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 84,
+        "end_line": 84,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 96,
+        "end_line": 96,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 464,
+        "end_line": 464,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 2,
+        "end_line": 2,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 6,
+        "end_line": 6,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 49,
+        "end_line": 49,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 61,
+        "end_line": 61,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 69,
+        "end_line": 72,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 79,
+        "end_line": 79,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 82,
+        "end_line": 83,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 100,
+        "end_line": 100,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 104,
+        "end_line": 127,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 129,
+        "end_line": 130,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "before_old_line": 78,
+        "kind": "pure_insertion",
+        "context_start_line": 75,
+        "context_end_line": 80
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "before_old_line": 132,
+        "kind": "pure_insertion",
+        "context_start_line": 129,
+        "context_end_line": 134
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "a1e64222bf83c1771518d16f72b67a078179f84ada543496fae5bcdadab94696",
+    "test_patch_sha256": "8faae3ed7cb4ede1482af54e025aac30559da9e671d6a22d6b744f4fe254ab57",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "tokio-rs__tokio-6603": {
+    "expected_paths": [
+      "tokio/src/sync/mpsc/block.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "start_line": 171,
+        "end_line": 171,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "start_line": 173,
+        "end_line": 177,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "start_line": 176,
+        "end_line": 181,
+        "kind": "insertion_context",
+        "before_old_line": 179
+      }
+    ],
+    "references": [
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "start_line": 171,
+        "end_line": 171,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "start_line": 173,
+        "end_line": 177,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "before_old_line": 179,
+        "kind": "pure_insertion",
+        "context_start_line": 176,
+        "context_end_line": 181
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "0240ae969fe196554e878c4daf25583055381dfda1592c5199f88466f22fe3ee",
+    "test_patch_sha256": "053404aa185b39dabf0171a28a819db74af0c607879928f64f2bc382cd5c809a",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "uutils__coreutils-6575": {
+    "expected_paths": [
+      "src/uu/cksum/src/cksum.rs",
+      "src/uucore/src/lib/lib.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 8,
+        "end_line": 8,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 21,
+        "end_line": 21,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 119,
+        "end_line": 123,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 125,
+        "end_line": 129,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 131,
+        "end_line": 134,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 136,
+        "end_line": 150,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 154,
+        "end_line": 158,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 161,
+        "end_line": 161,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 212,
+        "end_line": 212,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 237,
+        "end_line": 237,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 301,
+        "end_line": 301,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 340,
+        "end_line": 340,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 477,
+        "end_line": 478,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 483,
+        "end_line": 484,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 489,
+        "end_line": 490,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 495,
+        "end_line": 496,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 501,
+        "end_line": 502,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 507,
+        "end_line": 508,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 513,
+        "end_line": 514,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 519,
+        "end_line": 520,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 525,
+        "end_line": 526,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 4,
+        "end_line": 9,
+        "kind": "insertion_context",
+        "before_old_line": 7
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 161,
+        "end_line": 166,
+        "kind": "insertion_context",
+        "before_old_line": 164
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 162,
+        "end_line": 167,
+        "kind": "insertion_context",
+        "before_old_line": 165
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 356,
+        "end_line": 361,
+        "kind": "insertion_context",
+        "before_old_line": 359
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 469,
+        "end_line": 474,
+        "kind": "insertion_context",
+        "before_old_line": 472
+      },
+      {
+        "path": "src/uucore/src/lib/lib.rs",
+        "start_line": 225,
+        "end_line": 227,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "references": [
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 8,
+        "end_line": 8,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 21,
+        "end_line": 21,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 119,
+        "end_line": 123,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 125,
+        "end_line": 129,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 131,
+        "end_line": 134,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 136,
+        "end_line": 150,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 154,
+        "end_line": 158,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 161,
+        "end_line": 161,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 212,
+        "end_line": 212,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 237,
+        "end_line": 237,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 301,
+        "end_line": 301,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 340,
+        "end_line": 340,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 477,
+        "end_line": 478,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 483,
+        "end_line": 484,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 489,
+        "end_line": 490,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 495,
+        "end_line": 496,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 501,
+        "end_line": 502,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 507,
+        "end_line": 508,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 513,
+        "end_line": 514,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 519,
+        "end_line": 520,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 525,
+        "end_line": 526,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "before_old_line": 7,
+        "kind": "pure_insertion",
+        "context_start_line": 4,
+        "context_end_line": 9
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "before_old_line": 164,
+        "kind": "pure_insertion",
+        "context_start_line": 161,
+        "context_end_line": 166
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "before_old_line": 165,
+        "kind": "pure_insertion",
+        "context_start_line": 162,
+        "context_end_line": 167
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "before_old_line": 359,
+        "kind": "pure_insertion",
+        "context_start_line": 356,
+        "context_end_line": 361
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "before_old_line": 472,
+        "kind": "pure_insertion",
+        "context_start_line": 469,
+        "context_end_line": 474
+      },
+      {
+        "path": "src/uucore/src/lib/lib.rs",
+        "start_line": 225,
+        "end_line": 227,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "682f50bcf1c45936f98db88fd5471aa80a7752343eb07714e25c477d0d892e67",
+    "test_patch_sha256": "9d12d4761cabf4ddf09df610f3b0971d31a086b9035467309c1841c79e967d44",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "vuejs__core-11915": {
+    "expected_paths": [
+      "packages/compiler-core/src/tokenizer.ts"
+    ],
+    "expected_regions": [
+      {
+        "path": "packages/compiler-core/src/tokenizer.ts",
+        "start_line": 441,
+        "end_line": 441,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "references": [
+      {
+        "path": "packages/compiler-core/src/tokenizer.ts",
+        "start_line": 441,
+        "end_line": 441,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "dcb17697aa647e8de7f988f6a74099735d17eace102f1c81f33bce4ea962a404",
+    "test_patch_sha256": "cf97e4c1e5584aa293be7f3ddf89b9d8a0883916dd0557d26532daa826591c59",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "astral-sh__ruff-15443": {
+    "expected_paths": [
+      "crates/ruff_linter/src/rules/flake8_bandit/rules/exec_used.rs",
+      "crates/ruff_linter/src/rules/flake8_use_pathlib/rules/replaceable_by_pathlib.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "crates/ruff_linter/src/rules/flake8_bandit/rules/exec_used.rs",
+        "start_line": 36,
+        "end_line": 40,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/flake8_use_pathlib/rules/replaceable_by_pathlib.rs",
+        "start_line": 100,
+        "end_line": 101,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "references": [
+      {
+        "path": "crates/ruff_linter/src/rules/flake8_bandit/rules/exec_used.rs",
+        "start_line": 36,
+        "end_line": 40,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/flake8_use_pathlib/rules/replaceable_by_pathlib.rs",
+        "start_line": 100,
+        "end_line": 101,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "dc459412fa495e97f991297e5d7bf1378f88ca08bf4ed18a2efb5d2d0bef0dcc",
+    "test_patch_sha256": "38c5ae06b5108ced42dc54a669f66cb40290d5ad620dd061c6bf1f846bdd08da",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "axios__axios-4731": {
+    "expected_paths": [
+      "lib/adapters/http.js"
+    ],
+    "expected_regions": [
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 279,
+        "end_line": 284,
+        "kind": "insertion_context",
+        "before_old_line": 282
+      }
+    ],
+    "references": [
+      {
+        "path": "lib/adapters/http.js",
+        "before_old_line": 282,
+        "kind": "pure_insertion",
+        "context_start_line": 279,
+        "context_end_line": 284
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "ca9ac370c952f244d1bc2e90cc0a7c39b135a5df95c27e130f52a3fcfb699358",
+    "test_patch_sha256": "9a8354888cef0fe7165c6ecd408d7f8c77e08c06319351f45364cb009a22a287",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "babel__babel-15649": {
+    "expected_paths": [
+      "packages/babel-traverse/src/scope/lib/renamer.ts"
+    ],
+    "expected_regions": [
+      {
+        "path": "packages/babel-traverse/src/scope/lib/renamer.ts",
+        "start_line": 5,
+        "end_line": 10,
+        "kind": "insertion_context",
+        "before_old_line": 8
+      },
+      {
+        "path": "packages/babel-traverse/src/scope/lib/renamer.ts",
+        "start_line": 27,
+        "end_line": 32,
+        "kind": "insertion_context",
+        "before_old_line": 30
+      }
+    ],
+    "references": [
+      {
+        "path": "packages/babel-traverse/src/scope/lib/renamer.ts",
+        "before_old_line": 8,
+        "kind": "pure_insertion",
+        "context_start_line": 5,
+        "context_end_line": 10
+      },
+      {
+        "path": "packages/babel-traverse/src/scope/lib/renamer.ts",
+        "before_old_line": 30,
+        "kind": "pure_insertion",
+        "context_start_line": 27,
+        "context_end_line": 32
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "e39c5e5d71f9f3fd0ecf40ae8c5879ca5ef3b8a00699c3cf3d115eb020cd4cb8",
+    "test_patch_sha256": "62554105a598ca7e82ea00b853859082e329fdcc14668eedc689cb4eb359bb9a",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "facebook__docusaurus-10130": {
+    "expected_paths": [
+      "packages/docusaurus/src/server/brokenLinks.ts"
+    ],
+    "expected_regions": [
+      {
+        "path": "packages/docusaurus/src/server/brokenLinks.ts",
+        "start_line": 128,
+        "end_line": 128,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "references": [
+      {
+        "path": "packages/docusaurus/src/server/brokenLinks.ts",
+        "start_line": 128,
+        "end_line": 128,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "879649a018ee336a94884ee2a7d6e0330aade37da33c6d5a776fafab24aff106",
+    "test_patch_sha256": "3b5563b167b3c5b21e18ea2b685d2ea06fe5508cb6ff7d7fbc66ea9b851e353f",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "mrdoob__three.js-25687": {
+    "expected_paths": [
+      "src/core/Object3D.js",
+      "src/loaders/ObjectLoader.js"
+    ],
+    "expected_regions": [
+      {
+        "path": "src/core/Object3D.js",
+        "start_line": 718,
+        "end_line": 723,
+        "kind": "insertion_context",
+        "before_old_line": 721
+      },
+      {
+        "path": "src/loaders/ObjectLoader.js",
+        "start_line": 963,
+        "end_line": 968,
+        "kind": "insertion_context",
+        "before_old_line": 966
+      }
+    ],
+    "references": [
+      {
+        "path": "src/core/Object3D.js",
+        "before_old_line": 721,
+        "kind": "pure_insertion",
+        "context_start_line": 718,
+        "context_end_line": 723
+      },
+      {
+        "path": "src/loaders/ObjectLoader.js",
+        "before_old_line": 966,
+        "kind": "pure_insertion",
+        "context_start_line": 963,
+        "context_end_line": 968
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "e86a9d9bfb47a5835b1a7a2c08b997d9c2fc3182f14d5b61e4cf1bd88dfd1e98",
+    "test_patch_sha256": "d6e99bbec01309cf5df0ab2c9e953ebafc66cc6f0a8ff6014f5f62d01ea4109e",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "nushell__nushell-12901": {
+    "expected_paths": [
+      "crates/nu-command/src/system/run_external.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 530,
+        "end_line": 535,
+        "kind": "insertion_context",
+        "before_old_line": 533
+      },
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 537,
+        "end_line": 542,
+        "kind": "insertion_context",
+        "before_old_line": 540
+      }
+    ],
+    "references": [
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "before_old_line": 533,
+        "kind": "pure_insertion",
+        "context_start_line": 530,
+        "context_end_line": 535
+      },
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "before_old_line": 540,
+        "kind": "pure_insertion",
+        "context_start_line": 537,
+        "context_end_line": 542
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "84ee5215e2a1f6d4d12fe69beadf6496705fe7612f4daeb4fe34af68397a30bf",
+    "test_patch_sha256": "d53b802741875eca1c5972d7405c3b95d1deae77227ce6873885205147399d98",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "preactjs__preact-3739": {
+    "expected_paths": [
+      "hooks/src/index.js"
+    ],
+    "expected_regions": [
+      {
+        "path": "hooks/src/index.js",
+        "start_line": 236,
+        "end_line": 236,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "references": [
+      {
+        "path": "hooks/src/index.js",
+        "start_line": 236,
+        "end_line": 236,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "820bfb268563ce4a6e0ccc1be4a8ba766795ce26104a4db22b4359af21feaa97",
+    "test_patch_sha256": "bbb8872cdaf9dbf2ccb1fb2f233236a5f0ef7304c75bd8fe09641d062aa2b25b",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "sharkdp__bat-2201": {
+    "expected_paths": [
+      "src/bin/bat/clap_app.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "src/bin/bat/clap_app.rs",
+        "start_line": 293,
+        "end_line": 298,
+        "kind": "insertion_context",
+        "before_old_line": 296
+      }
+    ],
+    "references": [
+      {
+        "path": "src/bin/bat/clap_app.rs",
+        "before_old_line": 296,
+        "kind": "pure_insertion",
+        "context_start_line": 293,
+        "context_end_line": 298
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "c4f2fe39592457c3d14ff5443f3843b9b807996246e908545935fde7765aa3f4",
+    "test_patch_sha256": "511dd98303f462b5122a8fb06c368f76f9fc9828f720012d1d4940c42a03ffbc",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "tokio-rs__axum-1730": {
+    "expected_paths": [
+      "axum/src/routing/future.rs",
+      "axum/src/routing/method_routing.rs",
+      "axum/src/routing/route.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "axum/src/routing/future.rs",
+        "start_line": 3,
+        "end_line": 3,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 3,
+        "end_line": 3,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 1267,
+        "end_line": 1272,
+        "kind": "insertion_context",
+        "before_old_line": 1270
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 228,
+        "end_line": 233,
+        "kind": "insertion_context",
+        "before_old_line": 231
+      }
+    ],
+    "references": [
+      {
+        "path": "axum/src/routing/future.rs",
+        "start_line": 3,
+        "end_line": 3,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 3,
+        "end_line": 3,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "before_old_line": 1270,
+        "kind": "pure_insertion",
+        "context_start_line": 1267,
+        "context_end_line": 1272
+      },
+      {
+        "path": "axum/src/routing/route.rs",
+        "before_old_line": 231,
+        "kind": "pure_insertion",
+        "context_start_line": 228,
+        "context_end_line": 233
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "dd449a4e6d1f0e313e9951d55f3744adbba8769eaa006fee75204bd12c23fe39",
+    "test_patch_sha256": "2123d0ac0ffee551904a1f4a10619257d1bad90162361664d0ba2ed0fff5dedb",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "tokio-rs__tokio-7139": {
+    "expected_paths": [
+      "tokio/src/fs/file.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "tokio/src/fs/file.rs",
+        "start_line": 598,
+        "end_line": 598,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "tokio/src/fs/file.rs",
+        "start_line": 587,
+        "end_line": 592,
+        "kind": "insertion_context",
+        "before_old_line": 590
+      }
+    ],
+    "references": [
+      {
+        "path": "tokio/src/fs/file.rs",
+        "start_line": 598,
+        "end_line": 598,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "tokio/src/fs/file.rs",
+        "before_old_line": 590,
+        "kind": "pure_insertion",
+        "context_start_line": 587,
+        "context_end_line": 592
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "e30d4bb246d2052785208a4af3de50cf8b4e0e65bfc3353544b0a2942e99e182",
+    "test_patch_sha256": "27d3966786cc7f60625e6fec1f920702f84f44ddcc97f08e61c6377216fc1165",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "uutils__coreutils-6682": {
+    "expected_paths": [
+      "src/uu/mkdir/src/mkdir.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 168,
+        "end_line": 169,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 191,
+        "end_line": 191,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 199,
+        "end_line": 199,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 204,
+        "end_line": 204,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 225,
+        "end_line": 225,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 227,
+        "end_line": 227,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 186,
+        "end_line": 191,
+        "kind": "insertion_context",
+        "before_old_line": 189
+      }
+    ],
+    "references": [
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 168,
+        "end_line": 169,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 191,
+        "end_line": 191,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 199,
+        "end_line": 199,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 204,
+        "end_line": 204,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 225,
+        "end_line": 225,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 227,
+        "end_line": 227,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "before_old_line": 189,
+        "kind": "pure_insertion",
+        "context_start_line": 186,
+        "context_end_line": 191
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "bb9d1dd61db88f1142735f95256c7f317c4afe9e3d67b9c20e81011517e3571c",
+    "test_patch_sha256": "35ccc2a833601fc0f8e1e577d7bfbf00f582d82045d630d30e4e0f248e490b37",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "vuejs__core-11899": {
+    "expected_paths": [
+      "packages/compiler-sfc/src/style/pluginScoped.ts"
+    ],
+    "expected_regions": [
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 236,
+        "end_line": 239,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 241,
+        "end_line": 245,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 286,
+        "end_line": 290,
+        "kind": "insertion_context",
+        "before_old_line": 289
+      }
+    ],
+    "references": [
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 236,
+        "end_line": 239,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 241,
+        "end_line": 245,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "before_old_line": 289,
+        "kind": "pure_insertion",
+        "context_start_line": 286,
+        "context_end_line": 290
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "9688db059b10e341564020d85e16b77399bbe32e536ec534be2009a06b339c9e",
+    "test_patch_sha256": "45d946bb1a83e0277a1eb1b2d0fb52c6f96d3ad313a98a07786ae2b667f69f96",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "astral-sh__ruff-15543": {
+    "expected_paths": [
+      "crates/ruff_linter/src/rules/pyupgrade/rules/yield_in_for_loop.rs"
+    ],
+    "expected_regions": [
+      {
+        "path": "crates/ruff_linter/src/rules/pyupgrade/rules/yield_in_for_loop.rs",
+        "start_line": 126,
+        "end_line": 126,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pyupgrade/rules/yield_in_for_loop.rs",
+        "start_line": 114,
+        "end_line": 119,
+        "kind": "insertion_context",
+        "before_old_line": 117
+      }
+    ],
+    "references": [
+      {
+        "path": "crates/ruff_linter/src/rules/pyupgrade/rules/yield_in_for_loop.rs",
+        "start_line": 126,
+        "end_line": 126,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pyupgrade/rules/yield_in_for_loop.rs",
+        "before_old_line": 117,
+        "kind": "pure_insertion",
+        "context_start_line": 114,
+        "context_end_line": 119
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "8885bc329f2e0ec5d43bccb8f1c32fa6a104b646d4df2a473d52dcf907157cb6",
+    "test_patch_sha256": "b5011d6aeb7eb28cf5cfd06931c7c08ec11b7f3c3312cf4e5dbf2accec9eb6a7",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "axios__axios-6539": {
+    "expected_paths": [
+      "lib/helpers/isAbsoluteURL.js"
+    ],
+    "expected_regions": [
+      {
+        "path": "lib/helpers/isAbsoluteURL.js",
+        "start_line": 11,
+        "end_line": 11,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "lib/helpers/isAbsoluteURL.js",
+        "start_line": 14,
+        "end_line": 14,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "references": [
+      {
+        "path": "lib/helpers/isAbsoluteURL.js",
+        "start_line": 11,
+        "end_line": 11,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "lib/helpers/isAbsoluteURL.js",
+        "start_line": 14,
+        "end_line": 14,
+        "kind": "changed_old_lines"
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "3aef7e530acb12d956ba8568908b9c11ef0c21746c6ca1ef8417765c6af154dd",
+    "test_patch_sha256": "2155dba45c9b303ac42ae9947dc4e0a5360ecf3292e36a752b5a155059de8e85",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "babel__babel-13928": {
+    "expected_paths": [
+      "packages/babel-parser/src/parser/expression.js"
+    ],
+    "expected_regions": [
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2447,
+        "end_line": 2447,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2447,
+        "end_line": 2452,
+        "kind": "insertion_context",
+        "before_old_line": 2450
+      }
+    ],
+    "references": [
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2447,
+        "end_line": 2447,
+        "kind": "changed_old_lines"
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "before_old_line": 2450,
+        "kind": "pure_insertion",
+        "context_start_line": 2447,
+        "context_end_line": 2452
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "a7335b211a16cc03a441492bf021659f8644e11829dcb3e1252bbc932b2dd1c5",
+    "test_patch_sha256": "6392b22be43ebd725fa04d4418dfa9499b9f3704b347358a37265d22b28c2039",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  },
+  "mrdoob__three.js-27395": {
+    "expected_paths": [
+      "src/math/Sphere.js"
+    ],
+    "expected_regions": [
+      {
+        "path": "src/math/Sphere.js",
+        "start_line": 9,
+        "end_line": 14,
+        "kind": "insertion_context",
+        "before_old_line": 12
+      }
+    ],
+    "references": [
+      {
+        "path": "src/math/Sphere.js",
+        "before_old_line": 12,
+        "kind": "pure_insertion",
+        "context_start_line": 9,
+        "context_end_line": 14
+      }
+    ],
+    "new_production_files_without_preimage": [],
+    "patch_sha256": "4ed2fbb118215e13f9e8e7249f73939968da8a8ee0412c745ee9b317638a7775",
+    "test_patch_sha256": "068d5f81c9c93256a64226d54f4b01768e65b99c17a159524af05f378217082e",
+    "reference_scope": "Production files and old lines changed by the benchmark reference patch. A proxy for relevant locations, not exhaustive causal ground truth or a correctness certificate."
+  }
+}

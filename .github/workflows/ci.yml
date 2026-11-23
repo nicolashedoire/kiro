@@ -19,6 +19,10 @@ jobs:
         run: cargo fmt --check
       - name: Lint
         run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Benchmark helper checks (no model calls)
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python3 docs/benchmarks/2026-11-23-diagnose/verify_helpers.py
       - name: Test
         # Scout's wall-clock resource bounds also apply in tests. Avoid parallel
         # Git process startup contention on shared runners; keep all assertions.

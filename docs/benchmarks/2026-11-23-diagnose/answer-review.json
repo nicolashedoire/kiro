@@ -1,0 +1,3350 @@
+[
+  {
+    "case_id": "astral-sh__ruff-15356",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs",
+        "start_line": 487,
+        "end_line": 503,
+        "note": "A logical line starting with type initializes InTypeAlias with the default type-parameter state."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs",
+        "start_line": 526,
+        "end_line": 561,
+        "note": "No Equal arm ends the before-type-parameters state. Annotated[ on the right-hand side can therefore enter InTypeParams, which nested Field parentheses do not terminate."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/whitespace_around_named_parameter_equals.rs",
+        "start_line": 97,
+        "end_line": 103,
+        "note": "Every visited token is fed to the definition-state machine before the rule matches it, including the assignment equals."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/whitespace_around_named_parameter_equals.rs",
+        "start_line": 122,
+        "end_line": 156,
+        "note": "When in_type_params is true, the rule independently emits E252 for missing space before and after the same equals token. Both diagnostics use token.range."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs",
+        "start_line": 565,
+        "end_line": 579,
+        "note": "BeforeTypeParams is the default; TypeParamsEnded already exists. The defect is the missing transition, not an absence of a representable ended state."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The wrong type-parameter state and the two same-range diagnostics are supported directly. No full lexer/logical-line execution or repair validation was performed. The supplied report is consistent with the logical-line state persisting through the bracketed alias value.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "astral-sh__ruff-15356",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs",
+        "start_line": 487,
+        "end_line": 503,
+        "note": "A logical line starting with type initializes InTypeAlias with the default type-parameter state."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs",
+        "start_line": 526,
+        "end_line": 561,
+        "note": "No Equal arm ends the before-type-parameters state. Annotated[ on the right-hand side can therefore enter InTypeParams, which nested Field parentheses do not terminate."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/whitespace_around_named_parameter_equals.rs",
+        "start_line": 97,
+        "end_line": 103,
+        "note": "Every visited token is fed to the definition-state machine before the rule matches it, including the assignment equals."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/whitespace_around_named_parameter_equals.rs",
+        "start_line": 122,
+        "end_line": 156,
+        "note": "When in_type_params is true, the rule independently emits E252 for missing space before and after the same equals token. Both diagnostics use token.range."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs",
+        "start_line": 565,
+        "end_line": 579,
+        "note": "BeforeTypeParams is the default; TypeParamsEnded already exists. The defect is the missing transition, not an absence of a representable ended state."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The wrong type-parameter state and the two same-range diagnostics are supported directly. No full lexer/logical-line execution or repair validation was performed. In C, saying no state represents the end is imprecise: TypeParamsEnded exists, but the assignment does not transition to it. Its proposed alternative involving two logical lines is speculative and unnecessary to the supported main explanation.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "astral-sh__ruff-15356",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs",
+        "start_line": 487,
+        "end_line": 503,
+        "note": "A logical line starting with type initializes InTypeAlias with the default type-parameter state."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs",
+        "start_line": 526,
+        "end_line": 561,
+        "note": "No Equal arm ends the before-type-parameters state. Annotated[ on the right-hand side can therefore enter InTypeParams, which nested Field parentheses do not terminate."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/whitespace_around_named_parameter_equals.rs",
+        "start_line": 97,
+        "end_line": 103,
+        "note": "Every visited token is fed to the definition-state machine before the rule matches it, including the assignment equals."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/whitespace_around_named_parameter_equals.rs",
+        "start_line": 122,
+        "end_line": 156,
+        "note": "When in_type_params is true, the rule independently emits E252 for missing space before and after the same equals token. Both diagnostics use token.range."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/pycodestyle/rules/logical_lines/mod.rs",
+        "start_line": 565,
+        "end_line": 579,
+        "note": "BeforeTypeParams is the default; TypeParamsEnded already exists. The defect is the missing transition, not an absence of a representable ended state."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The wrong type-parameter state and the two same-range diagnostics are supported directly. No full lexer/logical-line execution or repair validation was performed. The supplied report is consistent with the logical-line state persisting through the bracketed alias value.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "astral-sh__ruff-15443",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/ruff_linter/src/rules/flake8_bandit/rules/exec_used.rs",
+        "start_line": 35,
+        "end_line": 45,
+        "note": "The qualified-name predicate literally matches empty-prefix or singular builtin followed by exec, omitting builtins."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/flake8_use_pathlib/rules/replaceable_by_pathlib.rs",
+        "start_line": 99,
+        "end_line": 119,
+        "note": "The open call arm uses the same singular builtin spelling; later argument guards do not repair the mismatched module prefix."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The typo in both named rules and the resulting prefix mismatch are directly supported. The cited sibling conventions are consistent, but no exhaustive claim about every rule or repair validation is certified; no project execution.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "astral-sh__ruff-15443",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/ruff_linter/src/rules/flake8_bandit/rules/exec_used.rs",
+        "start_line": 35,
+        "end_line": 45,
+        "note": "The qualified-name predicate literally matches empty-prefix or singular builtin followed by exec, omitting builtins."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/flake8_use_pathlib/rules/replaceable_by_pathlib.rs",
+        "start_line": 99,
+        "end_line": 119,
+        "note": "The open call arm uses the same singular builtin spelling; later argument guards do not repair the mismatched module prefix."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The typo in both named rules and the resulting prefix mismatch are directly supported. The cited sibling conventions are consistent, but no exhaustive claim about every rule or repair validation is certified; no project execution.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "astral-sh__ruff-15443",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/ruff_linter/src/rules/flake8_bandit/rules/exec_used.rs",
+        "start_line": 35,
+        "end_line": 45,
+        "note": "The qualified-name predicate literally matches empty-prefix or singular builtin followed by exec, omitting builtins."
+      },
+      {
+        "path": "crates/ruff_linter/src/rules/flake8_use_pathlib/rules/replaceable_by_pathlib.rs",
+        "start_line": 99,
+        "end_line": 119,
+        "note": "The open call arm uses the same singular builtin spelling; later argument guards do not repair the mismatched module prefix."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The typo in both named rules and the resulting prefix mismatch are directly supported. The cited sibling conventions are consistent, but no exhaustive claim about every rule or repair validation is certified; no project execution.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "astral-sh__ruff-15543",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/ruff_linter/src/rules/pyupgrade/rules/yield_in_for_loop.rs",
+        "start_line": 116,
+        "end_line": 131,
+        "note": "The iterable source is selected with parenthesized_range fallback to iter.range, then interpolated directly into yield from. There is no tuple wrapping before setting the replacement fix."
+      },
+      {
+        "path": "crates/ruff_python_ast/src/parenthesize.rs",
+        "start_line": 58,
+        "end_line": 67,
+        "note": "The helper documents and implements returning no range when surrounding parentheses are absent."
+      },
+      {
+        "path": "crates/ruff_python_ast/src/nodes.rs",
+        "start_line": 2861,
+        "end_line": 2870,
+        "note": "ExprTuple exposes a parenthesized flag, consistent with C; the fixer does not consult it."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The raw-slice fallback and direct yield-from interpolation are supported and explain the supplied invalid-fix report. Exact AST byte ranges and Python syntax validation were not executed here. The tuple flag exists, but no proposed repair was implemented or validated.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "astral-sh__ruff-15543",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/ruff_linter/src/rules/pyupgrade/rules/yield_in_for_loop.rs",
+        "start_line": 116,
+        "end_line": 131,
+        "note": "The iterable source is selected with parenthesized_range fallback to iter.range, then interpolated directly into yield from. There is no tuple wrapping before setting the replacement fix."
+      },
+      {
+        "path": "crates/ruff_python_ast/src/parenthesize.rs",
+        "start_line": 58,
+        "end_line": 67,
+        "note": "The helper documents and implements returning no range when surrounding parentheses are absent."
+      },
+      {
+        "path": "crates/ruff_python_ast/src/nodes.rs",
+        "start_line": 2861,
+        "end_line": 2870,
+        "note": "ExprTuple exposes a parenthesized flag, consistent with C; the fixer does not consult it."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The raw-slice fallback and direct yield-from interpolation are supported and explain the supplied invalid-fix report. Exact AST byte ranges and Python syntax validation were not executed here. The tuple flag exists, but no proposed repair was implemented or validated.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "astral-sh__ruff-15543",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/ruff_linter/src/rules/pyupgrade/rules/yield_in_for_loop.rs",
+        "start_line": 116,
+        "end_line": 131,
+        "note": "The iterable source is selected with parenthesized_range fallback to iter.range, then interpolated directly into yield from. There is no tuple wrapping before setting the replacement fix."
+      },
+      {
+        "path": "crates/ruff_python_ast/src/parenthesize.rs",
+        "start_line": 58,
+        "end_line": 67,
+        "note": "The helper documents and implements returning no range when surrounding parentheses are absent."
+      },
+      {
+        "path": "crates/ruff_python_ast/src/nodes.rs",
+        "start_line": 2861,
+        "end_line": 2870,
+        "note": "ExprTuple exposes a parenthesized flag, consistent with C; the fixer does not consult it."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The raw-slice fallback and direct yield-from interpolation are supported and explain the supplied invalid-fix report. Exact AST byte ranges and Python syntax validation were not executed here. The tuple flag exists, but no proposed repair was implemented or validated.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "axios__axios-4731",
+    "answer_id": "B",
+    "label": "mixed",
+    "evidence": [
+      {
+        "path": "lib/defaults/index.js",
+        "start_line": 136,
+        "end_line": 137,
+        "note": "The configured body limit defaults to -1."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 183,
+        "end_line": 207,
+        "note": "The early data.length rejection applies to non-stream bodies and only when maxBodyLength > -1."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 263,
+        "end_line": 289,
+        "note": "With no custom transport, maxRedirects===0 selects native HTTP; otherwise follow-redirects is used. options.maxBodyLength is assigned only when the configuration is greater than -1."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 447,
+        "end_line": 454,
+        "note": "Streams are piped into the already-created request; non-stream data is sent with req.end. The same request options construction precedes both paths."
+      }
+    ],
+    "material_issues": [
+      "The uncertainty section says streams hit the follow-redirects limit regardless of maxBodyLength. The options.maxBodyLength assignment at lines280-282 is independent of body type and forwards positive limits or Infinity for streams too; only the adapter early data.length check excludes streams. The blanket claim conflicts with the answer own correct Infinity explanation."
+    ],
+    "uncertainty": "The central diagnosis for the reported non-stream -1/default case is supported. The exact dependency default is from the issue, not independently inspectable here; external changelog/PR assertions were not verified. No execution or repair validation.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "axios__axios-4731",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "lib/defaults/index.js",
+        "start_line": 136,
+        "end_line": 137,
+        "note": "The configured body limit defaults to -1."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 183,
+        "end_line": 207,
+        "note": "The early data.length rejection applies to non-stream bodies and only when maxBodyLength > -1."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 263,
+        "end_line": 289,
+        "note": "With no custom transport, maxRedirects===0 selects native HTTP; otherwise follow-redirects is used. options.maxBodyLength is assigned only when the configuration is greater than -1."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 447,
+        "end_line": 454,
+        "note": "Streams are piped into the already-created request; non-stream data is sent with req.end. The same request options construction precedes both paths."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The omission of the -1 option and the transport difference are supported. The dependency implementation and its exact 10MB default are absent from the projection; that number is supplied by the issue. No execution or proposed repair validation.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "axios__axios-4731",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "lib/defaults/index.js",
+        "start_line": 136,
+        "end_line": 137,
+        "note": "The configured body limit defaults to -1."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 183,
+        "end_line": 207,
+        "note": "The early data.length rejection applies to non-stream bodies and only when maxBodyLength > -1."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 263,
+        "end_line": 289,
+        "note": "With no custom transport, maxRedirects===0 selects native HTTP; otherwise follow-redirects is used. options.maxBodyLength is assigned only when the configuration is greater than -1."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 447,
+        "end_line": 454,
+        "note": "Streams are piped into the already-created request; non-stream data is sent with req.end. The same request options construction precedes both paths."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The central -1/default explanation and Infinity comparison are supported. The closing stream caveat is imprecise: there is no early stream-length check, but limit option forwarding still applies to both stream and non-stream requests. In the specifically qualified -1 case it is indeed omitted. The exact dependency default is reported, not locally verified. No execution or repair validation.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "axios__axios-5892",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 467,
+        "end_line": 485,
+        "note": "When decompression is enabled and the header value is truthy, switch uses the raw content-encoding value. Lowercase gzip aliases add an unzip stream; there is no lowercase normalization."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 486,
+        "end_line": 503,
+        "note": "The remaining lowercased deflate/br cases do not match GZIP either, so no decompression stream is added for that value."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 559,
+        "end_line": 568,
+        "note": "The non-stream response path may convert the undecompressed buffer into a string depending on responseType; the core problem is skipped decompression rather than a guaranteed bytes return type."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The raw-value switch and skipped decompression for uppercase GZIP are directly supported and match the report. Claims about external HTTP/Node documentation are not independently verified here; header names being insensitive does not imply every header value is. Raw compressed payload may later become a string depending on responseType. No project execution or repair validation.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "axios__axios-5892",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 467,
+        "end_line": 485,
+        "note": "When decompression is enabled and the header value is truthy, switch uses the raw content-encoding value. Lowercase gzip aliases add an unzip stream; there is no lowercase normalization."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 486,
+        "end_line": 503,
+        "note": "The remaining lowercased deflate/br cases do not match GZIP either, so no decompression stream is added for that value."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 559,
+        "end_line": 568,
+        "note": "The non-stream response path may convert the undecompressed buffer into a string depending on responseType; the core problem is skipped decompression rather than a guaranteed bytes return type."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The raw-value switch and skipped decompression for uppercase GZIP are directly supported and match the report. Claims about external HTTP/Node documentation are not independently verified here; header names being insensitive does not imply every header value is. Raw compressed payload may later become a string depending on responseType. No project execution or repair validation.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "axios__axios-5892",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 467,
+        "end_line": 485,
+        "note": "When decompression is enabled and the header value is truthy, switch uses the raw content-encoding value. Lowercase gzip aliases add an unzip stream; there is no lowercase normalization."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 486,
+        "end_line": 503,
+        "note": "The remaining lowercased deflate/br cases do not match GZIP either, so no decompression stream is added for that value."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 559,
+        "end_line": 568,
+        "note": "The non-stream response path may convert the undecompressed buffer into a string depending on responseType; the core problem is skipped decompression rather than a guaranteed bytes return type."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The raw-value switch and skipped decompression for uppercase GZIP are directly supported and match the report. Claims about external HTTP/Node documentation are not independently verified here; header names being insensitive does not imply every header value is. Raw compressed payload may later become a string depending on responseType. No project execution or repair validation.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "axios__axios-6539",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "lib/helpers/isAbsoluteURL.js",
+        "start_line": 10,
+        "end_line": 14,
+        "note": "The optional scheme group makes strings beginning // count as absolute."
+      },
+      {
+        "path": "lib/core/buildFullPath.js",
+        "start_line": 16,
+        "end_line": 21,
+        "note": "When isAbsoluteURL is true, requestedURL is returned unchanged; configured baseURL is not combined."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 230,
+        "end_line": 234,
+        "note": "The unchanged fullPath is parsed with the fallback base http://localhost, which supplies the protocol for an authority-relative URL as described by the report."
+      },
+      {
+        "path": "lib/helpers/combineURLs.js",
+        "start_line": 11,
+        "end_line": 15,
+        "note": "The unused combination branch strips leading slashes and appends the remaining path to baseURL; it is skipped for //host in the actual code."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The main classification→baseURL bypass→two-argument URL construction chain is supported by source and the supplied reproduction. The URL constructor behavior is not runtime-tested here. General repair safety, other adapters, all URL encodings and claims of a baseURL security restriction are not certified; baseURL is not itself implemented as a host allowlist.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "axios__axios-6539",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "lib/helpers/isAbsoluteURL.js",
+        "start_line": 10,
+        "end_line": 14,
+        "note": "The optional scheme group makes strings beginning // count as absolute."
+      },
+      {
+        "path": "lib/core/buildFullPath.js",
+        "start_line": 16,
+        "end_line": 21,
+        "note": "When isAbsoluteURL is true, requestedURL is returned unchanged; configured baseURL is not combined."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 230,
+        "end_line": 234,
+        "note": "The unchanged fullPath is parsed with the fallback base http://localhost, which supplies the protocol for an authority-relative URL as described by the report."
+      },
+      {
+        "path": "lib/helpers/combineURLs.js",
+        "start_line": 11,
+        "end_line": 15,
+        "note": "The unused combination branch strips leading slashes and appends the remaining path to baseURL; it is skipped for //host in the actual code."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The main classification→baseURL bypass→two-argument URL construction chain is supported by source and the supplied reproduction. The URL constructor behavior is not runtime-tested here. General repair safety, other adapters, all URL encodings and claims of a baseURL security restriction are not certified; baseURL is not itself implemented as a host allowlist.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "axios__axios-6539",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "lib/helpers/isAbsoluteURL.js",
+        "start_line": 10,
+        "end_line": 14,
+        "note": "The optional scheme group makes strings beginning // count as absolute."
+      },
+      {
+        "path": "lib/core/buildFullPath.js",
+        "start_line": 16,
+        "end_line": 21,
+        "note": "When isAbsoluteURL is true, requestedURL is returned unchanged; configured baseURL is not combined."
+      },
+      {
+        "path": "lib/adapters/http.js",
+        "start_line": 230,
+        "end_line": 234,
+        "note": "The unchanged fullPath is parsed with the fallback base http://localhost, which supplies the protocol for an authority-relative URL as described by the report."
+      },
+      {
+        "path": "lib/helpers/combineURLs.js",
+        "start_line": 11,
+        "end_line": 15,
+        "note": "The unused combination branch strips leading slashes and appends the remaining path to baseURL; it is skipped for //host in the actual code."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The main classification→baseURL bypass→two-argument URL construction chain is supported by source and the supplied reproduction. The URL constructor behavior is not runtime-tested here. General repair safety, other adapters, all URL encodings and claims of a baseURL security restriction are not certified; baseURL is not itself implemented as a host allowlist.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "babel__babel-13928",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2377,
+        "end_line": 2389,
+        "note": "parseFunctionBody always enters a new expression scope, and the expression-body branch parses/checks parameters without exiting it."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2440,
+        "end_line": 2446,
+        "note": "The expressionScope.exit call is within the block-body else branch only."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/statement.js",
+        "start_line": 1226,
+        "end_line": 1237,
+        "note": "Function parameter parsing enters a parameter-declaration expression scope, then uses an untyped stack pop through exit. A leaked concise-arrow scope is popped instead of that parameter scope."
+      },
+      {
+        "path": "packages/babel-parser/src/util/expression-scope.js",
+        "start_line": 102,
+        "end_line": 132,
+        "note": "exit merely pops; recordParameterInitializerError raises when it reaches a certain parameter-declaration scope, while an ordinary expression scope would stop propagation."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2667,
+        "end_line": 2673,
+        "note": "parseAwait routes the formal-parameter error through that expression-scope handler."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2715,
+        "end_line": 2721,
+        "note": "parseYield routes YieldInParameter through the same handler."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The enter/exit imbalance, parameter-scope displacement and await/yield error routing are supported by static source. Exact live stack depths and plugin overrides were not executed or exhaustively traced. Long cited regions or response-format defects are not counted as semantic errors; no proposed repair is validated.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "babel__babel-13928",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2377,
+        "end_line": 2389,
+        "note": "parseFunctionBody always enters a new expression scope, and the expression-body branch parses/checks parameters without exiting it."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2440,
+        "end_line": 2446,
+        "note": "The expressionScope.exit call is within the block-body else branch only."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/statement.js",
+        "start_line": 1226,
+        "end_line": 1237,
+        "note": "Function parameter parsing enters a parameter-declaration expression scope, then uses an untyped stack pop through exit. A leaked concise-arrow scope is popped instead of that parameter scope."
+      },
+      {
+        "path": "packages/babel-parser/src/util/expression-scope.js",
+        "start_line": 102,
+        "end_line": 132,
+        "note": "exit merely pops; recordParameterInitializerError raises when it reaches a certain parameter-declaration scope, while an ordinary expression scope would stop propagation."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2667,
+        "end_line": 2673,
+        "note": "parseAwait routes the formal-parameter error through that expression-scope handler."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2715,
+        "end_line": 2721,
+        "note": "parseYield routes YieldInParameter through the same handler."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The enter/exit imbalance, parameter-scope displacement and await/yield error routing are supported by static source. Exact live stack depths and plugin overrides were not executed or exhaustively traced. Long cited regions or response-format defects are not counted as semantic errors; no proposed repair is validated.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "babel__babel-13928",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2377,
+        "end_line": 2389,
+        "note": "parseFunctionBody always enters a new expression scope, and the expression-body branch parses/checks parameters without exiting it."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2440,
+        "end_line": 2446,
+        "note": "The expressionScope.exit call is within the block-body else branch only."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/statement.js",
+        "start_line": 1226,
+        "end_line": 1237,
+        "note": "Function parameter parsing enters a parameter-declaration expression scope, then uses an untyped stack pop through exit. A leaked concise-arrow scope is popped instead of that parameter scope."
+      },
+      {
+        "path": "packages/babel-parser/src/util/expression-scope.js",
+        "start_line": 102,
+        "end_line": 132,
+        "note": "exit merely pops; recordParameterInitializerError raises when it reaches a certain parameter-declaration scope, while an ordinary expression scope would stop propagation."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2667,
+        "end_line": 2673,
+        "note": "parseAwait routes the formal-parameter error through that expression-scope handler."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.js",
+        "start_line": 2715,
+        "end_line": 2721,
+        "note": "parseYield routes YieldInParameter through the same handler."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The enter/exit imbalance, parameter-scope displacement and await/yield error routing are supported by static source. Exact live stack depths and plugin overrides were not executed or exhaustively traced. Long cited regions or response-format defects are not counted as semantic errors; no proposed repair is validated.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "babel__babel-15445",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/babel-generator/src/source-map.ts",
+        "start_line": 53,
+        "end_line": 64,
+        "note": "For a truthy input map with nonempty resolvedSources, the loop indexes this._inputMap.sourcesContent[i] without checking that sourcesContent exists."
+      },
+      {
+        "path": "packages/babel-core/src/transformation/file/generate.ts",
+        "start_line": 16,
+        "end_line": 20,
+        "note": "The supplied map is forwarded to generatorOpts.inputSourceMap."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The diagnosis matches the provided missing sourcesContent field and crash. The source-map specification and dependency internals were not independently queried during this constrained review; no fix was executed.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "babel__babel-15445",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/babel-generator/src/source-map.ts",
+        "start_line": 53,
+        "end_line": 64,
+        "note": "For a truthy input map with nonempty resolvedSources, the loop indexes this._inputMap.sourcesContent[i] without checking that sourcesContent exists."
+      },
+      {
+        "path": "packages/babel-core/src/transformation/normalize-file.ts",
+        "start_line": 54,
+        "end_line": 60,
+        "note": "Explicit inputSourceMap objects are handed to convertSourceMap.fromObject."
+      },
+      {
+        "path": "packages/babel-core/src/transformation/file/generate.ts",
+        "start_line": 16,
+        "end_line": 20,
+        "note": "The input map is passed into generatorOpts via inputMap?.toObject()."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Source plumbing and the unguarded indexed access are verified; external source-map library behavior is supported by the reported object, not independently executed.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "babel__babel-15445",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/babel-generator/src/source-map.ts",
+        "start_line": 53,
+        "end_line": 64,
+        "note": "For a truthy input map with nonempty resolvedSources, the loop indexes this._inputMap.sourcesContent[i] without checking that sourcesContent exists."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The reported undefined property and this access support the crash diagnosis. The external TraceMap/GenMapping implementation was not executed; a repair is not validated. The crash additionally requires a nonempty resolvedSources loop.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "babel__babel-15649",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/babel-traverse/src/scope/lib/renamer.ts",
+        "start_line": 30,
+        "end_line": 40,
+        "note": "Binding identifiers are renamed by mutating names; the visitor has no ObjectProperty handler to reconcile shorthand."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.ts",
+        "start_line": 2287,
+        "end_line": 2310,
+        "note": "The parser clones the key into the shorthand property value and then sets shorthand=true. Renaming the value can leave the original key unchanged."
+      },
+      {
+        "path": "packages/babel-types/src/validators/isReferenced.ts",
+        "start_line": 56,
+        "end_line": 61,
+        "note": "An ObjectProperty value inside ObjectPattern is excluded from reference classification; its binding rename uses the declaration visitor."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The principal explanation (binding value renamed, original key retained, shorthand flag not reconciled) is supported. The answer also attributes this ObjectPattern value rename to ReferencedIdentifier; isReferenced excludes that case, so this is a minor visitor-attribution error beside the correctly identified declaration path. No execution or proposed repair validation.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "babel__babel-15649",
+    "answer_id": "B",
+    "label": "mixed",
+    "evidence": [
+      {
+        "path": "packages/babel-traverse/src/scope/lib/renamer.ts",
+        "start_line": 30,
+        "end_line": 40,
+        "note": "Binding identifiers are renamed by mutating names; the visitor has no ObjectProperty handler to reconcile shorthand."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.ts",
+        "start_line": 2287,
+        "end_line": 2310,
+        "note": "The parser clones the key into the shorthand property value and then sets shorthand=true. Renaming the value can leave the original key unchanged."
+      },
+      {
+        "path": "packages/babel-types/src/validators/isReferenced.ts",
+        "start_line": 56,
+        "end_line": 61,
+        "note": "An ObjectProperty value inside ObjectPattern is excluded from reference classification; its binding rename uses the declaration visitor."
+      }
+    ],
+    "material_issues": [
+      "The repeated central assertion that the parser shares one Identifier object between key and value is contradicted by cloneIdentifier(prop.key). The actual result retains key a and renames value zzz; it does not rename both to zzz, and splitting a shared node is not the required mechanism."
+    ],
+    "uncertainty": "The missing shorthand update and the binding/reference distinction are useful and supported. No project execution or repair validation.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "babel__babel-15649",
+    "answer_id": "C",
+    "label": "mixed",
+    "evidence": [
+      {
+        "path": "packages/babel-traverse/src/scope/lib/renamer.ts",
+        "start_line": 30,
+        "end_line": 40,
+        "note": "Binding identifiers are renamed by mutating names; the visitor has no ObjectProperty handler to reconcile shorthand."
+      },
+      {
+        "path": "packages/babel-parser/src/parser/expression.ts",
+        "start_line": 2287,
+        "end_line": 2310,
+        "note": "The parser clones the key into the shorthand property value and then sets shorthand=true. Renaming the value can leave the original key unchanged."
+      },
+      {
+        "path": "packages/babel-types/src/validators/isReferenced.ts",
+        "start_line": 56,
+        "end_line": 61,
+        "note": "An ObjectProperty value inside ObjectPattern is excluded from reference classification; its binding rename uses the declaration visitor."
+      },
+      {
+        "path": "packages/babel-types/src/definitions/core.ts",
+        "start_line": 893,
+        "end_line": 918,
+        "note": "The shorthand validator here checks boolean, computed and key Identifier conditions; it does not establish key/value object identity."
+      }
+    ],
+    "material_issues": [
+      "The diagnosis and proposed repair depend on key/value sharing a single node, but the parser clones the key for the value. Actual names diverge after binding rename; the claimed simultaneous renaming of both is wrong.",
+      "The cited shorthand validator does not assert that key and value are the same Identifier object."
+    ],
+    "uncertainty": "The absence of shorthand reconciliation in the renamer is correctly identified. No project execution or repair validation.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "burntsushi__ripgrep-2209",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/printer/src/util.rs",
+        "start_line": 55,
+        "end_line": 104,
+        "note": "Multiline replacement retains look-ahead bytes beyond range.end, then delegates to an always-continuing replacement callback."
+      },
+      {
+        "path": "crates/matcher/src/lib.rs",
+        "start_line": 923,
+        "end_line": 942,
+        "note": "The default replacement implementation copies haystack[last_match..] into dst without a range-end bound."
+      },
+      {
+        "path": "crates/printer/src/util.rs",
+        "start_line": 387,
+        "end_line": 440,
+        "note": "The ordinary match iterator explicitly stops when m.start() >= range.end, contrasting with replacement."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The main buffer-tail explanation is supported. No live byte-offset trace or dependency execution was performed; suggested repairs remain unvalidated.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "burntsushi__ripgrep-2209",
+    "answer_id": "C",
+    "label": "mixed",
+    "evidence": [
+      {
+        "path": "crates/printer/src/util.rs",
+        "start_line": 55,
+        "end_line": 104,
+        "note": "Multiline replacement retains look-ahead bytes beyond range.end, then delegates to an always-continuing replacement callback."
+      },
+      {
+        "path": "crates/matcher/src/lib.rs",
+        "start_line": 923,
+        "end_line": 942,
+        "note": "The default replacement implementation copies haystack[last_match..] into dst without a range-end bound."
+      },
+      {
+        "path": "crates/printer/src/util.rs",
+        "start_line": 387,
+        "end_line": 440,
+        "note": "The ordinary match iterator explicitly stops when m.start() >= range.end, contrasting with replacement."
+      }
+    ],
+    "material_issues": [
+      "The main mechanism is useful, but the answer asserts that the reporter's remaining function body is shorter than 128 bytes and therefore takes the untruncated branch. The supplied reproduction contains substantially more than 128 bytes after the matched opening/usage line. It also says the subject can extend 'further' when fewer than 128 bytes remain; that branch instead ends before range.end + 128."
+    ],
+    "uncertainty": "The code-level cause is supported despite this incorrect branch attribution. Static review cannot certify exact match offsets or a proposed fix.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "burntsushi__ripgrep-2209",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/printer/src/util.rs",
+        "start_line": 55,
+        "end_line": 104,
+        "note": "Multiline replacement retains look-ahead bytes beyond range.end, then delegates to an always-continuing replacement callback."
+      },
+      {
+        "path": "crates/matcher/src/lib.rs",
+        "start_line": 923,
+        "end_line": 942,
+        "note": "The default replacement implementation copies haystack[last_match..] into dst without a range-end bound."
+      },
+      {
+        "path": "crates/printer/src/util.rs",
+        "start_line": 387,
+        "end_line": 440,
+        "note": "The ordinary match iterator explicitly stops when m.start() >= range.end, contrasting with replacement."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "The missing range bound and trailing append explain the symptom. Backend-specific behavior and exact reproduction offsets were not executed or certified.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-1"
+  },
+  {
+    "case_id": "facebook__docusaurus-10130",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/docusaurus/src/server/brokenLinks.ts",
+        "start_line": 115,
+        "end_line": 142,
+        "note": "La recherche de targetPage (128) tente seulement pathname et decodeURI(pathname), puis déclare l’ancre cassée si la page est absente ; aucune variante de slash n’est recherchée."
+      },
+      {
+        "path": "packages/docusaurus/src/server/brokenLinks.ts",
+        "start_line": 76,
+        "end_line": 87,
+        "note": "Pour les routes non strictes, le cache des chemins valides reçoit les variantes avec et sans slash ; cette tolérance n’est pas appliquée au dictionnaire d’ancres."
+      },
+      {
+        "path": "packages/docusaurus/src/server/brokenLinks.ts",
+        "start_line": 377,
+        "end_line": 390,
+        "note": "La normalisation conserve le pathname original comme clé du Map."
+      },
+      {
+        "path": "packages/docusaurus/src/ssg.ts",
+        "start_line": 162,
+        "end_line": 165,
+        "note": "Les données collectées sont indexées par success.pathname ; la chaîne de conservation de la clé est réelle."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le défaut de tolérance entre les deux formes de pathname est établi pour les pages stockées avec slash ; la configuration exacte du site du rapporteur n’est pas fournie. Les généralisations sur la présence systématique de slash sous la configuration par défaut ne sont pas démontrées par les extraits vérifiés et ne sont pas nécessaires au diagnostic. Aucun correctif validé par exécution.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "facebook__docusaurus-10130",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/docusaurus/src/server/brokenLinks.ts",
+        "start_line": 115,
+        "end_line": 142,
+        "note": "La recherche de targetPage (128) tente seulement pathname et decodeURI(pathname), puis déclare l’ancre cassée si la page est absente ; aucune variante de slash n’est recherchée."
+      },
+      {
+        "path": "packages/docusaurus/src/server/brokenLinks.ts",
+        "start_line": 76,
+        "end_line": 87,
+        "note": "Pour les routes non strictes, le cache des chemins valides reçoit les variantes avec et sans slash ; cette tolérance n’est pas appliquée au dictionnaire d’ancres."
+      },
+      {
+        "path": "packages/docusaurus/src/server/brokenLinks.ts",
+        "start_line": 377,
+        "end_line": 390,
+        "note": "La normalisation conserve le pathname original comme clé du Map."
+      },
+      {
+        "path": "packages/docusaurus/src/ssg.ts",
+        "start_line": 162,
+        "end_line": 165,
+        "note": "Les données collectées sont indexées par success.pathname ; la chaîne de conservation de la clé est réelle."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le défaut de tolérance entre les deux formes de pathname est établi pour les pages stockées avec slash ; la configuration exacte du site du rapporteur n’est pas fournie. Les généralisations sur la présence systématique de slash sous la configuration par défaut ne sont pas démontrées par les extraits vérifiés et ne sont pas nécessaires au diagnostic. Aucun correctif validé par exécution.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "facebook__docusaurus-10130",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/docusaurus/src/server/brokenLinks.ts",
+        "start_line": 115,
+        "end_line": 142,
+        "note": "La recherche de targetPage (128) tente seulement pathname et decodeURI(pathname), puis déclare l’ancre cassée si la page est absente ; aucune variante de slash n’est recherchée."
+      },
+      {
+        "path": "packages/docusaurus/src/server/brokenLinks.ts",
+        "start_line": 76,
+        "end_line": 87,
+        "note": "Pour les routes non strictes, le cache des chemins valides reçoit les variantes avec et sans slash ; cette tolérance n’est pas appliquée au dictionnaire d’ancres."
+      },
+      {
+        "path": "packages/docusaurus/src/server/brokenLinks.ts",
+        "start_line": 377,
+        "end_line": 390,
+        "note": "La normalisation conserve le pathname original comme clé du Map."
+      },
+      {
+        "path": "packages/docusaurus/src/ssg.ts",
+        "start_line": 162,
+        "end_line": 165,
+        "note": "Les données collectées sont indexées par success.pathname ; la chaîne de conservation de la clé est réelle."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le défaut de tolérance entre les deux formes de pathname est établi pour les pages stockées avec slash ; la configuration exacte du site du rapporteur n’est pas fournie. Les généralisations sur la présence systématique de slash sous la configuration par défaut ne sont pas démontrées par les extraits vérifiés et ne sont pas nécessaires au diagnostic. Aucun correctif validé par exécution. parseURLPath (urlUtils.ts:172–188) conserve le pathname fourni par URL ; « stripped » signifie ici extraction de la partie chemin, pas suppression d’un slash existant.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "facebook__docusaurus-10309",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/client/docsClientUtils.ts",
+        "start_line": 62,
+        "end_line": 81,
+        "note": "La liste reporte seulement isLast à la fin puis prend le premier match non exact ; aucune priorité par chemin n’est appliquée aux autres versions. Un current à la racine docs peut masquer les routes versionnées plus spécifiques."
+      },
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/client/docsClientUtils.ts",
+        "start_line": 25,
+        "end_line": 39,
+        "note": "Le helper de plugin utilise au contraire un tri lexicographique descendant des chemins avant le même type de match ; ce n’est pas un calcul de longueur."
+      },
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/versions/index.ts",
+        "start_line": 153,
+        "end_line": 179,
+        "note": "Le path configuré est préféré au défaut puis combiné à baseUrl et routeBasePath. Le slash de current produit donc une racine du plugin docs, pas nécessairement la racine entière du site."
+      },
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/client/docsUtils.tsx",
+        "start_line": 270,
+        "end_line": 282,
+        "note": "La version active précède les versions préférée et dernière dans les candidats du menu."
+      },
+      {
+        "path": "packages/docusaurus-theme-classic/src/theme/NavbarItem/DocsVersionDropdownNavbarItem.tsx",
+        "start_line": 56,
+        "end_line": 84,
+        "note": "Le surlignage compare à activeVersion et le libellé utilise le premier candidat, ce qui transmet l’erreur de sélection au dropdown."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le défaut d’ordre des chemins et sa propagation au menu sont étayés pour la configuration du rapport. Aucun site exécuté ni correctif validé. Les formulations « every URL » s’appliquent à la racine du plugin docs une fois baseUrl/routeBasePath combinés, pas forcément à tous les chemins du site. La mention d’un tri par longueur est imprécise : le code cité trie par localeCompare descendant. Cette différence ne change pas le diagnostic de priorité d’un chemin parent face à ses descendants. La vérification complémentaire de useDocsVersionCandidates confirme l’ordre supposé par la réponse.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "facebook__docusaurus-10309",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/client/docsClientUtils.ts",
+        "start_line": 62,
+        "end_line": 81,
+        "note": "La liste reporte seulement isLast à la fin puis prend le premier match non exact ; aucune priorité par chemin n’est appliquée aux autres versions. Un current à la racine docs peut masquer les routes versionnées plus spécifiques."
+      },
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/client/docsClientUtils.ts",
+        "start_line": 25,
+        "end_line": 39,
+        "note": "Le helper de plugin utilise au contraire un tri lexicographique descendant des chemins avant le même type de match ; ce n’est pas un calcul de longueur."
+      },
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/versions/index.ts",
+        "start_line": 153,
+        "end_line": 179,
+        "note": "Le path configuré est préféré au défaut puis combiné à baseUrl et routeBasePath. Le slash de current produit donc une racine du plugin docs, pas nécessairement la racine entière du site."
+      },
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/client/docsUtils.tsx",
+        "start_line": 270,
+        "end_line": 282,
+        "note": "La version active précède les versions préférée et dernière dans les candidats du menu."
+      },
+      {
+        "path": "packages/docusaurus-theme-classic/src/theme/NavbarItem/DocsVersionDropdownNavbarItem.tsx",
+        "start_line": 56,
+        "end_line": 84,
+        "note": "Le surlignage compare à activeVersion et le libellé utilise le premier candidat, ce qui transmet l’erreur de sélection au dropdown."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le défaut d’ordre des chemins et sa propagation au menu sont étayés pour la configuration du rapport. Aucun site exécuté ni correctif validé. Les formulations « every URL » s’appliquent à la racine du plugin docs une fois baseUrl/routeBasePath combinés, pas forcément à tous les chemins du site.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "facebook__docusaurus-10309",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/client/docsClientUtils.ts",
+        "start_line": 62,
+        "end_line": 81,
+        "note": "La liste reporte seulement isLast à la fin puis prend le premier match non exact ; aucune priorité par chemin n’est appliquée aux autres versions. Un current à la racine docs peut masquer les routes versionnées plus spécifiques."
+      },
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/client/docsClientUtils.ts",
+        "start_line": 25,
+        "end_line": 39,
+        "note": "Le helper de plugin utilise au contraire un tri lexicographique descendant des chemins avant le même type de match ; ce n’est pas un calcul de longueur."
+      },
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/versions/index.ts",
+        "start_line": 153,
+        "end_line": 179,
+        "note": "Le path configuré est préféré au défaut puis combiné à baseUrl et routeBasePath. Le slash de current produit donc une racine du plugin docs, pas nécessairement la racine entière du site."
+      },
+      {
+        "path": "packages/docusaurus-plugin-content-docs/src/client/docsUtils.tsx",
+        "start_line": 270,
+        "end_line": 282,
+        "note": "La version active précède les versions préférée et dernière dans les candidats du menu."
+      },
+      {
+        "path": "packages/docusaurus-theme-classic/src/theme/NavbarItem/DocsVersionDropdownNavbarItem.tsx",
+        "start_line": 56,
+        "end_line": 84,
+        "note": "Le surlignage compare à activeVersion et le libellé utilise le premier candidat, ce qui transmet l’erreur de sélection au dropdown."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le défaut d’ordre des chemins et sa propagation au menu sont étayés pour la configuration du rapport. Aucun site exécuté ni correctif validé. Les formulations « every URL » s’appliquent à la racine du plugin docs une fois baseUrl/routeBasePath combinés, pas forcément à tous les chemins du site. La mention d’un tri par longueur est imprécise : le code cité trie par localeCompare descendant. Cette différence ne change pas le diagnostic de priorité d’un chemin parent face à ses descendants.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "immutable-js__immutable-js-2006",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/Operations.js",
+        "start_line": 326,
+        "end_line": 347,
+        "note": "filterFactory construit une séquence paresseuse sans connaître ni fixer son nombre d’éléments conservés."
+      },
+      {
+        "path": "src/TrieUtils.js",
+        "start_line": 74,
+        "end_line": 86,
+        "note": "Avec un index négatif et size undefined, la branche calcule Math.max(0, undefined+index) puis |0 ; cette coercition transforme NaN en zéro."
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 404,
+        "end_line": 419,
+        "note": "sliceFactory résout les bornes avant le guard NaN ; le zéro renvoyé empêche le chemin de cacheResult prévu pour une taille inconnue."
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 421,
+        "end_line": 436,
+        "note": "Avec end et taille inconnus, resolvedSize reste NaN et sliceSize reste undefined."
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 447,
+        "end_line": 467,
+        "note": "resolvedBegin zéro ne saute aucun élément ; une limite sliceSize undefined n’arrête pas l’itération avant la fin de la collection."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "La chaîne taille inconnue → NaN coercé en zéro → garde de cache contournée → séquence entière est étayée par lecture. Aucun projet exécuté ni correctif validé ; les interactions d’un éventuel changement de resolveIndex avec ses autres appelants restent à vérifier.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "immutable-js__immutable-js-2006",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/Operations.js",
+        "start_line": 326,
+        "end_line": 347,
+        "note": "filterFactory construit une séquence paresseuse sans connaître ni fixer son nombre d’éléments conservés."
+      },
+      {
+        "path": "src/TrieUtils.js",
+        "start_line": 74,
+        "end_line": 86,
+        "note": "Avec un index négatif et size undefined, la branche calcule Math.max(0, undefined+index) puis |0 ; cette coercition transforme NaN en zéro."
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 404,
+        "end_line": 419,
+        "note": "sliceFactory résout les bornes avant le guard NaN ; le zéro renvoyé empêche le chemin de cacheResult prévu pour une taille inconnue."
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 421,
+        "end_line": 436,
+        "note": "Avec end et taille inconnus, resolvedSize reste NaN et sliceSize reste undefined."
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 447,
+        "end_line": 467,
+        "note": "resolvedBegin zéro ne saute aucun élément ; une limite sliceSize undefined n’arrête pas l’itération avant la fin de la collection."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "La chaîne taille inconnue → NaN coercé en zéro → garde de cache contournée → séquence entière est étayée par lecture. Aucun projet exécuté ni correctif validé ; les interactions d’un éventuel changement de resolveIndex avec ses autres appelants restent à vérifier. Le texte contient d’abord une égalité Math.max(0, NaN)=0 erronée, mais la corrige explicitement juste après ; le JSON et le résumé final utilisent correctement NaN puis ToInt32. Sa généralisation « only negative begin » ne couvre pas d’éventuels autres usages de bornes négatives non étudiés.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "immutable-js__immutable-js-2006",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/Operations.js",
+        "start_line": 326,
+        "end_line": 347,
+        "note": "filterFactory construit une séquence paresseuse sans connaître ni fixer son nombre d’éléments conservés."
+      },
+      {
+        "path": "src/TrieUtils.js",
+        "start_line": 74,
+        "end_line": 86,
+        "note": "Avec un index négatif et size undefined, la branche calcule Math.max(0, undefined+index) puis |0 ; cette coercition transforme NaN en zéro."
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 404,
+        "end_line": 419,
+        "note": "sliceFactory résout les bornes avant le guard NaN ; le zéro renvoyé empêche le chemin de cacheResult prévu pour une taille inconnue."
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 421,
+        "end_line": 436,
+        "note": "Avec end et taille inconnus, resolvedSize reste NaN et sliceSize reste undefined."
+      },
+      {
+        "path": "src/Operations.js",
+        "start_line": 447,
+        "end_line": 467,
+        "note": "resolvedBegin zéro ne saute aucun élément ; une limite sliceSize undefined n’arrête pas l’itération avant la fin de la collection."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "La chaîne taille inconnue → NaN coercé en zéro → garde de cache contournée → séquence entière est étayée par lecture. Aucun projet exécuté ni correctif validé ; les interactions d’un éventuel changement de resolveIndex avec ses autres appelants restent à vérifier.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "mrdoob__three.js-25687",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/core/Object3D.js",
+        "start_line": 704,
+        "end_line": 722,
+        "note": "Les champs communs sérialisés comprennent matrice, couches et indicateurs, mais pas up."
+      },
+      {
+        "path": "src/loaders/ObjectLoader.js",
+        "start_line": 946,
+        "end_line": 984,
+        "note": "La restauration des propriétés communes ne lit pas data.up."
+      },
+      {
+        "path": "src/core/Object3D.js",
+        "start_line": 44,
+        "end_line": 50,
+        "note": "Chaque objet reçoit un clone de DEFAULT_UP au constructeur ; la constante vaut (0,1,0), ligne 967."
+      },
+      {
+        "path": "src/cameras/PerspectiveCamera.js",
+        "start_line": 209,
+        "end_line": 229,
+        "note": "PerspectiveCamera possède bien un override toJSON qui appelle super.toJSON, puis ajoute les champs caméra sans ajouter up ; cela confirme le défaut malgré une imprécision des réponses A et B."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Diagnostic principal étayé sur les deux sens du round-trip ; aucune exécution ou validation de correctif. Le défaut vaut sous la valeur standard de DEFAULT_UP ; un changement global de cette constante modifierait la valeur reconstruite. La phrase affirmant que PerspectiveCamera ne définit aucun toJSON est fausse : l’override existe et délègue à super ; cette erreur périphérique ne change ni la localisation ni le mécanisme identifié.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "mrdoob__three.js-25687",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/core/Object3D.js",
+        "start_line": 704,
+        "end_line": 722,
+        "note": "Les champs communs sérialisés comprennent matrice, couches et indicateurs, mais pas up."
+      },
+      {
+        "path": "src/loaders/ObjectLoader.js",
+        "start_line": 946,
+        "end_line": 984,
+        "note": "La restauration des propriétés communes ne lit pas data.up."
+      },
+      {
+        "path": "src/core/Object3D.js",
+        "start_line": 44,
+        "end_line": 50,
+        "note": "Chaque objet reçoit un clone de DEFAULT_UP au constructeur ; la constante vaut (0,1,0), ligne 967."
+      },
+      {
+        "path": "src/cameras/PerspectiveCamera.js",
+        "start_line": 209,
+        "end_line": 229,
+        "note": "PerspectiveCamera possède bien un override toJSON qui appelle super.toJSON, puis ajoute les champs caméra sans ajouter up ; cela confirme le défaut malgré une imprécision des réponses A et B."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Diagnostic principal étayé sur les deux sens du round-trip ; aucune exécution ou validation de correctif. Le défaut vaut sous la valeur standard de DEFAULT_UP ; un changement global de cette constante modifierait la valeur reconstruite. L’inspection complémentaire de l’override PerspectiveCamera confirme qu’il n’ajoute pas up.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "mrdoob__three.js-25687",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/core/Object3D.js",
+        "start_line": 704,
+        "end_line": 722,
+        "note": "Les champs communs sérialisés comprennent matrice, couches et indicateurs, mais pas up."
+      },
+      {
+        "path": "src/loaders/ObjectLoader.js",
+        "start_line": 946,
+        "end_line": 984,
+        "note": "La restauration des propriétés communes ne lit pas data.up."
+      },
+      {
+        "path": "src/core/Object3D.js",
+        "start_line": 44,
+        "end_line": 50,
+        "note": "Chaque objet reçoit un clone de DEFAULT_UP au constructeur ; la constante vaut (0,1,0), ligne 967."
+      },
+      {
+        "path": "src/cameras/PerspectiveCamera.js",
+        "start_line": 209,
+        "end_line": 229,
+        "note": "PerspectiveCamera possède bien un override toJSON qui appelle super.toJSON, puis ajoute les champs caméra sans ajouter up ; cela confirme le défaut malgré une imprécision des réponses A et B."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Diagnostic principal étayé sur les deux sens du round-trip ; aucune exécution ou validation de correctif. Le défaut vaut sous la valeur standard de DEFAULT_UP ; un changement global de cette constante modifierait la valeur reconstruite. La supposition qu’une lecture de PerspectiveCamera confirmerait l’absence d’override est fausse : il délègue à super sans restaurer up. La conclusion principale reste exacte.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "mrdoob__three.js-26589",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/objects/Mesh.js",
+        "start_line": 52,
+        "end_line": 73,
+        "note": "Mesh.copy affecte directement source.material à la ligne 68 ; contrairement à morphTargetInfluences, aucun nouveau conteneur tableau n’est créé."
+      },
+      {
+        "path": "src/objects/Line.js",
+        "start_line": 33,
+        "end_line": 42,
+        "note": "Même affectation directe de material à la ligne 37."
+      },
+      {
+        "path": "src/objects/Points.js",
+        "start_line": 31,
+        "end_line": 40,
+        "note": "Même affectation directe à la ligne 35."
+      },
+      {
+        "path": "src/core/Object3D.js",
+        "start_line": 914,
+        "end_line": 918,
+        "note": "clone construit la même classe puis appelle sa méthode copy ; la cause dans les overrides est étayée."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le mécanisme principal et la proposition de copie superficielle du conteneur sont étayés ; aucun correctif exécuté. Sprite contient bien la même affectation (146), mais son utilisation avec un tableau n’est pas démontrée comme API prise en charge et dépasse le cas principal.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "mrdoob__three.js-26589",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/objects/Mesh.js",
+        "start_line": 52,
+        "end_line": 73,
+        "note": "Mesh.copy affecte directement source.material à la ligne 68 ; contrairement à morphTargetInfluences, aucun nouveau conteneur tableau n’est créé."
+      },
+      {
+        "path": "src/objects/Line.js",
+        "start_line": 33,
+        "end_line": 42,
+        "note": "Même affectation directe de material à la ligne 37."
+      },
+      {
+        "path": "src/objects/Points.js",
+        "start_line": 31,
+        "end_line": 40,
+        "note": "Même affectation directe à la ligne 35."
+      },
+      {
+        "path": "src/core/Object3D.js",
+        "start_line": 914,
+        "end_line": 918,
+        "note": "clone construit la même classe puis appelle sa méthode copy ; la cause dans les overrides est étayée."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le mécanisme principal et la proposition de copie superficielle du conteneur sont étayés ; aucun correctif exécuté. Sprite contient bien la même affectation (146), mais son utilisation avec un tableau n’est pas démontrée comme API prise en charge et dépasse le cas principal. La formule « inherit … without override » est imprécise : SkinnedMesh.copy (89–91) et InstancedMesh.copy (103–105) existent et délèguent à super.copy ; l’affectation du matériau reste héritée de Mesh, comme la première phrase le décrit correctement.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "mrdoob__three.js-26589",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/objects/Mesh.js",
+        "start_line": 52,
+        "end_line": 73,
+        "note": "Mesh.copy affecte directement source.material à la ligne 68 ; contrairement à morphTargetInfluences, aucun nouveau conteneur tableau n’est créé."
+      },
+      {
+        "path": "src/objects/Line.js",
+        "start_line": 33,
+        "end_line": 42,
+        "note": "Même affectation directe de material à la ligne 37."
+      },
+      {
+        "path": "src/objects/Points.js",
+        "start_line": 31,
+        "end_line": 40,
+        "note": "Même affectation directe à la ligne 35."
+      },
+      {
+        "path": "src/core/Object3D.js",
+        "start_line": 914,
+        "end_line": 918,
+        "note": "clone construit la même classe puis appelle sa méthode copy ; la cause dans les overrides est étayée."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le mécanisme principal et la proposition de copie superficielle du conteneur sont étayés ; aucun correctif exécuté. Sprite contient bien la même affectation (146), mais son utilisation avec un tableau n’est pas démontrée comme API prise en charge et dépasse le cas principal.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "mrdoob__three.js-27395",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/math/Sphere.js",
+        "start_line": 8,
+        "end_line": 15,
+        "note": "Le constructeur ne crée que center et radius ; aucune propriété isSphere n’est définie."
+      },
+      {
+        "path": "src/math/Box3.js",
+        "start_line": 3,
+        "end_line": 12,
+        "note": "Le constructeur comparable crée explicitement this.isBox3 = true, ligne 7."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "L’omission et sa conséquence undefined/falsy pour une nouvelle Sphere sont établies par lecture. Aucune preuve par exécution et aucun correctif validé ; le besoin externe est celui du rapporteur, pas un appel interne cassé démontré. Le motif n’est pas affirmé universel à toutes les classes : la réserve sur cette généralisation est appropriée.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "mrdoob__three.js-27395",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/math/Sphere.js",
+        "start_line": 8,
+        "end_line": 15,
+        "note": "Le constructeur ne crée que center et radius ; aucune propriété isSphere n’est définie."
+      },
+      {
+        "path": "src/math/Box3.js",
+        "start_line": 3,
+        "end_line": 12,
+        "note": "Le constructeur comparable crée explicitement this.isBox3 = true, ligne 7."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "L’omission et sa conséquence undefined/falsy pour une nouvelle Sphere sont établies par lecture. Aucune preuve par exécution et aucun correctif validé ; le besoin externe est celui du rapporteur, pas un appel interne cassé démontré. La réponse contient une virgule pleine largeur entre les entrées files et n’est donc pas du JSON valide ; cela relève de la conformité de sortie et ne rend pas son explication source incorrecte.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "mrdoob__three.js-27395",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/math/Sphere.js",
+        "start_line": 8,
+        "end_line": 15,
+        "note": "Le constructeur ne crée que center et radius ; aucune propriété isSphere n’est définie."
+      },
+      {
+        "path": "src/math/Box3.js",
+        "start_line": 3,
+        "end_line": 12,
+        "note": "Le constructeur comparable crée explicitement this.isBox3 = true, ligne 7."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "L’omission et sa conséquence undefined/falsy pour une nouvelle Sphere sont établies par lecture. Aucune preuve par exécution et aucun correctif validé ; le besoin externe est celui du rapporteur, pas un appel interne cassé démontré.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "nushell__nushell-12901",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 470,
+        "end_line": 495,
+        "note": "La commande créée reçoit seulement envs avec la carte calculée ; aucune suppression de l’environnement hérité ne précède cet ajout."
+      },
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 532,
+        "end_line": 545,
+        "note": "spawn_simple_command crée un std::process::Command neuf sans env_clear, ce qui laisse son héritage OS par défaut actif."
+      },
+      {
+        "path": "crates/nu-engine/src/env.rs",
+        "start_line": 143,
+        "end_line": 160,
+        "note": "La carte transmise aux externes vient de stack.get_env_vars et convertit les seules valeurs visibles en chaînes."
+      },
+      {
+        "path": "crates/nu-protocol/src/engine/stack.rs",
+        "start_line": 295,
+        "end_line": 319,
+        "note": "Les variables moteur masquées sont correctement exclues de la vue du shell avant l’export vers le sous-processus."
+      },
+      {
+        "path": "crates/nu-protocol/src/engine/stack.rs",
+        "start_line": 445,
+        "end_line": 466,
+        "note": "hide-env supprime une valeur de pile ou masque une valeur moteur ; aucune mutation globale de l’environnement OS n’est effectuée ici."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "La réponse distingue correctement la première transmission explicite de TEST à l’enfant et sa réapparition par héritage dans le grand-enfant ; elle n’a pas besoin de supposer que $env modifie l’environnement OS du shell parent. Les autres voies de lancement restent hors portée et aucun correctif n’a été exécuté.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "nushell__nushell-12901",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 470,
+        "end_line": 495,
+        "note": "La commande créée reçoit seulement envs avec la carte calculée ; aucune suppression de l’environnement hérité ne précède cet ajout."
+      },
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 532,
+        "end_line": 545,
+        "note": "spawn_simple_command crée un std::process::Command neuf sans env_clear, ce qui laisse son héritage OS par défaut actif."
+      },
+      {
+        "path": "crates/nu-engine/src/env.rs",
+        "start_line": 143,
+        "end_line": 160,
+        "note": "La carte transmise aux externes vient de stack.get_env_vars et convertit les seules valeurs visibles en chaînes."
+      },
+      {
+        "path": "crates/nu-protocol/src/engine/stack.rs",
+        "start_line": 295,
+        "end_line": 319,
+        "note": "Les variables moteur masquées sont correctement exclues de la vue du shell avant l’export vers le sous-processus."
+      },
+      {
+        "path": "crates/nu-protocol/src/engine/stack.rs",
+        "start_line": 445,
+        "end_line": 466,
+        "note": "hide-env supprime une valeur de pile ou masque une valeur moteur ; aucune mutation globale de l’environnement OS n’est effectuée ici."
+      },
+      {
+        "path": "crates/nu-command/src/system/exec.rs",
+        "start_line": 62,
+        "end_line": 74,
+        "note": "exec réutilise spawn_simple_command puis applique envs, avec la même absence de remise à zéro. Ce site secondaire est pertinent même s’il ne figure pas dans les chemins de référence."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le mécanisme d’héritage du bloc OS malgré le filtrage Nu est étayé. « hide-env only records » simplifie la suppression des variables de pile, que la réponse détaille ailleurs ; la reproduction porte bien sur une variable initiale du processus intermédiaire. Les chemins plugin ne sont pas certifiés et aucun correctif n’a été exécuté.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "nushell__nushell-12901",
+    "answer_id": "A",
+    "label": "mixed",
+    "evidence": [
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 470,
+        "end_line": 495,
+        "note": "La commande créée reçoit seulement envs avec la carte calculée ; aucune suppression de l’environnement hérité ne précède cet ajout."
+      },
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 532,
+        "end_line": 545,
+        "note": "spawn_simple_command crée un std::process::Command neuf sans env_clear, ce qui laisse son héritage OS par défaut actif."
+      },
+      {
+        "path": "crates/nu-engine/src/env.rs",
+        "start_line": 143,
+        "end_line": 160,
+        "note": "La carte transmise aux externes vient de stack.get_env_vars et convertit les seules valeurs visibles en chaînes."
+      },
+      {
+        "path": "crates/nu-protocol/src/engine/stack.rs",
+        "start_line": 295,
+        "end_line": 319,
+        "note": "Les variables moteur masquées sont correctement exclues de la vue du shell avant l’export vers le sous-processus."
+      },
+      {
+        "path": "crates/nu-protocol/src/engine/stack.rs",
+        "start_line": 445,
+        "end_line": 466,
+        "note": "hide-env supprime une valeur de pile ou masque une valeur moteur ; aucune mutation globale de l’environnement OS n’est effectuée ici."
+      },
+      {
+        "path": "crates/nu-engine/src/eval.rs",
+        "start_line": 832,
+        "end_line": 845,
+        "note": "L’affectation de $env passe par stack.add_env_var, pas par une mise à jour globale de l’environnement OS."
+      },
+      {
+        "path": "crates/nu-protocol/src/engine/stack.rs",
+        "start_line": 208,
+        "end_line": 225,
+        "note": "Une nouvelle affectation réactive volontairement le nom en l’enlevant d’env_hidden, puis écrit la valeur de pile."
+      }
+    ],
+    "material_issues": [
+      "La cause principale envs sans env_clear est correcte, mais le résumé affirme que $env.TEST=1 propage la valeur à l’environnement OS du processus courant. Cette affectation ne fait qu’écrire la pile. Le scénario réel fonctionne parce que le premier enfant reçoit explicitement TEST via envs lors de sa création, puis le grand-enfant le réhérite après hide-env ; l’alternative de l’incertitude omet cette explication.",
+      "La réponse présente la réapparition d’une variable après une nouvelle affectation en pile comme un problème secondaire de filtrage ; add_env_var réactive explicitement les noms masqués, ce qui montre une sémantique intentionnelle, pas une seconde fuite démontrée."
+    ],
+    "uncertainty": "Le site de lancement reste bien identifié. Les erreurs concernent le récit de propagation de la reproduction et une extension de portée injustifiée ; aucun programme ni correctif exécuté.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "nushell__nushell-12950",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 208,
+        "end_line": 233,
+        "note": "Les arguments bare, notamment le point non cité, passent par expand_glob avant d’être transmis comme arguments."
+      },
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 303,
+        "end_line": 325,
+        "note": "Chaque résultat est privé du préfixe cwd puis converti en chaîne sans protection contre le résultat vide. Le fallback ne protège que le vecteur sans résultat, pas un résultat contenant une chaîne vide."
+      },
+      {
+        "path": "crates/nu-glob/src/lib.rs",
+        "start_line": 298,
+        "end_line": 314,
+        "note": "Le scope relatif devient le répertoire parent cwd."
+      },
+      {
+        "path": "crates/nu-glob/src/lib.rs",
+        "start_line": 903,
+        "end_line": 935,
+        "note": "Le motif littéral point est traité comme entrée spéciale du répertoire ; path.join(point) est ajouté comme résultat unique de ce motif, sans parcourir arbitrairement ses descendants."
+      },
+      {
+        "path": "crates/nu-glob/src/lib.rs",
+        "start_line": 410,
+        "end_line": 416,
+        "note": "L’itérateur renvoie directement le résultat spécial prévalidé ; le chemin cwd/point est égal à cwd pour le retrait de préfixe par composants."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le chemin source complet soutient le remplacement involontaire du point par une chaîne vide ; aucun Git ni projet exécuté, aucun correctif validé. La réserve des réponses sur le détail de nu_glob est levée par la lecture complémentaire de fill_todo et de l’itérateur dans cette révision précise.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "nushell__nushell-12950",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 208,
+        "end_line": 233,
+        "note": "Les arguments bare, notamment le point non cité, passent par expand_glob avant d’être transmis comme arguments."
+      },
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 303,
+        "end_line": 325,
+        "note": "Chaque résultat est privé du préfixe cwd puis converti en chaîne sans protection contre le résultat vide. Le fallback ne protège que le vecteur sans résultat, pas un résultat contenant une chaîne vide."
+      },
+      {
+        "path": "crates/nu-glob/src/lib.rs",
+        "start_line": 298,
+        "end_line": 314,
+        "note": "Le scope relatif devient le répertoire parent cwd."
+      },
+      {
+        "path": "crates/nu-glob/src/lib.rs",
+        "start_line": 903,
+        "end_line": 935,
+        "note": "Le motif littéral point est traité comme entrée spéciale du répertoire ; path.join(point) est ajouté comme résultat unique de ce motif, sans parcourir arbitrairement ses descendants."
+      },
+      {
+        "path": "crates/nu-glob/src/lib.rs",
+        "start_line": 410,
+        "end_line": 416,
+        "note": "L’itérateur renvoie directement le résultat spécial prévalidé ; le chemin cwd/point est égal à cwd pour le retrait de préfixe par composants."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le chemin source complet soutient le remplacement involontaire du point par une chaîne vide ; aucun Git ni projet exécuté, aucun correctif validé. La réserve des réponses sur le détail de nu_glob est levée par la lecture complémentaire de fill_todo et de l’itérateur dans cette révision précise. La frontière historique citée avec le commit qui fonctionnait n’a pas été vérifiée ; elle n’est pas nécessaire à la cause présente.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "nushell__nushell-12950",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 208,
+        "end_line": 233,
+        "note": "Les arguments bare, notamment le point non cité, passent par expand_glob avant d’être transmis comme arguments."
+      },
+      {
+        "path": "crates/nu-command/src/system/run_external.rs",
+        "start_line": 303,
+        "end_line": 325,
+        "note": "Chaque résultat est privé du préfixe cwd puis converti en chaîne sans protection contre le résultat vide. Le fallback ne protège que le vecteur sans résultat, pas un résultat contenant une chaîne vide."
+      },
+      {
+        "path": "crates/nu-glob/src/lib.rs",
+        "start_line": 298,
+        "end_line": 314,
+        "note": "Le scope relatif devient le répertoire parent cwd."
+      },
+      {
+        "path": "crates/nu-glob/src/lib.rs",
+        "start_line": 903,
+        "end_line": 935,
+        "note": "Le motif littéral point est traité comme entrée spéciale du répertoire ; path.join(point) est ajouté comme résultat unique de ce motif, sans parcourir arbitrairement ses descendants."
+      },
+      {
+        "path": "crates/nu-glob/src/lib.rs",
+        "start_line": 410,
+        "end_line": 416,
+        "note": "L’itérateur renvoie directement le résultat spécial prévalidé ; le chemin cwd/point est égal à cwd pour le retrait de préfixe par composants."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le chemin source complet soutient le remplacement involontaire du point par une chaîne vide ; aucun Git ni projet exécuté, aucun correctif validé. La réserve des réponses sur le détail de nu_glob est levée par la lecture complémentaire de fill_todo et de l’itérateur dans cette révision précise.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "preactjs__preact-3739",
+    "answer_id": "C",
+    "label": "mixed",
+    "evidence": [
+      {
+        "path": "hooks/src/index.js",
+        "start_line": 185,
+        "end_line": 195,
+        "note": "Le setter part de la valeur en attente lorsqu’elle existe et ne crée _nextValue/setState que si le prochain état diffère ; true puis false à partir de false laisse une transition nette nulle."
+      },
+      {
+        "path": "hooks/src/index.js",
+        "start_line": 210,
+        "end_line": 241,
+        "note": "Avec des _nextValue présents mais tous égaux aux valeurs validées, shouldUpdate reste false et SCU retourne false sans comparer les nouveaux props ; la branche sans états en attente aurait autorisé le parcours."
+      },
+      {
+        "path": "src/diff/index.js",
+        "start_line": 133,
+        "end_line": 158,
+        "note": "Le false de SCU court-circuite le rendu même si newProps diffère ; le code enregistre les props mais conserve l’ancien sous-arbre DOM."
+      },
+      {
+        "path": "src/component.js",
+        "start_line": 188,
+        "end_line": 213,
+        "note": "La file est dédupliquée par _dirty puis triée par profondeur au flush, ce qui permet au parent de passer ses nouveaux props au fils avant son rendu en attente."
+      }
+    ],
+    "material_issues": [
+      "Le corps retrace correctement true puis false depuis false, mais le résumé affirme que false puis true depuis false laisse _nextValue égal à false. Cette deuxième séquence termine à true et entraîne shouldUpdate=true dans le code ; elle ne produit pas l’annulation d’état annoncée. La réponse contient donc deux descriptions contradictoires du déclencheur central."
+    ],
+    "uncertainty": "Le site SCU et l’explication du bailout sur transition nette nulle restent utiles et corrects. Le défaut du résumé peut être une inversion rédactionnelle, mais sa description concrète est matériellement fausse. La proposition de déléguer systématiquement à prevScu/true ferait disparaître l’optimisation de bailout même sans changement de props ; elle n’est pas validée par tests.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "preactjs__preact-3739",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "hooks/src/index.js",
+        "start_line": 185,
+        "end_line": 195,
+        "note": "Le setter part de la valeur en attente lorsqu’elle existe et ne crée _nextValue/setState que si le prochain état diffère ; true puis false à partir de false laisse une transition nette nulle."
+      },
+      {
+        "path": "hooks/src/index.js",
+        "start_line": 210,
+        "end_line": 241,
+        "note": "Avec des _nextValue présents mais tous égaux aux valeurs validées, shouldUpdate reste false et SCU retourne false sans comparer les nouveaux props ; la branche sans états en attente aurait autorisé le parcours."
+      },
+      {
+        "path": "src/diff/index.js",
+        "start_line": 133,
+        "end_line": 158,
+        "note": "Le false de SCU court-circuite le rendu même si newProps diffère ; le code enregistre les props mais conserve l’ancien sous-arbre DOM."
+      },
+      {
+        "path": "src/component.js",
+        "start_line": 188,
+        "end_line": 213,
+        "note": "La file est dédupliquée par _dirty puis triée par profondeur au flush, ce qui permet au parent de passer ses nouveaux props au fils avant son rendu en attente."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le mécanisme principal et le scénario true puis false depuis false sont étayés par lecture. Aucun projet exécuté ; la différence REPL/CDN n’est pas expliquée par les éléments disponibles. Les setters invoquent chacun setState, mais _dirty évite de placer deux fois le même composant dans la file.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "preactjs__preact-3739",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "hooks/src/index.js",
+        "start_line": 185,
+        "end_line": 195,
+        "note": "Le setter part de la valeur en attente lorsqu’elle existe et ne crée _nextValue/setState que si le prochain état diffère ; true puis false à partir de false laisse une transition nette nulle."
+      },
+      {
+        "path": "hooks/src/index.js",
+        "start_line": 210,
+        "end_line": 241,
+        "note": "Avec des _nextValue présents mais tous égaux aux valeurs validées, shouldUpdate reste false et SCU retourne false sans comparer les nouveaux props ; la branche sans états en attente aurait autorisé le parcours."
+      },
+      {
+        "path": "src/diff/index.js",
+        "start_line": 133,
+        "end_line": 158,
+        "note": "Le false de SCU court-circuite le rendu même si newProps diffère ; le code enregistre les props mais conserve l’ancien sous-arbre DOM."
+      },
+      {
+        "path": "src/component.js",
+        "start_line": 188,
+        "end_line": 213,
+        "note": "La file est dédupliquée par _dirty puis triée par profondeur au flush, ce qui permet au parent de passer ses nouveaux props au fils avant son rendu en attente."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le mécanisme principal et le scénario true puis false depuis false sont étayés par lecture. Aucun projet exécuté ; la différence REPL/CDN n’est pas expliquée par les éléments disponibles. Les setters invoquent chacun setState, mais _dirty évite de placer deux fois le même composant dans la file.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "preactjs__preact-4182",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/diff/index.js",
+        "start_line": 265,
+        "end_line": 276,
+        "note": "Quand un composant échoue hors hydratation/excessDomChildren, le catch ne recopie ni _dom ni _children de l’ancien vnode avant de déléguer à _catchError."
+      },
+      {
+        "path": "src/diff/children.js",
+        "start_line": 143,
+        "end_line": 171,
+        "note": "Le vnode ancien est marqué consommé avant diff ; il n’est donc plus dans la liste des anciens enfants non appariés à nettoyer."
+      },
+      {
+        "path": "src/diff/children.js",
+        "start_line": 255,
+        "end_line": 270,
+        "note": "Le nettoyage ne démonte que les anciens enfants encore présents. Le sous-arbre consommé mais non préservé par le catch ne sera pas nettoyé ici."
+      },
+      {
+        "path": "src/diff/catch-error.js",
+        "start_line": 18,
+        "end_line": 36,
+        "note": "La boundary qui devient dirty à la suite de componentDidCatch absorbe l’exception et obtient _pendingError."
+      },
+      {
+        "path": "hooks/src/index.js",
+        "start_line": 376,
+        "end_line": 393,
+        "note": "useErrorBoundary installe componentDidCatch et y met l’erreur en état, ce qui provoque le rendu ultérieur du fallback."
+      },
+      {
+        "path": "src/component.js",
+        "start_line": 122,
+        "end_line": 153,
+        "note": "Le rendu de la boundary utilise getDomSibling si son ancien _dom est absent ; cela permet d’insérer le fallback sans disposer du DOM perdu à démonter."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le mécanisme principal de DOM conservé sans références de sous-arbre, puis d’insertion du fallback, est étayé par lecture. La consommation du vnode dans diffChildren est normale ; le défaut est l’absence de préservation/récupération cohérente dans le catch, pas la comparaison loose en elle-même. Aucun scénario navigateur ni correctif exécuté. L’affirmation « reliably reproduced » est à comprendre comme symptôme du rapport et non comme reproduction par cette session. Les réparations proposées restent des hypothèses ; démonter immédiatement dans le catch demanderait une vérification des interactions.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "preactjs__preact-4182",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/diff/index.js",
+        "start_line": 265,
+        "end_line": 276,
+        "note": "Quand un composant échoue hors hydratation/excessDomChildren, le catch ne recopie ni _dom ni _children de l’ancien vnode avant de déléguer à _catchError."
+      },
+      {
+        "path": "src/diff/children.js",
+        "start_line": 143,
+        "end_line": 171,
+        "note": "Le vnode ancien est marqué consommé avant diff ; il n’est donc plus dans la liste des anciens enfants non appariés à nettoyer."
+      },
+      {
+        "path": "src/diff/children.js",
+        "start_line": 255,
+        "end_line": 270,
+        "note": "Le nettoyage ne démonte que les anciens enfants encore présents. Le sous-arbre consommé mais non préservé par le catch ne sera pas nettoyé ici."
+      },
+      {
+        "path": "src/diff/catch-error.js",
+        "start_line": 18,
+        "end_line": 36,
+        "note": "La boundary qui devient dirty à la suite de componentDidCatch absorbe l’exception et obtient _pendingError."
+      },
+      {
+        "path": "hooks/src/index.js",
+        "start_line": 376,
+        "end_line": 393,
+        "note": "useErrorBoundary installe componentDidCatch et y met l’erreur en état, ce qui provoque le rendu ultérieur du fallback."
+      },
+      {
+        "path": "src/component.js",
+        "start_line": 122,
+        "end_line": 153,
+        "note": "Le rendu de la boundary utilise getDomSibling si son ancien _dom est absent ; cela permet d’insérer le fallback sans disposer du DOM perdu à démonter."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le mécanisme principal de DOM conservé sans références de sous-arbre, puis d’insertion du fallback, est étayé par lecture. La consommation du vnode dans diffChildren est normale ; le défaut est l’absence de préservation/récupération cohérente dans le catch, pas la comparaison loose en elle-même. Aucun scénario navigateur ni correctif exécuté. Le placement précis après l’ancien élément dépend de l’ordre effectif et des curseurs DOM ; la réponse le signale et la revue ne certifie pas cet ordre par exécution. La création de vnode initialise _dom à null (create-element.js:68), même si le texte emploie parfois undefined.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "preactjs__preact-4182",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/diff/index.js",
+        "start_line": 265,
+        "end_line": 276,
+        "note": "Quand un composant échoue hors hydratation/excessDomChildren, le catch ne recopie ni _dom ni _children de l’ancien vnode avant de déléguer à _catchError."
+      },
+      {
+        "path": "src/diff/children.js",
+        "start_line": 143,
+        "end_line": 171,
+        "note": "Le vnode ancien est marqué consommé avant diff ; il n’est donc plus dans la liste des anciens enfants non appariés à nettoyer."
+      },
+      {
+        "path": "src/diff/children.js",
+        "start_line": 255,
+        "end_line": 270,
+        "note": "Le nettoyage ne démonte que les anciens enfants encore présents. Le sous-arbre consommé mais non préservé par le catch ne sera pas nettoyé ici."
+      },
+      {
+        "path": "src/diff/catch-error.js",
+        "start_line": 18,
+        "end_line": 36,
+        "note": "La boundary qui devient dirty à la suite de componentDidCatch absorbe l’exception et obtient _pendingError."
+      },
+      {
+        "path": "hooks/src/index.js",
+        "start_line": 376,
+        "end_line": 393,
+        "note": "useErrorBoundary installe componentDidCatch et y met l’erreur en état, ce qui provoque le rendu ultérieur du fallback."
+      },
+      {
+        "path": "src/component.js",
+        "start_line": 122,
+        "end_line": 153,
+        "note": "Le rendu de la boundary utilise getDomSibling si son ancien _dom est absent ; cela permet d’insérer le fallback sans disposer du DOM perdu à démonter."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Le mécanisme principal de DOM conservé sans références de sous-arbre, puis d’insertion du fallback, est étayé par lecture. La consommation du vnode dans diffChildren est normale ; le défaut est l’absence de préservation/récupération cohérente dans le catch, pas la comparaison loose en elle-même. Aucun scénario navigateur ni correctif exécuté. Deux détails périphériques sont trop affirmatifs : la file peut traiter la boundary dans le même flush (component.js:220–236), sans nouveau cycle asynchrone ; le rapport utilise explicitement key={index}, pas une liste sans clés. L’artefact secondaire de réordonnancement exact n’est pas établi par cette revue.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-2"
+  },
+  {
+    "case_id": "sharkdp__bat-2201",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/bin/bat/app.rs",
+        "start_line": 52,
+        "end_line": 76,
+        "note": "L’argv place les arguments de configuration avant ceux de la ligne de commande, permettant à une nouvelle occurrence de paging de remplacer l’ancienne."
+      },
+      {
+        "path": "src/bin/bat/app.rs",
+        "start_line": 82,
+        "end_line": 105,
+        "note": "Le choix always renvoie immédiatement PagingMode::Always. no-paging et occurrences_of(plain)>1 sont consultés uniquement dans la branche auto/None ; ils ne peuvent donc pas éteindre le paging explicite de configuration."
+      },
+      {
+        "path": "src/bin/bat/clap_app.rs",
+        "start_line": 293,
+        "end_line": 317,
+        "note": "paging et no-paging s’auto-remplacent séparément mais n’ont pas de relation d’override croisée. Le maintien de paging=always malgré -P est cohérent avec cette déclaration."
+      },
+      {
+        "path": "src/bin/bat/clap_app.rs",
+        "start_line": 69,
+        "end_line": 81,
+        "note": "plain accepte plusieurs occurrences et ne remplace pas paging. L’auto-override de plain ne ramène pas ses occurrences à 1 : clap 2.34 documente son ignorance pour un flag multiple et donne un exemple de quatre occurrences préservées (https://docs.rs/clap/2.34.0/clap/struct.Arg.html#method.overrides_with)."
+      },
+      {
+        "path": "Cargo.lock",
+        "start_line": 195,
+        "end_line": 198,
+        "note": "La dépendance verrouillée est clap 2.34.0 ; la documentation de cette version a été consultée en lecture seule pour départager l’hypothèse supplémentaire de la réponse B."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans exécuter bat ni valider une correction. Le mécanisme de sélection always et la séparation des arguments sont établis. Les priorités voulues entre occurrences mixtes de config/CLI, -p simple, -pp et --paging mériteraient des tests pour toute modification.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "sharkdp__bat-2201",
+    "answer_id": "B",
+    "label": "mixed",
+    "evidence": [
+      {
+        "path": "src/bin/bat/app.rs",
+        "start_line": 52,
+        "end_line": 76,
+        "note": "L’argv place les arguments de configuration avant ceux de la ligne de commande, permettant à une nouvelle occurrence de paging de remplacer l’ancienne."
+      },
+      {
+        "path": "src/bin/bat/app.rs",
+        "start_line": 82,
+        "end_line": 105,
+        "note": "Le choix always renvoie immédiatement PagingMode::Always. no-paging et occurrences_of(plain)>1 sont consultés uniquement dans la branche auto/None ; ils ne peuvent donc pas éteindre le paging explicite de configuration."
+      },
+      {
+        "path": "src/bin/bat/clap_app.rs",
+        "start_line": 293,
+        "end_line": 317,
+        "note": "paging et no-paging s’auto-remplacent séparément mais n’ont pas de relation d’override croisée. Le maintien de paging=always malgré -P est cohérent avec cette déclaration."
+      },
+      {
+        "path": "src/bin/bat/clap_app.rs",
+        "start_line": 69,
+        "end_line": 81,
+        "note": "plain accepte plusieurs occurrences et ne remplace pas paging. L’auto-override de plain ne ramène pas ses occurrences à 1 : clap 2.34 documente son ignorance pour un flag multiple et donne un exemple de quatre occurrences préservées (https://docs.rs/clap/2.34.0/clap/struct.Arg.html#method.overrides_with)."
+      },
+      {
+        "path": "Cargo.lock",
+        "start_line": 195,
+        "end_line": 198,
+        "note": "La dépendance verrouillée est clap 2.34.0 ; la documentation de cette version a été consultée en lecture seule pour départager l’hypothèse supplémentaire de la réponse B."
+      }
+    ],
+    "material_issues": [
+      "Le diagnostic principal du bras always est étayé, mais le défaut supplémentaire attribué à l’auto-override de plain est erroné. Clap 2.34.0 ignore explicitement l’auto-override pour les flags multiple(true) et conserve le compteur d’occurrences ; ce mécanisme ne réduit donc pas -pp à une seule occurrence. La réponse présente cette piste comme une cause secondaire pouvant subsister après correction, ce qui orienterait à tort une modification de la déclaration plain. Documentation de version : https://docs.rs/clap/2.34.0/clap/struct.Arg.html#method.overrides_with"
+    ],
+    "uncertainty": "Lecture statique seulement, sans exécuter bat ni valider une correction. Le mécanisme de sélection always et la séparation des arguments sont établis. Les priorités voulues entre occurrences mixtes de config/CLI, -p simple, -pp et --paging mériteraient des tests pour toute modification. La réponse reconnaît ne pas avoir vérifié ce comportement ; cette réserve ne rend pas l’hypothèse causale correcte. La vérification documentaire n’exécute ni le projet ni ses tests.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "sharkdp__bat-2201",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/bin/bat/app.rs",
+        "start_line": 52,
+        "end_line": 76,
+        "note": "L’argv place les arguments de configuration avant ceux de la ligne de commande, permettant à une nouvelle occurrence de paging de remplacer l’ancienne."
+      },
+      {
+        "path": "src/bin/bat/app.rs",
+        "start_line": 82,
+        "end_line": 105,
+        "note": "Le choix always renvoie immédiatement PagingMode::Always. no-paging et occurrences_of(plain)>1 sont consultés uniquement dans la branche auto/None ; ils ne peuvent donc pas éteindre le paging explicite de configuration."
+      },
+      {
+        "path": "src/bin/bat/clap_app.rs",
+        "start_line": 293,
+        "end_line": 317,
+        "note": "paging et no-paging s’auto-remplacent séparément mais n’ont pas de relation d’override croisée. Le maintien de paging=always malgré -P est cohérent avec cette déclaration."
+      },
+      {
+        "path": "src/bin/bat/clap_app.rs",
+        "start_line": 69,
+        "end_line": 81,
+        "note": "plain accepte plusieurs occurrences et ne remplace pas paging. L’auto-override de plain ne ramène pas ses occurrences à 1 : clap 2.34 documente son ignorance pour un flag multiple et donne un exemple de quatre occurrences préservées (https://docs.rs/clap/2.34.0/clap/struct.Arg.html#method.overrides_with)."
+      },
+      {
+        "path": "Cargo.lock",
+        "start_line": 195,
+        "end_line": 198,
+        "note": "La dépendance verrouillée est clap 2.34.0 ; la documentation de cette version a été consultée en lecture seule pour départager l’hypothèse supplémentaire de la réponse B."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans exécuter bat ni valider une correction. Le mécanisme de sélection always et la séparation des arguments sont établis. Les priorités voulues entre occurrences mixtes de config/CLI, -p simple, -pp et --paging mériteraient des tests pour toute modification.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "sharkdp__bat-2260",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/syntax_mapping.rs",
+        "start_line": 193,
+        "end_line": 205,
+        "note": "get_syntax_for teste le chemin original et son nom de fichier contre les globs ; en absence de correspondance il renvoie None sans consulter ignored_suffixes."
+      },
+      {
+        "path": "src/assets.rs",
+        "start_line": 201,
+        "end_line": 234,
+        "note": "L’entrée appelle une seule fois mapping.get_syntax_for avant les recherches de nom et d’extension ; aucune relance de la table de globs n’est faite sur le nom dépouillé."
+      },
+      {
+        "path": "src/assets.rs",
+        "start_line": 309,
+        "end_line": 338,
+        "note": "Les deux helpers réessaient récursivement après suppression du suffixe, mais uniquement via find_syntax_by_extension ; cela explique que foo.yaml.example fonctionne alors que le glob personnalisé *.demo reste manqué."
+      },
+      {
+        "path": "src/syntax_mapping/ignored_suffixes.rs",
+        "start_line": 43,
+        "end_line": 63,
+        "note": "La suppression est bien effectuée puis transmise au callback fourni, lequel n’est ici que le helper de recherche syntect."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans exécution ni correction validée. La chaîne causale du cas *.demo + .example est directement étayée. La table SyntaxMapping comprend aussi des règles intégrées ; les descriptions « user mappings » caractérisent correctement la règle personnalisée concernée, sans épuiser toutes les priorités possibles entre règles et suffixes.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "sharkdp__bat-2260",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/syntax_mapping.rs",
+        "start_line": 193,
+        "end_line": 205,
+        "note": "get_syntax_for teste le chemin original et son nom de fichier contre les globs ; en absence de correspondance il renvoie None sans consulter ignored_suffixes."
+      },
+      {
+        "path": "src/assets.rs",
+        "start_line": 201,
+        "end_line": 234,
+        "note": "L’entrée appelle une seule fois mapping.get_syntax_for avant les recherches de nom et d’extension ; aucune relance de la table de globs n’est faite sur le nom dépouillé."
+      },
+      {
+        "path": "src/assets.rs",
+        "start_line": 309,
+        "end_line": 338,
+        "note": "Les deux helpers réessaient récursivement après suppression du suffixe, mais uniquement via find_syntax_by_extension ; cela explique que foo.yaml.example fonctionne alors que le glob personnalisé *.demo reste manqué."
+      },
+      {
+        "path": "src/syntax_mapping/ignored_suffixes.rs",
+        "start_line": 43,
+        "end_line": 63,
+        "note": "La suppression est bien effectuée puis transmise au callback fourni, lequel n’est ici que le helper de recherche syntect."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans exécution ni correction validée. La chaîne causale du cas *.demo + .example est directement étayée. La table SyntaxMapping comprend aussi des règles intégrées ; les descriptions « user mappings » caractérisent correctement la règle personnalisée concernée, sans épuiser toutes les priorités possibles entre règles et suffixes.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "sharkdp__bat-2260",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/syntax_mapping.rs",
+        "start_line": 193,
+        "end_line": 205,
+        "note": "get_syntax_for teste le chemin original et son nom de fichier contre les globs ; en absence de correspondance il renvoie None sans consulter ignored_suffixes."
+      },
+      {
+        "path": "src/assets.rs",
+        "start_line": 201,
+        "end_line": 234,
+        "note": "L’entrée appelle une seule fois mapping.get_syntax_for avant les recherches de nom et d’extension ; aucune relance de la table de globs n’est faite sur le nom dépouillé."
+      },
+      {
+        "path": "src/assets.rs",
+        "start_line": 309,
+        "end_line": 338,
+        "note": "Les deux helpers réessaient récursivement après suppression du suffixe, mais uniquement via find_syntax_by_extension ; cela explique que foo.yaml.example fonctionne alors que le glob personnalisé *.demo reste manqué."
+      },
+      {
+        "path": "src/syntax_mapping/ignored_suffixes.rs",
+        "start_line": 43,
+        "end_line": 63,
+        "note": "La suppression est bien effectuée puis transmise au callback fourni, lequel n’est ici que le helper de recherche syntect."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans exécution ni correction validée. La chaîne causale du cas *.demo + .example est directement étayée. La table SyntaxMapping comprend aussi des règles intégrées ; les descriptions « user mappings » caractérisent correctement la règle personnalisée concernée, sans épuiser toutes les priorités possibles entre règles et suffixes.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__axum-1730",
+    "answer_id": "A",
+    "label": "mixed",
+    "evidence": [
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 374,
+        "end_line": 394,
+        "note": "fallback accepte Handler<T,S,B> et garde une fabrique différée ; fallback_service exige au contraire Service<Request<B>> et range le service déjà recevable dans Route."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 1251,
+        "end_line": 1267,
+        "note": "Service est implémenté pour MethodRouter<(),B,E> seulement. Un MethodRouter<S> dont l’état manque ne peut donc pas passer cette borne : il est rejeté avant tout effacement dans Route."
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 398,
+        "end_line": 422,
+        "note": "with_state fournit bien l’état aux Endpoint::MethodRouter ordinaires et à la fabrique de fallback."
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 647,
+        "end_line": 652,
+        "note": "La résolution du fallback applique l’état au seul BoxedHandler ; les Service sont déjà résolus et traversent cette étape sans modification."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 735,
+        "end_line": 747,
+        "note": "L’appel explicite with_state sur MethodRouter résout ses endpoints et son fallback, permettant ensuite le type unité exigé par Service."
+      },
+      {
+        "path": "axum/src/boxed.rs",
+        "start_line": 20,
+        "end_line": 40,
+        "note": "Les fabriques existantes peuvent différer l’application de l’état pour un handler ou un Router ; aucun constructeur MethodRouter n’est présent dans cette région."
+      }
+    ],
+    "material_issues": [
+      "La réponse repère correctement Fallback::Service et l’absence d’injection différée, mais présente le MethodRouter<S> encore en attente d’état comme accepté puis effacé dans Route. La borne fallback_service et l’unique impl Service pour MethodRouter<()> empêchent ce passage à la compilation ; cette contrainte explique précisément le premier with_state et manque au diagnostic."
+    ],
+    "uncertainty": "Lecture statique seulement. Il s’agit de la limite ergonomique de l’API décrite dans le signalement, pas d’une perte d’état observée à l’exécution. Les pistes de nouvelle variante/fabrique/trait ne sont ni exclusives ni validées ; la source seule ne démontre pas qu’une architecture précise soit indispensable.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__axum-1730",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 374,
+        "end_line": 394,
+        "note": "fallback accepte Handler<T,S,B> et garde une fabrique différée ; fallback_service exige au contraire Service<Request<B>> et range le service déjà recevable dans Route."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 1251,
+        "end_line": 1267,
+        "note": "Service est implémenté pour MethodRouter<(),B,E> seulement. Un MethodRouter<S> dont l’état manque ne peut donc pas passer cette borne : il est rejeté avant tout effacement dans Route."
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 398,
+        "end_line": 422,
+        "note": "with_state fournit bien l’état aux Endpoint::MethodRouter ordinaires et à la fabrique de fallback."
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 647,
+        "end_line": 652,
+        "note": "La résolution du fallback applique l’état au seul BoxedHandler ; les Service sont déjà résolus et traversent cette étape sans modification."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 735,
+        "end_line": 747,
+        "note": "L’appel explicite with_state sur MethodRouter résout ses endpoints et son fallback, permettant ensuite le type unité exigé par Service."
+      },
+      {
+        "path": "axum/src/boxed.rs",
+        "start_line": 20,
+        "end_line": 40,
+        "note": "Les fabriques existantes peuvent différer l’application de l’état pour un handler ou un Router ; aucun constructeur MethodRouter n’est présent dans cette région."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement. Il s’agit de la limite ergonomique de l’API décrite dans le signalement, pas d’une perte d’état observée à l’exécution. Les pistes de nouvelle variante/fabrique/trait ne sont ni exclusives ni validées ; la source seule ne démontre pas qu’une architecture précise soit indispensable. Certaines phrases sur l’effacement ou l’état « dropped » sont imprécises : le MethodRouter accepté doit déjà être résolu. La réponse explicite néanmoins correctement cette borne S=() et l’obligation d’appeler with_state avant insertion, ce qui établit son mécanisme principal.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__axum-1730",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 374,
+        "end_line": 394,
+        "note": "fallback accepte Handler<T,S,B> et garde une fabrique différée ; fallback_service exige au contraire Service<Request<B>> et range le service déjà recevable dans Route."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 1251,
+        "end_line": 1267,
+        "note": "Service est implémenté pour MethodRouter<(),B,E> seulement. Un MethodRouter<S> dont l’état manque ne peut donc pas passer cette borne : il est rejeté avant tout effacement dans Route."
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 398,
+        "end_line": 422,
+        "note": "with_state fournit bien l’état aux Endpoint::MethodRouter ordinaires et à la fabrique de fallback."
+      },
+      {
+        "path": "axum/src/routing/mod.rs",
+        "start_line": 647,
+        "end_line": 652,
+        "note": "La résolution du fallback applique l’état au seul BoxedHandler ; les Service sont déjà résolus et traversent cette étape sans modification."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 735,
+        "end_line": 747,
+        "note": "L’appel explicite with_state sur MethodRouter résout ses endpoints et son fallback, permettant ensuite le type unité exigé par Service."
+      },
+      {
+        "path": "axum/src/boxed.rs",
+        "start_line": 20,
+        "end_line": 40,
+        "note": "Les fabriques existantes peuvent différer l’application de l’état pour un handler ou un Router ; aucun constructeur MethodRouter n’est présent dans cette région."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement. Il s’agit de la limite ergonomique de l’API décrite dans le signalement, pas d’une perte d’état observée à l’exécution. Les pistes de nouvelle variante/fabrique/trait ne sont ni exclusives ni validées ; la source seule ne démontre pas qu’une architecture précise soit indispensable.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__axum-734",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 104,
+        "end_line": 127,
+        "note": "Le corps de la réponse est remplacé par Empty lorsque strip_body est vrai ; seul ALLOW est ensuite ajusté, sans calcul de CONTENT_LENGTH avant la perte du corps original."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 973,
+        "end_line": 988,
+        "note": "La macro de dispatch associe bien strip_body à la méthode HEAD."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 1007,
+        "end_line": 1023,
+        "note": "HEAD recherche un handler HEAD puis GET et les fallbacks ont eux aussi la suppression du corps."
+      },
+      {
+        "path": "axum-core/src/response/mod.rs",
+        "start_line": 259,
+        "end_line": 280,
+        "note": "La réponse du handler chaîne est construite avec Full et CONTENT_TYPE sans CONTENT_LENGTH explicite."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement ; aucun test ni reproduction exécuté, aucune correction proposée validée. La perte du corps avant toute insertion de longueur est directement établie. Le calcul exact du header par la dépendance Hyper n’a pas été inspecté ; son rôle dans la sortie observée est une inférence cohérente avec le cas rapporté. Un CONTENT_LENGTH déjà explicite reste conservé par res.map. La région 840–870 ajoute HEAD au header Allow pour GET ; le véritable dispatch HEAD→GET est établi séparément à 1007–1008. Cette imprécision sur l’enregistrement ne change pas le diagnostic.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__axum-734",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 104,
+        "end_line": 127,
+        "note": "Le corps de la réponse est remplacé par Empty lorsque strip_body est vrai ; seul ALLOW est ensuite ajusté, sans calcul de CONTENT_LENGTH avant la perte du corps original."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 973,
+        "end_line": 988,
+        "note": "La macro de dispatch associe bien strip_body à la méthode HEAD."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 1007,
+        "end_line": 1023,
+        "note": "HEAD recherche un handler HEAD puis GET et les fallbacks ont eux aussi la suppression du corps."
+      },
+      {
+        "path": "axum-core/src/response/mod.rs",
+        "start_line": 259,
+        "end_line": 280,
+        "note": "La réponse du handler chaîne est construite avec Full et CONTENT_TYPE sans CONTENT_LENGTH explicite."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement ; aucun test ni reproduction exécuté, aucune correction proposée validée. La perte du corps avant toute insertion de longueur est directement établie. Le calcul exact du header par la dépendance Hyper n’a pas été inspecté ; son rôle dans la sortie observée est une inférence cohérente avec le cas rapporté. Un CONTENT_LENGTH déjà explicite reste conservé par res.map.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__axum-734",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "axum/src/routing/route.rs",
+        "start_line": 104,
+        "end_line": 127,
+        "note": "Le corps de la réponse est remplacé par Empty lorsque strip_body est vrai ; seul ALLOW est ensuite ajusté, sans calcul de CONTENT_LENGTH avant la perte du corps original."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 973,
+        "end_line": 988,
+        "note": "La macro de dispatch associe bien strip_body à la méthode HEAD."
+      },
+      {
+        "path": "axum/src/routing/method_routing.rs",
+        "start_line": 1007,
+        "end_line": 1023,
+        "note": "HEAD recherche un handler HEAD puis GET et les fallbacks ont eux aussi la suppression du corps."
+      },
+      {
+        "path": "axum-core/src/response/mod.rs",
+        "start_line": 259,
+        "end_line": 280,
+        "note": "La réponse du handler chaîne est construite avec Full et CONTENT_TYPE sans CONTENT_LENGTH explicite."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement ; aucun test ni reproduction exécuté, aucune correction proposée validée. La perte du corps avant toute insertion de longueur est directement établie. Le calcul exact du header par la dépendance Hyper n’a pas été inspecté ; son rôle dans la sortie observée est une inférence cohérente avec le cas rapporté. Un CONTENT_LENGTH déjà explicite reste conservé par res.map.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__tokio-6603",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "tokio/src/sync/mpsc/list.rs",
+        "start_line": 242,
+        "end_line": 258,
+        "note": "is_empty lit has_value sur le bloc head avant le calcul de longueur. len utilise tail_position et index, sans consulter le bloc, ce qui explique la divergence avec len==0."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/list.rs",
+        "start_line": 260,
+        "end_line": 278,
+        "note": "pop avance head avant de lire, puis incrémente index après consommation ; à la fin du dernier slot, head peut encore désigner le bloc antérieur au nouvel index."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "start_line": 152,
+        "end_line": 181,
+        "note": "read ne retire pas le bit ready et has_value masque seulement l’index en offset, sans vérifier l’appartenance au bloc ; le prochain index réinterroge le slot 0 déjà consommé."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "start_line": 70,
+        "end_line": 80,
+        "note": "offset est un masquage modulo BLOCK_CAP ; 32 revient à 0 pour le bloc de 32 slots."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/mod.rs",
+        "start_line": 113,
+        "end_line": 124,
+        "note": "La capacité vaut 32 dans une compilation normale 64 bits, 16 ailleurs et 2 sous loom. Le signalement Windows 64 bits concorde donc avec la période de 32."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/chan.rs",
+        "start_line": 271,
+        "end_line": 282,
+        "note": "Les méthodes du canal délèguent directement aux méthodes de la liste, sans garde supplémentaire."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans reproduction ni tests. Le scénario séquentiel signalé est expliqué ; les interleavings concurrents et le recyclage complet des blocs n’ont pas été vérifiés exhaustivement.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__tokio-6603",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "tokio/src/sync/mpsc/list.rs",
+        "start_line": 242,
+        "end_line": 258,
+        "note": "is_empty lit has_value sur le bloc head avant le calcul de longueur. len utilise tail_position et index, sans consulter le bloc, ce qui explique la divergence avec len==0."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/list.rs",
+        "start_line": 260,
+        "end_line": 278,
+        "note": "pop avance head avant de lire, puis incrémente index après consommation ; à la fin du dernier slot, head peut encore désigner le bloc antérieur au nouvel index."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "start_line": 152,
+        "end_line": 181,
+        "note": "read ne retire pas le bit ready et has_value masque seulement l’index en offset, sans vérifier l’appartenance au bloc ; le prochain index réinterroge le slot 0 déjà consommé."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "start_line": 70,
+        "end_line": 80,
+        "note": "offset est un masquage modulo BLOCK_CAP ; 32 revient à 0 pour le bloc de 32 slots."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/mod.rs",
+        "start_line": 113,
+        "end_line": 124,
+        "note": "La capacité vaut 32 dans une compilation normale 64 bits, 16 ailleurs et 2 sous loom. Le signalement Windows 64 bits concorde donc avec la période de 32."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/chan.rs",
+        "start_line": 271,
+        "end_line": 282,
+        "note": "Les méthodes du canal délèguent directement aux méthodes de la liste, sans garde supplémentaire."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans reproduction ni tests. Le scénario séquentiel signalé est expliqué ; les interleavings concurrents et le recyclage complet des blocs n’ont pas été vérifiés exhaustivement.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__tokio-6603",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "tokio/src/sync/mpsc/list.rs",
+        "start_line": 242,
+        "end_line": 258,
+        "note": "is_empty lit has_value sur le bloc head avant le calcul de longueur. len utilise tail_position et index, sans consulter le bloc, ce qui explique la divergence avec len==0."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/list.rs",
+        "start_line": 260,
+        "end_line": 278,
+        "note": "pop avance head avant de lire, puis incrémente index après consommation ; à la fin du dernier slot, head peut encore désigner le bloc antérieur au nouvel index."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "start_line": 152,
+        "end_line": 181,
+        "note": "read ne retire pas le bit ready et has_value masque seulement l’index en offset, sans vérifier l’appartenance au bloc ; le prochain index réinterroge le slot 0 déjà consommé."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/block.rs",
+        "start_line": 70,
+        "end_line": 80,
+        "note": "offset est un masquage modulo BLOCK_CAP ; 32 revient à 0 pour le bloc de 32 slots."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/mod.rs",
+        "start_line": 113,
+        "end_line": 124,
+        "note": "La capacité vaut 32 dans une compilation normale 64 bits, 16 ailleurs et 2 sous loom. Le signalement Windows 64 bits concorde donc avec la période de 32."
+      },
+      {
+        "path": "tokio/src/sync/mpsc/chan.rs",
+        "start_line": 271,
+        "end_line": 282,
+        "note": "Les méthodes du canal délèguent directement aux méthodes de la liste, sans garde supplémentaire."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans reproduction ni tests. Le scénario séquentiel signalé est expliqué ; les interleavings concurrents et le recyclage complet des blocs n’ont pas été vérifiés exhaustivement.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__tokio-7139",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "tokio/src/fs/file.rs",
+        "start_line": 595,
+        "end_line": 622,
+        "note": "Idle ne traite pas dst.remaining()==0 avant de lancer read_from avec une taille nulle ; Busy copie ensuite le tampon vide vers le dst du poll courant et renvoie Ready. Cela explique le faux EOF sur le poll non vide suivant."
+      },
+      {
+        "path": "tokio/src/io/blocking.rs",
+        "start_line": 241,
+        "end_line": 267,
+        "note": "read_from emprunte exactement max_buf_size octets et conserve la longueur rendue par read ; une lecture de taille zéro laisse le tampon vide."
+      },
+      {
+        "path": "tokio/src/io/util/read_exact.rs",
+        "start_line": 56,
+        "end_line": 65,
+        "note": "read_exact renvoie eof() si un poll achevé ne réduit pas la capacité restante de son tampon non vide."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans reproduction ni tests. Le nombre exact de polls Pending dépend de la planification du travail bloquant ; le mécanisme causal est la restitution de la lecture nulle à un poll ultérieur non vide. Les suggestions de correction ne sont pas validées. La formulation sur « subsequent poll » est ambiguë : la source montre que le poll qui récupère Busy produit le faux EOF, puis seulement le suivant retrouve Idle ; le chemin Busy est néanmoins décrit correctement dans la réponse.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__tokio-7139",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "tokio/src/fs/file.rs",
+        "start_line": 595,
+        "end_line": 622,
+        "note": "Idle ne traite pas dst.remaining()==0 avant de lancer read_from avec une taille nulle ; Busy copie ensuite le tampon vide vers le dst du poll courant et renvoie Ready. Cela explique le faux EOF sur le poll non vide suivant."
+      },
+      {
+        "path": "tokio/src/io/blocking.rs",
+        "start_line": 241,
+        "end_line": 267,
+        "note": "read_from emprunte exactement max_buf_size octets et conserve la longueur rendue par read ; une lecture de taille zéro laisse le tampon vide."
+      },
+      {
+        "path": "tokio/src/io/util/read_exact.rs",
+        "start_line": 56,
+        "end_line": 65,
+        "note": "read_exact renvoie eof() si un poll achevé ne réduit pas la capacité restante de son tampon non vide."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans reproduction ni tests. Le nombre exact de polls Pending dépend de la planification du travail bloquant ; le mécanisme causal est la restitution de la lecture nulle à un poll ultérieur non vide. Les suggestions de correction ne sont pas validées.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "tokio-rs__tokio-7139",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "tokio/src/fs/file.rs",
+        "start_line": 595,
+        "end_line": 622,
+        "note": "Idle ne traite pas dst.remaining()==0 avant de lancer read_from avec une taille nulle ; Busy copie ensuite le tampon vide vers le dst du poll courant et renvoie Ready. Cela explique le faux EOF sur le poll non vide suivant."
+      },
+      {
+        "path": "tokio/src/io/blocking.rs",
+        "start_line": 241,
+        "end_line": 267,
+        "note": "read_from emprunte exactement max_buf_size octets et conserve la longueur rendue par read ; une lecture de taille zéro laisse le tampon vide."
+      },
+      {
+        "path": "tokio/src/io/util/read_exact.rs",
+        "start_line": 56,
+        "end_line": 65,
+        "note": "read_exact renvoie eof() si un poll achevé ne réduit pas la capacité restante de son tampon non vide."
+      },
+      {
+        "path": "tokio/src/io/blocking.rs",
+        "start_line": 62,
+        "end_line": 90,
+        "note": "Le chemin générique Blocking<T>, distinct du reproducer fs::File, présente bien le même envoi de lecture nulle et la même restitution du tampon au poll courant."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans reproduction ni tests. Le nombre exact de polls Pending dépend de la planification du travail bloquant ; le mécanisme causal est la restitution de la lecture nulle à un poll ultérieur non vide. Les suggestions de correction ne sont pas validées. L’affirmation universelle sur toutes les plateformes et la qualification de violation stricte du contrat ne sont pas démontrées par les sources citées ; elles ne sont pas nécessaires au diagnostic de ce reproducer.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "uutils__coreutils-6575",
+    "answer_id": "B",
+    "label": "mixed",
+    "evidence": [
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 348,
+        "end_line": 360,
+        "note": "FILE est déclaré sans parseur OsString ; cette déclaration et le rejet UTF-8 signalé étayent le diagnostic du parseur String par défaut."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 299,
+        "end_line": 315,
+        "note": "Le mode --check récupère bien ses arguments FILE en String ; ce sont les chemins des fichiers de sommes de contrôle, pas nécessairement les noms contenus dans leur texte."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 318,
+        "end_line": 342,
+        "note": "Le chemin normal appelle handle_tag_text_binary_flags avant de récupérer FILE et avant cksum, où les arguments sont encore demandés en String."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 230,
+        "end_line": 242,
+        "note": "Obstacle supplémentaire non relevé : std::env::args().collect() exige lui aussi un argv Unicode. Après le remplacement du parseur et des get_many, le même argument non UTF-8 ferait encore échouer ce chemin normal par panique."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 245,
+        "end_line": 280,
+        "note": "Le reproducer ne passe ni --check ni --length : check reste faux, crc est sélectionné et aucune garde précoce ne quitte ce chemin. Après la branche --check (retour à 305–315), l’appel 318 est inconditionnel ; les choix raw/base64 sont traités plus tard (322–328). L’obstacle env::args concerne donc bien l’invocation rapportée après correction de clap."
+      }
+    ],
+    "material_issues": [
+      "La cause du rejet clap actuel est correctement identifiée, mais la correction présentée est substantiellement incomplète : le chemin normal appelle encore std::env::args().collect() à la ligne 237 avant cksum (appel ligne 318). Remplacer uniquement le parseur FILE et les deux get_many par OsString ne permettrait donc pas encore de traiter le même argv non UTF-8. Le reproducer n’utilise pas --check : aucune option, branche ou choix de format ne permet d’éviter cet appel après le parsing."
+    ],
+    "uncertainty": "Lecture statique seulement ; aucune correction ni compatibilité de sortie validée. Le label mixed vise cette omission concrète dans la correction proposée, sans nier l’explication correcte du symptôme actuel. La récupération get_many est postérieure au parsing : elle reflète le type enregistré mais ne déclenche pas elle-même la validation initiale. Les détails du parseur clap sont inférés de la déclaration et du message rapporté, sans inspection de la dépendance.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "uutils__coreutils-6575",
+    "answer_id": "C",
+    "label": "mixed",
+    "evidence": [
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 348,
+        "end_line": 360,
+        "note": "FILE est déclaré sans parseur OsString ; cette déclaration et le rejet UTF-8 signalé étayent le diagnostic du parseur String par défaut."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 299,
+        "end_line": 315,
+        "note": "Le mode --check récupère bien ses arguments FILE en String ; ce sont les chemins des fichiers de sommes de contrôle, pas nécessairement les noms contenus dans leur texte."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 318,
+        "end_line": 342,
+        "note": "Le chemin normal appelle handle_tag_text_binary_flags avant de récupérer FILE et avant cksum, où les arguments sont encore demandés en String."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 230,
+        "end_line": 242,
+        "note": "Obstacle supplémentaire non relevé : std::env::args().collect() exige lui aussi un argv Unicode. Après le remplacement du parseur et des get_many, le même argument non UTF-8 ferait encore échouer ce chemin normal par panique."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 245,
+        "end_line": 280,
+        "note": "Le reproducer ne passe ni --check ni --length : check reste faux, crc est sélectionné et aucune garde précoce ne quitte ce chemin. Après la branche --check (retour à 305–315), l’appel 318 est inconditionnel ; les choix raw/base64 sont traités plus tard (322–328). L’obstacle env::args concerne donc bien l’invocation rapportée après correction de clap."
+      }
+    ],
+    "material_issues": [
+      "La cause du rejet clap actuel est correctement identifiée, mais la correction présentée est substantiellement incomplète : le chemin normal appelle encore std::env::args().collect() à la ligne 237 avant cksum (appel ligne 318). Remplacer uniquement le parseur FILE et les deux get_many par OsString ne permettrait donc pas encore de traiter le même argv non UTF-8. Le reproducer n’utilise pas --check : aucune option, branche ou choix de format ne permet d’éviter cet appel après le parsing."
+    ],
+    "uncertainty": "Lecture statique seulement ; aucune correction ni compatibilité de sortie validée. Le label mixed vise cette omission concrète dans la correction proposée, sans nier l’explication correcte du symptôme actuel. La récupération get_many est postérieure au parsing : elle reflète le type enregistré mais ne déclenche pas elle-même la validation initiale. Les détails du parseur clap sont inférés de la déclaration et du message rapporté, sans inspection de la dépendance.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "uutils__coreutils-6575",
+    "answer_id": "A",
+    "label": "mixed",
+    "evidence": [
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 348,
+        "end_line": 360,
+        "note": "FILE est déclaré sans parseur OsString ; cette déclaration et le rejet UTF-8 signalé étayent le diagnostic du parseur String par défaut."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 299,
+        "end_line": 315,
+        "note": "Le mode --check récupère bien ses arguments FILE en String ; ce sont les chemins des fichiers de sommes de contrôle, pas nécessairement les noms contenus dans leur texte."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 318,
+        "end_line": 342,
+        "note": "Le chemin normal appelle handle_tag_text_binary_flags avant de récupérer FILE et avant cksum, où les arguments sont encore demandés en String."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 230,
+        "end_line": 242,
+        "note": "Obstacle supplémentaire non relevé : std::env::args().collect() exige lui aussi un argv Unicode. Après le remplacement du parseur et des get_many, le même argument non UTF-8 ferait encore échouer ce chemin normal par panique."
+      },
+      {
+        "path": "src/uu/cksum/src/cksum.rs",
+        "start_line": 245,
+        "end_line": 280,
+        "note": "Le reproducer ne passe ni --check ni --length : check reste faux, crc est sélectionné et aucune garde précoce ne quitte ce chemin. Après la branche --check (retour à 305–315), l’appel 318 est inconditionnel ; les choix raw/base64 sont traités plus tard (322–328). L’obstacle env::args concerne donc bien l’invocation rapportée après correction de clap."
+      }
+    ],
+    "material_issues": [
+      "La cause du rejet clap actuel est correctement identifiée, mais la correction présentée est substantiellement incomplète : le chemin normal appelle encore std::env::args().collect() à la ligne 237 avant cksum (appel ligne 318). Remplacer uniquement le parseur FILE et les deux get_many par OsString ne permettrait donc pas encore de traiter le même argv non UTF-8. Le reproducer n’utilise pas --check : aucune option, branche ou choix de format ne permet d’éviter cet appel après le parsing."
+    ],
+    "uncertainty": "Lecture statique seulement ; aucune correction ni compatibilité de sortie validée. Le label mixed vise cette omission concrète dans la correction proposée, sans nier l’explication correcte du symptôme actuel. La récupération get_many est postérieure au parsing : elle reflète le type enregistré mais ne déclenche pas elle-même la validation initiale. Les détails du parseur clap sont inférés de la déclaration et du message rapporté, sans inspection de la dépendance.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "uutils__coreutils-6682",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 161,
+        "end_line": 180,
+        "note": "mkdir appelle chmod inconditionnellement après le succès de create_dir ; chmod passe directement à set_permissions et annote l’erreur cannot set permissions."
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 191,
+        "end_line": 228,
+        "note": "Avec recursive=true, une erreur de création sur un répertoire existant devient Ok sans indicateur de création. À distinguer des parents nouvellement créés : leur chmod n’est appelé que dans la branche Ok de create_dir."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement ; aucun test ni reproduction exécuté, aucune correction proposée validée. Le comportement GNU est fourni par le signalement, sans inspection de sa source. Les détails exacts de l’erreur système dépendent de la plateforme et des droits ; la branche Unix et le chemin rapporté étayent la cause.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "uutils__coreutils-6682",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 161,
+        "end_line": 180,
+        "note": "mkdir appelle chmod inconditionnellement après le succès de create_dir ; chmod passe directement à set_permissions et annote l’erreur cannot set permissions."
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 191,
+        "end_line": 228,
+        "note": "Avec recursive=true, une erreur de création sur un répertoire existant devient Ok sans indicateur de création. À distinguer des parents nouvellement créés : leur chmod n’est appelé que dans la branche Ok de create_dir."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement ; aucun test ni reproduction exécuté, aucune correction proposée validée. Le comportement GNU est fourni par le signalement, sans inspection de sa source. Les détails exacts de l’erreur système dépendent de la plateforme et des droits ; la branche Unix et le chemin rapporté étayent la cause.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "uutils__coreutils-6682",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 161,
+        "end_line": 180,
+        "note": "mkdir appelle chmod inconditionnellement après le succès de create_dir ; chmod passe directement à set_permissions et annote l’erreur cannot set permissions."
+      },
+      {
+        "path": "src/uu/mkdir/src/mkdir.rs",
+        "start_line": 191,
+        "end_line": 228,
+        "note": "Avec recursive=true, une erreur de création sur un répertoire existant devient Ok sans indicateur de création. À distinguer des parents nouvellement créés : leur chmod n’est appelé que dans la branche Ok de create_dir."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement ; aucun test ni reproduction exécuté, aucune correction proposée validée. Le comportement GNU est fourni par le signalement, sans inspection de sa source. Les détails exacts de l’erreur système dépendent de la plateforme et des droits ; la branche Unix et le chemin rapporté étayent la cause.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "vuejs__core-11899",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 234,
+        "end_line": 248,
+        "note": "La présence d’un enfant rule déclenche l’extraction des seules déclarations directes dans un hostRule & ; aucune extraction équivalente n’est faite dans les enfants atrule, puis shouldInject prend la valeur deep, fausse pour le cas ordinaire."
+      },
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 269,
+        "end_line": 281,
+        "note": "L’injection de l’attribut de scope dépend de shouldInject ; le sélecteur extérieur .foo du cas ordinaire ne compense donc pas les déclarations laissées nues dans @media."
+      },
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 18,
+        "end_line": 31,
+        "note": "Le visiteur Rule appelle processRule ; AtRule ne traite ici que les noms de keyframes, sans créer de règle & pour les déclarations directes des requêtes conditionnelles."
+      },
+      {
+        "path": "packages/compiler-sfc/src/compileStyle.ts",
+        "start_line": 114,
+        "end_line": 121,
+        "note": "Le plugin concerné est ajouté sous la condition scoped, ce qui étaye la portée du signalement."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement. Les descriptions de déclarations non traitées visent celles directement sous les at-rules de ce reproducer : les véritables enfants Rule d’un @media peuvent être visités et scopés normalement. Le comportement complet du moteur CSS, l’historique d’introduction et tous les preprocessors/at-rules ne sont pas vérifiés. Le WeakSet de processRule ne prouve pas à lui seul l’ordre de visite PostCSS ; cette prétendue confirmation dans la réponse est trop forte, mais n’affecte pas l’écart concret d’extraction visible dans la source et la sortie rapportée.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "vuejs__core-11899",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 234,
+        "end_line": 248,
+        "note": "La présence d’un enfant rule déclenche l’extraction des seules déclarations directes dans un hostRule & ; aucune extraction équivalente n’est faite dans les enfants atrule, puis shouldInject prend la valeur deep, fausse pour le cas ordinaire."
+      },
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 269,
+        "end_line": 281,
+        "note": "L’injection de l’attribut de scope dépend de shouldInject ; le sélecteur extérieur .foo du cas ordinaire ne compense donc pas les déclarations laissées nues dans @media."
+      },
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 18,
+        "end_line": 31,
+        "note": "Le visiteur Rule appelle processRule ; AtRule ne traite ici que les noms de keyframes, sans créer de règle & pour les déclarations directes des requêtes conditionnelles."
+      },
+      {
+        "path": "packages/compiler-sfc/src/compileStyle.ts",
+        "start_line": 114,
+        "end_line": 121,
+        "note": "Le plugin concerné est ajouté sous la condition scoped, ce qui étaye la portée du signalement."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement. Les descriptions de déclarations non traitées visent celles directement sous les at-rules de ce reproducer : les véritables enfants Rule d’un @media peuvent être visités et scopés normalement. Le comportement complet du moteur CSS, l’historique d’introduction et tous les preprocessors/at-rules ne sont pas vérifiés.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "vuejs__core-11899",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 234,
+        "end_line": 248,
+        "note": "La présence d’un enfant rule déclenche l’extraction des seules déclarations directes dans un hostRule & ; aucune extraction équivalente n’est faite dans les enfants atrule, puis shouldInject prend la valeur deep, fausse pour le cas ordinaire."
+      },
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 269,
+        "end_line": 281,
+        "note": "L’injection de l’attribut de scope dépend de shouldInject ; le sélecteur extérieur .foo du cas ordinaire ne compense donc pas les déclarations laissées nues dans @media."
+      },
+      {
+        "path": "packages/compiler-sfc/src/style/pluginScoped.ts",
+        "start_line": 18,
+        "end_line": 31,
+        "note": "Le visiteur Rule appelle processRule ; AtRule ne traite ici que les noms de keyframes, sans créer de règle & pour les déclarations directes des requêtes conditionnelles."
+      },
+      {
+        "path": "packages/compiler-sfc/src/compileStyle.ts",
+        "start_line": 114,
+        "end_line": 121,
+        "note": "Le plugin concerné est ajouté sous la condition scoped, ce qui étaye la portée du signalement."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement. Les descriptions de déclarations non traitées visent celles directement sous les at-rules de ce reproducer : les véritables enfants Rule d’un @media peuvent être visités et scopés normalement. Le comportement complet du moteur CSS, l’historique d’introduction et tous les preprocessors/at-rules ne sont pas vérifiés.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "vuejs__core-11915",
+    "answer_id": "A",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/compiler-core/src/tokenizer.ts",
+        "start_line": 433,
+        "end_line": 446,
+        "note": "Pour TitleEnd ou TextareaEnd hors racine SFC, le caractère ouvrant passe à InterpolationOpen sans consulter inVPre. Le navigateur n’évite pas cette branche : seul le décodage d’entité précédent est gardé par __BROWSER__."
+      },
+      {
+        "path": "packages/compiler-core/src/tokenizer.ts",
+        "start_line": 318,
+        "end_line": 331,
+        "note": "Le chemin texte ordinaire exige bien !this.inVPre pour amorcer une interpolation, ce qui localise l’asymétrie."
+      },
+      {
+        "path": "packages/compiler-core/src/parser.ts",
+        "start_line": 229,
+        "end_line": 240,
+        "note": "Le parseur synchronise son inVPre et tokenizer.inVPre lors de la directive pre, avant la lecture du contenu de l’élément."
+      },
+      {
+        "path": "packages/compiler-core/src/tokenizer.ts",
+        "start_line": 338,
+        "end_line": 375,
+        "note": "Après {{ complet le tokenizer reste dans l’état Interpolation jusqu’à un délimiteur fermant ; seul un }} complet appelle oninterpolation et remet l’état RCDATA."
+      },
+      {
+        "path": "packages/compiler-core/src/parser.ts",
+        "start_line": 108,
+        "end_line": 111,
+        "note": "Le callback rétrograde une interpolation achevée en texte sous v-pre, mais ne peut pas sauver le cas signalé de {{ sans fermeture puisqu’il n’est alors jamais appelé."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans compiler le reproducer ni vérifier un correctif. Le mécanisme est établi pour {{ sans fermeture, comme dans le signalement. Une interpolation fermée atteindrait oninterpolation et serait convertie en texte sous v-pre : la formulation « jamais appelé » doit être limitée au cas non fermé. À EOF, le reste peut être émis comme texte ; « swallowing » décrit ici la perte de reconnaissance des balises plutôt qu’une disparition garantie des caractères.",
+    "condition": "diagnose",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "vuejs__core-11915",
+    "answer_id": "C",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/compiler-core/src/tokenizer.ts",
+        "start_line": 433,
+        "end_line": 446,
+        "note": "Pour TitleEnd ou TextareaEnd hors racine SFC, le caractère ouvrant passe à InterpolationOpen sans consulter inVPre. Le navigateur n’évite pas cette branche : seul le décodage d’entité précédent est gardé par __BROWSER__."
+      },
+      {
+        "path": "packages/compiler-core/src/tokenizer.ts",
+        "start_line": 318,
+        "end_line": 331,
+        "note": "Le chemin texte ordinaire exige bien !this.inVPre pour amorcer une interpolation, ce qui localise l’asymétrie."
+      },
+      {
+        "path": "packages/compiler-core/src/parser.ts",
+        "start_line": 229,
+        "end_line": 240,
+        "note": "Le parseur synchronise son inVPre et tokenizer.inVPre lors de la directive pre, avant la lecture du contenu de l’élément."
+      },
+      {
+        "path": "packages/compiler-core/src/tokenizer.ts",
+        "start_line": 338,
+        "end_line": 375,
+        "note": "Après {{ complet le tokenizer reste dans l’état Interpolation jusqu’à un délimiteur fermant ; seul un }} complet appelle oninterpolation et remet l’état RCDATA."
+      },
+      {
+        "path": "packages/compiler-core/src/parser.ts",
+        "start_line": 108,
+        "end_line": 111,
+        "note": "Le callback rétrograde une interpolation achevée en texte sous v-pre, mais ne peut pas sauver le cas signalé de {{ sans fermeture puisqu’il n’est alors jamais appelé."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans compiler le reproducer ni vérifier un correctif. Le mécanisme est établi pour {{ sans fermeture, comme dans le signalement. Une interpolation fermée atteindrait oninterpolation et serait convertie en texte sous v-pre : la formulation « jamais appelé » doit être limitée au cas non fermé. À EOF, le reste peut être émis comme texte ; « swallowing » décrit ici la perte de reconnaissance des balises plutôt qu’une disparition garantie des caractères.",
+    "condition": "scout",
+    "rep": 1,
+    "review_group": "group-3"
+  },
+  {
+    "case_id": "vuejs__core-11915",
+    "answer_id": "B",
+    "label": "supported",
+    "evidence": [
+      {
+        "path": "packages/compiler-core/src/tokenizer.ts",
+        "start_line": 433,
+        "end_line": 446,
+        "note": "Pour TitleEnd ou TextareaEnd hors racine SFC, le caractère ouvrant passe à InterpolationOpen sans consulter inVPre. Le navigateur n’évite pas cette branche : seul le décodage d’entité précédent est gardé par __BROWSER__."
+      },
+      {
+        "path": "packages/compiler-core/src/tokenizer.ts",
+        "start_line": 318,
+        "end_line": 331,
+        "note": "Le chemin texte ordinaire exige bien !this.inVPre pour amorcer une interpolation, ce qui localise l’asymétrie."
+      },
+      {
+        "path": "packages/compiler-core/src/parser.ts",
+        "start_line": 229,
+        "end_line": 240,
+        "note": "Le parseur synchronise son inVPre et tokenizer.inVPre lors de la directive pre, avant la lecture du contenu de l’élément."
+      },
+      {
+        "path": "packages/compiler-core/src/tokenizer.ts",
+        "start_line": 338,
+        "end_line": 375,
+        "note": "Après {{ complet le tokenizer reste dans l’état Interpolation jusqu’à un délimiteur fermant ; seul un }} complet appelle oninterpolation et remet l’état RCDATA."
+      },
+      {
+        "path": "packages/compiler-core/src/parser.ts",
+        "start_line": 108,
+        "end_line": 111,
+        "note": "Le callback rétrograde une interpolation achevée en texte sous v-pre, mais ne peut pas sauver le cas signalé de {{ sans fermeture puisqu’il n’est alors jamais appelé."
+      }
+    ],
+    "material_issues": [],
+    "uncertainty": "Lecture statique seulement, sans compiler le reproducer ni vérifier un correctif. Le mécanisme est établi pour {{ sans fermeture, comme dans le signalement. Une interpolation fermée atteindrait oninterpolation et serait convertie en texte sous v-pre : la formulation « jamais appelé » doit être limitée au cas non fermé. À EOF, le reste peut être émis comme texte ; « swallowing » décrit ici la perte de reconnaissance des balises plutôt qu’une disparition garantie des caractères.",
+    "condition": "terminal",
+    "rep": 1,
+    "review_group": "group-3"
+  }
+]

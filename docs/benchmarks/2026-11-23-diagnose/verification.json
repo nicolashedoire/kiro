@@ -1,0 +1,61 @@
+{
+  "source_commit": "c33384ace0e70394bc1e3387b158f128cdf4bf83",
+  "binary_sha256": "316700027d18763b0b0bd9c4e4d048622e989f74a2e31742c8af291ba83d0435",
+  "local_checks": {
+    "cargo_fmt_check": "passed",
+    "cargo_clippy_locked_all_targets_deny_warnings": "passed (Rust 1.93.1 and 1.99.0)",
+    "cargo_test_locked_all_targets": {
+      "passed": 179,
+      "suites": 16
+    },
+    "cargo_test_locked_doc": "passed; no doctests defined",
+    "cargo_build_locked_release": "passed",
+    "public_fixture_native_and_mcp": {
+      "identical": 15,
+      "different": 0,
+      "refused": 0
+    },
+    "benchmark_helper_checks": {
+      "passed": 16
+    },
+    "mcp_output_schema_and_tool_subset_checks": "passed"
+  },
+  "ci": {
+    "initial_run": "https://github.com/nicolashedoire/kiro/actions/runs/45226289473",
+    "initial_outcome": "Failed: five Scout tests; output explicitly showed 2-second Git discovery timeouts. Host contention is plausible, not proven. Failure retained.",
+    "mitigation_commit": "3855f186f711915e3217b90b4520b6554bff3566",
+    "mitigation": "Only CI test execution was made sequential; production source, assertions, resource limits and measured binary unchanged.",
+    "verified_run": "https://github.com/nicolashedoire/kiro/actions/runs/45226808308",
+    "verified_outcome": "passed",
+    "rust_version": "1.100.0",
+    "tests_passed": 179,
+    "test_suites": 16,
+    "checks": [
+      "format",
+      "clippy -D warnings",
+      "all-target tests",
+      "public replay fixture"
+    ]
+  },
+  "measurement_checks": {
+    "sessions": 90,
+    "cases": 30,
+    "unique_cells": 90,
+    "sources_unchanged": true,
+    "reference_annotations_unchanged": true,
+    "tool_availability_verified": true,
+    "exact_primary_model": true,
+    "raw_measurement_copy_verified": true,
+    "csv_rows": 90,
+    "source_commit_identity_verified": true,
+    "reviewed_answers": 90,
+    "review_evidence_ranges_checked": 374,
+    "png_dimensions": [
+      2400,
+      1500
+    ],
+    "figures_reviewed": 4,
+    "publication_review": "Independent numerical, privacy, link and visual review passed after the explicit presentation correction.",
+    "presentation_record": "presentation.json"
+  }
+}

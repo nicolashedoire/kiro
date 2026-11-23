@@ -5,24 +5,28 @@ behaviour. They do not establish a universal speedup or a semantic correctness s
 
 ## Current live comparison
 
-A new experiment on 23 November 2026 ran **30 real Claude Sonnet 4.6 sessions** on
-production-only subsets of two public repositories with Kiro source `55d26e9`, including
-Tree-sitter and its subsequent fixes: three tasks, five repetitions per condition. Median
-full-session wall time was **47.28 s with Bash alone and 45.06 s with Kiro MCP added**
-(4.7% lower in this sample). Median model turns were 12 versus 7. Total reported model
-cost was $3.03 versus $3.17, so fewer turns did not make this campaign cheaper.
+The [23 November diagnosis experiment](benchmarks/2026-11-23-diagnose/README.md) ran
+**90 real Claude Sonnet 4.6 sessions on 30 external issues from 14 repositories**, with
+Kiro source `c33384a`. Native Bash/Read/Grep/Glob were available everywhere; the two added
+configurations offered run/scout and run/scout/diagnose.
 
-All 30 sessions finished. Required-path coverage was 14/15 versus 15/15; this is not semantic
-correctness. Every run is included, and source-based review identified explanation errors
-in both conditions. Kiro was available at initialization in every Kiro session. The
-baseline has Bash only, not Claude Code's native Read/Grep tools. Both configurations may
-batch commands, and Kiro sessions may fall back to Bash.
+Median complete session time was 57.56 s, 53.60 s and 51.31 s respectively. The median
+paired issue ratios were 0.9710 and 0.9949 versus native tools, while total reported cost
+rose 10.0% and 8.7%. Diagnose was called zero times in its 30 measured sessions, so these
+results do not evaluate that pipeline. All sessions finished; six answers were unparseable
+and remain in every timing and quality denominator. All 90 explanations received a
+separate AI-assisted source review, with no better quality established for added tools.
+No external project code/tests were executed and no repair was validated.
 
-[View the charts, exact setup, pinned tasks, answer review and per-session data](benchmarks/2026-11-23-sonnet46/README.md).
-The [21 November campaign](benchmarks/2026-11-21-sonnet46/README.md) remains an archive:
-different dataset scope and MCP initialization prevent a causal version-to-version
-comparison. Both live campaigns are separate from the command fixture below and the older
-private-corpus measurements at the end of this document.
+The full report includes four charts, pinned source projections, frozen prompts/protocol,
+reference-location annotations, redacted answers, review evidence and reproducible scripts.
+This is descriptive evidence on one model/machine with one repetition per cell, not proof
+of a general speedup or a SWE-bench resolution score.
+
+The earlier [30-session campaign](benchmarks/2026-11-23-sonnet46/README.md) used three tasks
+and a Bash-only baseline; the [21 November campaign](benchmarks/2026-11-21-sonnet46/README.md)
+is also archived. Different scopes and MCP initialization prevent causal comparisons
+between their aggregate percentages and the current experiment.
 
 ## Reproduce the public command fixture
 
@@ -149,5 +153,5 @@ percentages are therefore not a baseline for the current runner.
 
 These older private-corpus figures have not been reproduced. The public live campaigns
 above publish pinned inputs, final answers, measurements and distributions, with source-based
-review separate from path coverage. Broader performance claims still need more tasks and
-an additional baseline using optimized native file-reading tools.
+review separate from path coverage. The current 90-session campaign adds broader external cases and native file-reading tools;
+its descriptive results still do not establish a general practical advantage.

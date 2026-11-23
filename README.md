@@ -58,37 +58,49 @@ Three rules hold it together:
 
 ## Results
 
-**Real AI sessions, measured on 23 November 2026, with Kiro `55d26e9`.** Thirty fresh Claude
-Sonnet 4.6 sessions on three source-investigation tasks across Kiro and Fastify, five
-repetitions per setup and task. The same primary model and prompt used Bash alone or Bash
-plus Kiro MCP. Both configurations could batch commands; Kiro sessions could fall back to Bash.
+**90 real AI sessions, 30 public issues, 14 repositories, 23 November 2026.**
+Kiro source `c33384a`; Claude Sonnet 4.6, one session per case/configuration. Every
+configuration includes native Bash, Read, Grep and Glob; scripts and batching are allowed.
+Scout adds MCP run/scout. The third configuration also makes diagnose available.
 
-![Measured end-to-end AI benchmark](assets/benchmarks/2026-11-23-sonnet46/ai-benchmark-overview.png)
+**Diagnose was called in 0/30 measured sessions where it was available.** The figures compare
+available configurations; they do not measure a benefit from the unused new pipeline.
 
-Median elapsed time was **47.3 s with the terminal, 45.1 s with Kiro MCP** (4.7% lower in
-this sample). Median model turns fell from **12 to 7**, while total reported model cost
-rose from **$3.03 to $3.17** across 15 sessions per setup. The clearest time difference was
-on the small Kiro self-test; both Fastify tasks had similar median times.
+![Measured complete AI session times](assets/benchmarks/2026-11-23-diagnose/diagnose-benchmark-overview.png)
 
-All 30 sessions finished. All required paths were returned in **14/15 terminal sessions
-and 15/15 Kiro sessions**. Path coverage does not grade explanations: source-based review
-found concrete errors in both configurations and does not establish better answer quality
-with Kiro. Every measured session is included. This is a small exploratory comparison with
-a Bash-only baseline, not evidence of a universal speedup.
+| Configuration | Median session time | Median model turns | Total reported cost (30 sessions) |
+| --- | ---: | ---: | ---: |
+| AI + native tools | 57.6 s | 9 | $6.62 |
+| AI + Scout | 53.6 s | 7.5 | $7.28 |
+| AI + Diagnose available | 51.3 s | 8 | $7.20 |
+
+Comparing each issue to itself, the median time ratio was **0.971 with Scout and 0.995 with
+Diagnose available**: 2.9% and 0.5% less time in this sample. Both were faster on 16/30 cases.
+These paired observations differ from the ratio of overall medians shown above; neither
+is a causal or universal speedup claim. Total model cost increased by 10.0% and 8.7%.
+
+All 90 sessions finished; 29/30, 27/30 and 28/30 answers were parseable respectively.
+Those same counts hit a reference file in Top-5, but patch overlap is not explanation
+correctness. A separate source-based AI review labeled 27/30, 26/30 and 26/30 explanations
+supported, with material errors in the others. These qualitative labels are not human
+certification, and no external project tests or fixes were validated. **This campaign does
+not establish a compelling practical advantage over native tools.**
 
 <details>
-<summary>See every task, session and reported model usage</summary>
+<summary>See all issues, model effort and location proxies</summary>
 
-![Per-task AI session times](assets/benchmarks/2026-11-23-sonnet46/ai-benchmark-tasks.png)
+![Every paired issue](assets/benchmarks/2026-11-23-diagnose/diagnose-benchmark-issues.png)
 
-![Reported model turns, tokens and cost](assets/benchmarks/2026-11-23-sonnet46/ai-benchmark-effort.png)
+![Model effort and cost](assets/benchmarks/2026-11-23-diagnose/diagnose-benchmark-effort.png)
+
+![Reference-location proxies](assets/benchmarks/2026-11-23-diagnose/diagnose-benchmark-locations.png)
 
 </details>
 
-[Method, pinned production-only datasets, prompts, answer review and reproduction scripts](docs/benchmarks/2026-11-23-sonnet46/README.md).
-The [21 November experiment](docs/benchmarks/2026-11-21-sonnet46/README.md) is archived
-separately. Dataset scope and MCP initialization changed, so the two campaigns do not
-measure a causal speed or quality change from upgrading Kiro or adding Tree-sitter.
+[Method, frozen inputs, all answers, review, data and reproduction scripts](docs/benchmarks/2026-11-23-diagnose/README.md).
+The previous [30-session Scout comparison](docs/benchmarks/2026-11-23-sonnet46/README.md)
+and [21 November campaign](docs/benchmarks/2026-11-21-sonnet46/README.md) remain separate
+archives. Their protocols differ and do not isolate a version-to-version improvement.
 
 The repository includes differential tests and a public, temporary benchmark fixture:
 
@@ -229,14 +241,16 @@ searches remain available. `grep -m 0` and negated filename classes are also ref
 Filename filters use an iterative matcher with a shared work budget instead of recursive
 backtracking; exhausting that budget returns a refusal.
 
-Both MCP tools also return **versioned structured results**, alongside the readable text.
+The MCP tools also return **versioned structured results**, alongside the readable text.
 `run` keeps stdout, stderr and exit codes separate for each command, and reports refusals
 inside batches. Search records come directly from grep, with paths, line numbers and byte
 offsets into the original stdout. `scout` exposes completion status, scan counts and direct
 match references even when its text budget is zero. Each tool advertises an `outputSchema`.
 See the [structured result contract and examples](docs/structured-results.md).
 Scout's schema version is now **2**, adding deduplicated per-file syntax information;
-`run` retains schema version 1.
+`run` keeps schema version 1; `diagnose` starts at version 1.
+`diagnose` adds ranked candidates, ranking signals and bounded source excerpts;
+completion describes the selected search, not a proven root cause.
 Readable Scout answers reserve paths and short previews before expanding signatures.
 Anonymous callbacks keep a useful named parent in view; missing declarations can use an
 explicit lexical heuristic, while ambiguous declarations never acquire a guessed parent.
@@ -271,9 +285,14 @@ explicit lexical heuristic, while ambiguous declarations never acquire a guessed
   omissions are explicitly flagged. Syntax work is separately bounded to 256 matching
   supported files, 4 MiB of source, two seconds of cooperative analysis time and 2 MiB of
   retained scopes per call. Reaching a syntax limit preserves the lexical results.
-- **Small evidence.** The current live comparison uses three source-investigation tasks,
-  one primary model and five sessions per cell on production-only subsets of Kiro and
-  Fastify. The baseline uses Bash only. No general speed or answer-quality gain is established.
+- **Bounded diagnose.** Reports are limited to 64 KiB, retained candidates to 256 and selected
+  files to 16. Encoded structured evidence is capped at 256 KiB after JSON escaping.
+  It shares Scout's source exclusions and reports selection, metadata and excerpt omissions
+  explicitly. See [the contract and resource limits](docs/diagnose.md).
+- **Limited evidence.** The current live comparison uses 30 public issues from 14 repositories,
+  one primary model and one session per case/configuration. All configurations include native
+  Bash, Read, Grep and Glob. Source projections omit separate tests and dependencies; no
+  external project tests or repairs are validated. No universal speed or quality gain is established.
 - **A text search.** `scout` finds words. Code that does the same thing without the words is
   not listed. Syntax ranges describe declarations, not resolved symbol references or a
   semantic call graph. Partial, unsupported, non-UTF-8 and limited analyses use an explicit
@@ -288,6 +307,7 @@ explicit lexical heuristic, while ambiguous declarations never acquire a guessed
 cargo fmt --check
 cargo clippy --all-targets -- -D warnings
 cargo test --locked --all-targets            # unit, differential and benchmark tests
+python3 docs/benchmarks/2026-11-23-diagnose/verify_helpers.py  # no model calls
 cargo run --release --locked --example replay -- --fixture
 ```
 

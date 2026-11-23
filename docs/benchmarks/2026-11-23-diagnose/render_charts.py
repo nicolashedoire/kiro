@@ -20,7 +20,7 @@ from matplotlib.ticker import FuncFormatter, MaxNLocator
 import numpy as np
 
 CONDITIONS = ('terminal', 'scout', 'diagnose')
-LABELS = {'terminal': 'AI + native tools', 'scout': 'AI + Scout', 'diagnose': 'AI + Diagnose'}
+LABELS = {'terminal': 'AI + native tools', 'scout': 'AI + Scout', 'diagnose': 'AI + Diagnose available'}
 COLORS = {'terminal': '#8D9FAC', 'scout': '#77AEBE', 'diagnose': '#ED8D54'}
 BG, CARD, INK, MUTED, GRID = '#111315', '#191D20', '#F2E8D5', '#929DA5', '#30373C'
 WIDTH, HEIGHT, DPI = 16, 10, 150
@@ -142,6 +142,11 @@ def base(data, title, subtitle, page, draft):
     if draft:
         scope = 'DRAFT layout only — synthetic observations; not measured experiment evidence'
     fig.text(.06, .090, scope, fontsize=10.8, color=MUTED, va='center')
+    offered = [row for row in data['runs'] if row['condition'] == 'diagnose']
+    calls = sum(row.get('tools', {}).get('diagnose', 0) for row in offered)
+    used = sum(row.get('tools', {}).get('diagnose', 0) > 0 for row in offered)
+    fig.text(.94, .090, f'Diagnose calls: {calls} ({used}/{len(offered)} sessions) · availability comparison',
+        fontsize=9.5, color=COLORS['diagnose'], ha='right', va='center')
     meta = data['metadata']
     fig.text(.06, .057, f"{meta.get('model', '?')}  ·  kiro {str(meta.get('kiro_commit', '?'))[:7]}  ·  {meta.get('date', '?')}", fontsize=10.2, color=MUTED, va='center')
     fig.text(.94, .057, 'Measured sample. No universal speedup claim.', fontsize=10.2, color=MUTED, ha='right', va='center')
@@ -278,6 +283,7 @@ def effort(data, draft):
             entries = values[condition]
             text = formatter(float(np.median([value for value, _ in entries]))) if entries else '—'
             fig.text(x+.015, y, text, fontsize=25, fontweight='bold', color=COLORS[condition])
+            fig.text(x+.113, y+.007, LABELS[condition], fontsize=8.5, color=MUTED)
             fig.text(x+.245, y+.006, f'n={len(entries)}', fontsize=9.6, color=MUTED, ha='right')
         if observed:
             ax = fig.add_axes([x+.022, .325, .225, .115])

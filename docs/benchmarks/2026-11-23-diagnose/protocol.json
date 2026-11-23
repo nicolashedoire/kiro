@@ -1,0 +1,70 @@
+{
+  "frozen_at_utc": "2026-11-23T17:11:27.426554+00:00",
+  "date": "2026-11-23",
+  "source_commit": "c33384ace0e70394bc1e3387b158f128cdf4bf83",
+  "planned_sessions": 90,
+  "cases": 30,
+  "repetitions": 1,
+  "conditions": {
+    "terminal": [
+      "Bash",
+      "Read",
+      "Grep",
+      "Glob"
+    ],
+    "scout": [
+      "Bash",
+      "Read",
+      "Grep",
+      "Glob",
+      "mcp run",
+      "mcp scout"
+    ],
+    "diagnose": [
+      "Bash",
+      "Read",
+      "Grep",
+      "Glob",
+      "mcp run",
+      "mcp scout",
+      "mcp diagnose"
+    ]
+  },
+  "primary_model": "claude-sonnet-4-6",
+  "effort": "medium",
+  "claude_code_version": "2.1.173",
+  "timeout_seconds": 480,
+  "max_budget_usd_per_session": 3,
+  "max_parallel": 4,
+  "schedule_seed": 20261123,
+  "locale": "en_US.UTF-8",
+  "hardware": {
+    "os": "macOS 15.1.1",
+    "chip": "Apple M4 Pro",
+    "architecture": "arm64",
+    "memory_bytes": 25769803776
+  },
+  "hashes": {
+    "binary_sha256": "316700027d18763b0b0bd9c4e4d048622e989f74a2e31742c8af291ba83d0435",
+    "runner_sha256": "99b84a05787ffb9b3848b651d626378f66968cc8f6c45ca5d2663e7ff1a4b4cb",
+    "renderer_sha256": "000c98c0184f9b35ab78f6c7ee174e4e30330f5398f43039cda728691a9250e4",
+    "tasks_sha256": "9138e8009392cae17252bd7c83a28aa88f70b966fd95ac4b2d9562e5a100de5c",
+    "manifest_sha256": "d3dd6185969633d24614c53897588261403d64d81954050ee557398253d0b310",
+    "gold_sha256": "cc55e7f631378879d62ffb6c8aece56b756d74e72a26e11770b7cdd489eeeaa9",
+    "rubric_sha256": "2e03b6eafc1c8242889bdd48d513c8fb8dbc249da9eb75b364055c36ace43656"
+  },
+  "excluded_preflight_sessions": {
+    "count": 4,
+    "scope": "Three synthetic pilot conditions plus one forced diagnose MCP smoke, before frozen measured campaign; never included in published measured averages.",
+    "reported_cost_usd": 0.3767507
+  },
+  "quality": "Top-5 reference path hit, file recall and valid narrow pre-fix reference-region overlap are location proxies. All 90 explanations also receive AI-assisted source-based qualitative review with conditions hidden. No external project tests or repairs validated.",
+  "preservation": "Every started measured session retained, no selective reruns; missing counters null. Sources and private gold are OS-protected and fingerprinted.",
+  "limitations": [
+    "One session per condition/case; descriptive paired observations, no significance claim.",
+    "Public data can overlap model training.",
+    "Production source projections omit separate tests/docs and dependencies.",
+    "Shared filesystem/provider caches and uncontrolled background activity.",
+    "Reported cost includes auxiliary model use and is not a billing invoice."
+  ]
+}

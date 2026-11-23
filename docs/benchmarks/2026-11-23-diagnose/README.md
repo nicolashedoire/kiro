@@ -4,11 +4,103 @@ This experiment compares native tools, the existing Scout configuration and the 
 experimental diagnose pipeline. It uses 30 distinct public issues from 14 repositories,
 14 Rust and 16 JavaScript/TypeScript cases, selected before model measurements.
 
-<!-- OBSERVED_RESULTS -->
+**The experiment is complete: 90/90 sessions finished, with all condition-specific tools
+verified and unchanged source/reference data.** Source: `c33384ace0e70394bc1e3387b158f128cdf4bf83`.
+
+**The new diagnose tool was called in 0/30 sessions where it was available.** Those sessions
+used native tools and/or existing Scout/run instead. This is an availability comparison,
+not a measurement of the new pipeline's speed or effectiveness.
+
+| Configuration (30 sessions each) | Median wall time | Median model turns | Total reported cost | Parsed answers | Top-5 reference-file hit | Reference-region overlap |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| AI + native tools | 57.56 s | 9 | $6.6211 | 29/30 | 29/30 | 26/30 |
+| AI + Scout | 53.60 s | 7.5 | $7.2817 | 27/30 | 27/30 | 24/30 |
+| AI + Diagnose available | 51.31 s | 8 | $7.1994 | 28/30 | 28/30 | 25/30 |
+
+The ratio of condition medians suggests 6.9% less time with Scout and 10.9% with Diagnose
+available. That is different from comparing each issue to itself: **the median paired
+time ratio is 0.9710 for Scout and 0.9949 for Diagnose available**, corresponding to 2.9%
+and 0.5% less time respectively. Each configuration was faster than native tools on
+16/30 cases. The per-issue chart preserves the large outliers. None of these descriptive
+figures proves a causal speedup with one session per cell.
+
+Total reported cost rose by 10.0% with Scout and 8.7% with Diagnose available. The measured
+campaign cost $21.1023, including reported auxiliary `claude-haiku-4-5-20251001` usage.
+The primary model was `claude-sonnet-4-6` in all 90 sessions. Four excluded synthetic
+preflight/smoke sessions cost a further reported $0.3768; they do not enter the charts.
+
+Six answers could not be parsed by the frozen parser: one native, three Scout and two
+Diagnose-available answers. They keep their measured time/cost and receive no location
+credit. All successfully parsed answers hit at least one reference file; this does not
+establish a correct explanation. Invalid or missing source ranges are excluded separately.
+One Scout call omitted required terms and returned an error; the session is retained.
+No CLI permission denials were reported.
+
+Kiro tools were actually used in 29/30 Scout sessions and 29/30 Diagnose-available sessions.
+Scout was called 41 and 42 times respectively; run was called 23 and 10 times. Native
+Read/Grep/Glob remained heavily used. Diagnose had zero measured calls, despite a successful
+forced-call preflight. A source-supported local pipeline therefore still needs an effective
+agent/harness integration before an end-to-end benefit can be claimed.
+
+![Complete session times](../../../assets/benchmarks/2026-11-23-diagnose/diagnose-benchmark-overview.png)
+
+![All paired issue times](../../../assets/benchmarks/2026-11-23-diagnose/diagnose-benchmark-issues.png)
+
+![Model effort and reported cost](../../../assets/benchmarks/2026-11-23-diagnose/diagnose-benchmark-effort.png)
+
+![Location proxies](../../../assets/benchmarks/2026-11-23-diagnose/diagnose-benchmark-locations.png)
+
+### Explanation review
+
+All 90 answers received source-based AI-assisted review with configuration names hidden.
+The 374 cited evidence ranges were checked against the supplied sources.
+
+| Configuration | Supported | Mixed | Insufficient |
+| --- | ---: | ---: | ---: |
+| AI + native tools | 27 | 3 | 0 |
+| AI + Scout | 26 | 4 | 0 |
+| AI + Diagnose available | 26 | 4 | 0 |
+
+These are qualitative labels from AI reviewers, not human-certified accuracy. Reviewers
+were familiar with implementation/data preparation; there is one reviewer per case.
+A supported main explanation can still contain peripheral errors or unvalidated suggestions.
+The full [answer review](answer-review.json), [review method](review-method.json) and
+[fixed rubric](review-rubric.json) preserve evidence and uncertainty. No better explanation
+quality is established for either added-tool configuration.
+
+Concrete material issues included a Babel explanation assuming shared key/value nodes despite
+`cloneIdentifier`, an incomplete cksum fix leaving `std::env::args()` on the non-UTF-8 path,
+and an Axum explanation confusing a compile-time trait bound with runtime state loss.
+Conversely, malformed JSON can contain a supported explanation: parser compliance, patch-file
+coverage, range accuracy and causal reasoning are different properties.
+
+The prototype passes its implementation checks, but this campaign does **not** establish
+a compelling practical advantage over native tools or evaluate the unused diagnose pipeline.
+An explicit integration on real CI failure reports, followed by test-validated diagnosis/repair
+evaluation, remains a separate experiment. The local specialist model is not integrated.
+
+### Verification and artifacts
+
+- [All measurements and redacted answers](results.json), [CSV](results.csv), [derived summary](summary.json)
+- [Frozen protocol](protocol.json), [post-measurement presentation correction](presentation.json), [reference-location annotations](gold.json), [private-trace hashes](private-trace-hashes.json)
+- [Implementation checks and retained CI failure](verification.json)
+
+Local checks passed: format, Clippy on Rust 1.93.1 and 1.99.0, 179 all-target tests, doctests,
+release build, 15/15 exact native/MCP fixture cases and 16 benchmark helper checks.
+The [first CI run](https://github.com/nicolashedoire/kiro/actions/runs/45226289473) failed
+with Git discovery timeouts under parallel tests. A workflow-only change serialized the
+tests, preserving assertions and production limits. The [subsequent Rust 1.100 CI](https://github.com/nicolashedoire/kiro/actions/runs/45226808308)
+passed all 179 tests, format, Clippy and replay. Source and measured binary did not change.
+
+An audit of all 32 observed Bash commands found read/list/filter operations and no project
+execution, dependency installation or network command. One Scout session read its own
+current tool-result spill file outside the project root; this was the current source-derived
+response, not another session or a reference answer. Raw traces remain private.
+
 
 ## What is measured
 
-Each case is investigated once in each of three fresh Claude Code sessions (90 planned
+Each case is investigated once in each of three fresh Claude Code sessions (90 measured
 sessions), with primary model `claude-sonnet-4-6`, effort medium. Native Bash, Read, Grep
 and Glob are available in every configuration; batching, scripts and filtering are allowed.
 Scout adds Kiro MCP run/scout. Diagnose adds the same tools plus diagnose. The same binary
@@ -64,7 +156,8 @@ training data; this experiment cannot eliminate that possibility.
 ## What the quality metrics mean
 
 The model returns ranked production files, source line ranges of at most 40 lines and an
-explanation. Top-5 uses the first five distinct paths. File-hit rate means at least one of
+explanation. The frozen parser accepts a JSON object alone or extracted from surrounding
+prose/code fences; it does not grade strict JSON-only presentation. Invalid JSON is not repaired. Top-5 uses the first five distinct paths. File-hit rate means at least one of
 those paths is a production file modified by the reference patch; file recall measures the
 share of reference files recovered. Region overlap means a narrow, valid pre-fix range
 intersects a reference region in a Top-5 file. Invalid, missing or out-of-file ranges receive
@@ -92,7 +185,33 @@ Build the exact source commit recorded in protocol.json, then run prepare_datase
 new disposable directory. Keep its private reference data outside the model-visible source
 roots. The preparer downloads pinned upstream sources; it never runs project code.
 
-<!-- REPRODUCTION_COMMANDS -->
+```sh
+# Source used by all measured configurations.
+git checkout c33384ace0e70394bc1e3387b158f128cdf4bf83
+cargo build --locked --release
+
+# Keep the harness/results from the publication revision separately when checking out source.
+python3 /path/to/published-harness/prepare_dataset.py --root /tmp/kiro-diagnose-data --count 30
+
+# Real paid model sessions; requires Claude Code authentication and macOS sandbox-exec.
+python3 /path/to/published-harness/run_sessions.py \
+  --tasks /tmp/kiro-diagnose-data/tasks.json \
+  --projects-json /tmp/kiro-diagnose-data/projects.json \
+  --gold /tmp/kiro-diagnose-data/private/gold.json \
+  --binary target/release/kiro --output /tmp/kiro-diagnose-runs \
+  --kiro-commit c33384ace0e70394bc1e3387b158f128cdf4bf83 \
+  --date 2026-11-23 --model claude-sonnet-4-6 --repetitions 1 \
+  --max-parallel 4 --timeout-seconds 480 --max-budget-usd 3 \
+  --deny-read /path/to/published-harness
+
+# Plot published measurements without making any model calls.
+python3 -m venv /tmp/kiro-plot-venv
+/tmp/kiro-plot-venv/bin/pip install -r requirements.txt
+/tmp/kiro-plot-venv/bin/python render_charts.py \
+  --input results.json --output-dir /tmp/kiro-diagnose-charts
+python3 summarize_results.py --input results.json --reviews answer-review.json --output /tmp/kiro-summary.json
+python3 verify_helpers.py
+```
 
 The earlier [30-session Scout experiment](../2026-11-23-sonnet46/README.md) uses three tasks
 and a Bash-only baseline, while this experiment uses 30 external cases and native reading

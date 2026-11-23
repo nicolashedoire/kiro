@@ -1,0 +1,15 @@
+{
+  "changed_after_measurement_at_utc": "2026-11-23T17:45:10.679063+00:00",
+  "frozen_renderer_source_commit": "c33384ace0e70394bc1e3387b158f128cdf4bf83",
+  "frozen_renderer_sha256": "000c98c0184f9b35ab78f6c7ee174e4e30330f5398f43039cda728691a9250e4",
+  "publication_renderer_sha256": "5a483ef9946fa6164b7badd984a05b070ebeba29a53441d7bbeacad9be1bd1c7",
+  "changes": [
+    "Label Diagnose as available in all figures.",
+    "Display actual diagnose call/session counts and availability-comparison scope on every figure.",
+    "Label effort values directly so each panel is self-contained."
+  ],
+  "unchanged": [
+    "Measured sessions, raw data, scoring, runner, source/binary and qualitative labels."
+  ],
+  "reason": "Avoid implying the unused diagnose pipeline was actually evaluated. Presentation correction identified during independent publication review."
+}

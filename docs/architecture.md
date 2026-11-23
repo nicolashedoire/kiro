@@ -24,23 +24,16 @@ commands themselves.
 
 ## The pieces
 
-```
-            agent
-              │  MCP (JSON-RPC over stdio, one long-lived process)
-              ▼
-        ┌───────────┐
-        │   mcp     │  tools: run, scout
-        └─────┬─────┘
-       ┌──────┴───────┐
-       ▼              ▼
-  ┌─────────┐    ┌─────────┐
-  │ engine  │    │  scout  │
-  └────┬────┘    └─────────┘
-       │ list → pipeline → stage
-       ▼
-  ┌──────────┬────────┐
-  │ builtins │  grep  │      (in-process: no shell, no program)
-  └──────────┴────────┘
+```mermaid
+flowchart TD
+    A[AI coding agent] --> M[MCP over stdio]
+    M --> R[run]
+    M --> S[scout]
+    M --> D[diagnose]
+    R --> E[Native built-ins and grep]
+    D --> S
+    S --> T[Bounded Tree-sitter context]
+    D --> T
 ```
 
 | Module | Role |
@@ -51,8 +44,9 @@ commands themselves.
 | `grep` | `grep` with its usual options, on top of the `regex` crate. |
 | `limits` | Bounded regular-file reads, input and output budgets; exceeding a bound refuses the native command. |
 | `scout` | One-call map of an area of the code. |
+| `diagnose` | Fixed local pipeline: extract report terms/anchors, search, fuse rankings and collect bounded evidence. |
 | `syntax` | Bounded Tree-sitter declaration context for Rust, JavaScript/JSX and TypeScript/TSX. |
-| `mcp` | The MCP server that exposes `run` and `scout`. |
+| `mcp` | The MCP server exposing `run`, `scout` and `diagnose`, or an explicit `--tools` subset. |
 
 ## The engine
 
@@ -281,6 +275,21 @@ incomplete scans, keeping any bounded partial text in the error. The legacy `sco
 string wrapper remains available. CLI exit status 1 and MCP `isError: true` expose this
 status independently of the answer budget, even when it is zero. Long-line previews center
 on a match and mark clipping with ellipses and a request to read the full line.
+
+
+### `diagnose`
+
+The experimental pipeline reuses Scout discovery and exact-file lexical scanning, fuses
+trace, lexical and path rankings with reciprocal rank fusion (`k = 60`), and reads bounded
+windows only from selected candidates. Syntax context is optional evidence, not resolved
+symbols or a semantic call graph. Candidate retention and encoded JSON have independent
+bounds; completion and truncation flags describe different omissions.
+
+No model or project code is executed. The pipeline is fixed Rust code, not an interpreter
+for model-provided plans. See [usage, ranking and resource limits](diagnose.md) and the
+[90-session evaluation](benchmarks/2026-11-23-diagnose/README.md). The local Qwen specialist
+is not connected.
+
 
 ## Differential coverage
 
