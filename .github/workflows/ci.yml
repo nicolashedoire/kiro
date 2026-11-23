@@ -20,7 +20,9 @@ jobs:
       - name: Lint
         run: cargo clippy --locked --all-targets -- -D warnings
       - name: Test
-        run: cargo test --locked --all-targets
+        # Scout's wall-clock resource bounds also apply in tests. Avoid parallel
+        # Git process startup contention on shared runners; keep all assertions.
+        run: cargo test --locked --all-targets -- --test-threads 1
       - name: Public replay fixture
         run: |
           cargo build --locked
