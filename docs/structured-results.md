@@ -1,10 +1,11 @@
 # Structured MCP results
 
-Both tools return readable `content` and a machine-readable `structuredContent` object.
+The tools return readable `content` and a machine-readable `structuredContent` object.
 `tools/list` advertises each result's JSON `outputSchema`. The contract is identified by
 `schema_version`; it is independent of the package and negotiated MCP versions.
 `run` remains at version **1**. Scout is version **2**, adding syntax evidence; consumers
 that validate a cached version-1 Scout schema must refresh it from `tools/list`.
+The experimental `diagnose` tool has its own version **1** contract.
 Existing text clients keep the readable output. `exact: true` affects only that display.
 
 ## Run
@@ -143,6 +144,26 @@ section, including the first, must fit its allocation; budget reductions set
 `display_truncated` and retain a notice when it fits. Incomplete-scan warnings are reserved
 before this allocation. Extremely small budgets may show only a notice or no text.
 Control characters in displayed paths are JSON-escaped; structured paths remain original.
+
+## Diagnose
+
+The version-1 `diagnose` contract returns `status`, `reason`, `cwd`, selected `terms`,
+scan `counts` and ranked `candidates`. Each candidate has a path, an RRF retrieval score,
+ranking `signals`, bounded `evidence` and an `evidence_truncated` flag. Each excerpt gives
+one-based inclusive `start_line`/`end_line`, display `text`, `context_kind`, `language`,
+`syntax_status` and `text_clipped`. The score is not a confidence probability or a causal
+proof. Excerpt text may normalize line endings or clip long lines; use a reader for the
+original contents.
+
+The result also carries `terms_truncated`, `selection_truncated`, `metadata_truncated`,
+`display_truncated`, `limits` and explanatory `notes`. Selection and display omissions
+do not by themselves turn a finished search into a failed scan. `partial` reports a
+scan/read/resource failure; invalid input/discovery failure is `error`. Non-complete
+status sets MCP `isError`. A zero text budget retains structured evidence and status.
+
+The contract is advertised by `tools/list`, including on restricted servers that enable
+`diagnose`. See [the pipeline, CLI usage and scope](diagnose.md). `run` and Scout schemas
+are unchanged.
 
 ## Bounds and compatibility
 

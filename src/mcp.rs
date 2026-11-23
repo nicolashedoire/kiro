@@ -7,6 +7,7 @@
 //! `run` never falls back to a shell. `scout` lists files with the system Git (hooks and
 //! filesystem-monitor commands disabled), then reads them. This is not an OS sandbox.
 
+use crate::diagnose;
 use crate::engine::{self, Session};
 use crate::limits;
 use crate::scout;
@@ -18,7 +19,72 @@ const DEFAULT_SCOUT_BUDGET: usize = 12_000;
 
 const INSTRUCTIONS: &str = "To find where something lives in the code, start with `scout`: one call with all your terms returns matching files and context. For reading and searching, prefer `run` with familiar commands and batch independent reads in `commands`. Unsupported syntax, non-regular files and requests exceeding resource limits are refused; use the regular shell for those. `run` starts no shell or program. `scout` uses system Git with hooks and filesystem-monitor commands disabled. These tools are designed for reading, but do not provide an OS sandbox or confine access to the project directory.";
 
-fn tools() -> Value {
+/// Explicit tool exposure, useful for clients that only need part of the server.
+/// Disabled tools are neither advertised nor callable.
+#[derive(Clone, Copy, Debug)]
+pub struct ToolSet {
+    run: bool,
+    scout: bool,
+    diagnose: bool,
+}
+
+impl ToolSet {
+    pub const ALL: Self = Self {
+        run: true,
+        scout: true,
+        diagnose: true,
+    };
+
+    pub fn parse(names: &str) -> Result<Self, String> {
+        let mut selected = Self {
+            run: false,
+            scout: false,
+            diagnose: false,
+        };
+        for name in names.split(',').map(str::trim) {
+            match name {
+                "run" => selected.run = true,
+                "scout" => selected.scout = true,
+                "diagnose" => selected.diagnose = true,
+                _ => {
+                    return Err(format!(
+                        "unknown MCP tool `{name}`; expected run, scout or diagnose"
+                    ))
+                }
+            }
+        }
+        Ok(selected)
+    }
+
+    fn contains(self, name: &str) -> bool {
+        match name {
+            "run" => self.run,
+            "scout" => self.scout,
+            "diagnose" => self.diagnose,
+            _ => false,
+        }
+    }
+
+    fn instructions(self) -> String {
+        if self.run && self.scout && !self.diagnose {
+            return INSTRUCTIONS.to_string();
+        }
+        let mut text = String::new();
+        if self.diagnose {
+            text.push_str("For an error, failed test, stack trace or issue description, use `diagnose` with the report: it performs a bounded local investigation and returns ranked source evidence. Rankings are retrieval signals, not a verified root cause. ");
+        }
+        if self.scout {
+            text.push_str("Use `scout` for a term-based map of matching source files and declaration context. It is text search, not symbol resolution. ");
+        }
+        if self.run {
+            text.push_str("Use `run` to read and search with familiar commands; batch independent reads. Unsupported forms are refused, with no shell fallback. ");
+        }
+        text.push_str("Check completion and truncation flags before treating evidence as exhaustive. No source code is executed by Scout or diagnose; file discovery may invoke system Git. These tools do not provide an OS sandbox.");
+        text
+    }
+}
+
+fn tools(selected: ToolSet) -> Value {
     let mut tools = json!([
         {
             "name": "run",
@@ -46,8 +112,28 @@ fn tools() -> Value {
                 },
                 "required": ["terms"]
             }
+        },
+        {
+            "name": "diagnose",
+            "description": "Investigate an error, failing test, stack trace or issue description in one read-only call. Supply the original report; the tool extracts search terms and source locations, searches locally, ranks candidates and reads bounded source excerpts with declaration/nearby conditional context. Optional terms refine the query. Returns exact source line ranges, retrieval signals and incomplete/truncated flags. This is evidence retrieval, not proof of a root cause or a validated fix. No model, build or project code is run.",
+            "annotations": { "readOnlyHint": true, "destructiveHint": false, "idempotentHint": true, "openWorldHint": false },
+            "inputSchema": {
+                "type": "object", "additionalProperties": false,
+                "required": ["report"],
+                "properties": {
+                    "report": {"type":"string","maxLength":65536,"description":"Original error, stack trace, failed-test output or issue description."},
+                    "terms": {"type":"array","maxItems":24,"items":{"type":"string"},"description":"Optional identifiers or phrases to add to the extracted query."},
+                    "paths": {"type":"array","items":{"type":"string"},"description":"Optional project-relative files or directories."},
+                    "budget": {"type":"integer","minimum":0,"maximum":65536,"description":"UTF-8 byte budget for readable text, default 12000. Structured evidence is bounded separately."},
+                    "max_files": {"type":"integer","minimum":1,"maximum":16,"description":"Maximum candidate files, default 8."}
+                }
+            }
         }
     ]);
+    tools
+        .as_array_mut()
+        .unwrap()
+        .retain(|tool| selected.contains(tool["name"].as_str().unwrap()));
     for tool in tools.as_array_mut().unwrap() {
         tool["outputSchema"] = output_schema(tool["name"].as_str().unwrap());
     }
@@ -56,6 +142,9 @@ fn tools() -> Value {
 
 /// Versioned contracts shared by success, refusals and input errors.
 fn output_schema(name: &str) -> Value {
+    if name == "diagnose" {
+        return diagnose::output_schema();
+    }
     let version = if name == "scout" { 2 } else { 1 };
     let nullable_string = json!({"type":["string","null"]});
     let count = json!({"type":"integer","minimum":0});
@@ -284,6 +373,21 @@ fn strings(arguments: &Value, key: &str) -> Result<Vec<String>, String> {
 }
 
 fn empty_report(name: &str, dir: &Path, reason: &str) -> Value {
+    if name == "diagnose" {
+        let mut report = diagnose::diagnose_report(
+            dir,
+            &diagnose::Request {
+                report: String::new(),
+                terms: Vec::new(),
+                paths: Vec::new(),
+                budget: 0,
+                max_files: 8,
+            },
+        )
+        .structured;
+        report["reason"] = json!(reason);
+        return report;
+    }
     let version = if name == "scout" { 2 } else { 1 };
     let mut result = json!({
         "schema_version": version, "tool": name, "status": "error", "reason": reason, "cwd": dir.to_string_lossy(),
@@ -424,6 +528,51 @@ fn call(session: &mut Session, name: &str, arguments: &Value) -> Result<ToolAnsw
             check_answer_size(&answer)?;
             Ok(answer)
         }
+        "diagnose" => {
+            if arguments.as_object().unwrap().keys().any(|key| {
+                !matches!(
+                    key.as_str(),
+                    "report" | "terms" | "paths" | "budget" | "max_files"
+                )
+            }) {
+                return Err("unknown diagnose argument".to_string());
+            }
+            let report = arguments
+                .get("report")
+                .and_then(Value::as_str)
+                .ok_or("`report` must be a string")?;
+            let budget = match arguments.get("budget") {
+                None => DEFAULT_SCOUT_BUDGET,
+                Some(value) => value
+                    .as_u64()
+                    .filter(|n| *n <= 65_536)
+                    .ok_or("`budget` must be an integer between 0 and 65536")?
+                    as usize,
+            };
+            let max_files = match arguments.get("max_files") {
+                None => 8,
+                Some(value) => value
+                    .as_u64()
+                    .filter(|n| (1..=16).contains(n))
+                    .ok_or("`max_files` must be an integer between 1 and 16")?
+                    as usize,
+            };
+            let request = diagnose::Request {
+                report: report.to_string(),
+                terms: strings(arguments, "terms")?,
+                paths: strings(arguments, "paths")?,
+                budget,
+                max_files,
+            };
+            let report = diagnose::diagnose_report(&session.dir, &request);
+            let answer = ToolAnswer {
+                text: report.text,
+                structured: report.structured,
+                is_error: report.status != scout::ScoutStatus::Complete,
+            };
+            check_answer_size(&answer)?;
+            Ok(answer)
+        }
         other => Err(format!("unknown tool: {other}")),
     }
 }
@@ -452,6 +601,15 @@ fn check_answer_size(answer: &ToolAnswer) -> Result<(), String> {
 
 /// Answers one JSON-RPC message. Returns `None` for a notification (no answer expected).
 pub fn respond(session: &mut Session, message: &Value) -> Option<Value> {
+    respond_with_tools(session, message, ToolSet::ALL)
+}
+
+/// Respond with an explicitly restricted tool set.
+pub fn respond_with_tools(
+    session: &mut Session,
+    message: &Value,
+    selected: ToolSet,
+) -> Option<Value> {
     let id = message.get("id")?.clone();
     let method = message.get("method").and_then(Value::as_str).unwrap_or("");
     let params = message.get("params").cloned().unwrap_or(Value::Null);
@@ -471,15 +629,20 @@ pub fn respond(session: &mut Session, message: &Value) -> Option<Value> {
                 "protocolVersion": version,
                 "capabilities": { "tools": {} },
                 "serverInfo": { "name": "kiro", "version": env!("CARGO_PKG_VERSION") },
-                "instructions": INSTRUCTIONS
+                "instructions": selected.instructions()
             })
         }
         "ping" => json!({}),
-        "tools/list" => json!({ "tools": tools() }),
+        "tools/list" => json!({ "tools": tools(selected) }),
         "tools/call" => {
             let name = params.get("name").and_then(Value::as_str).unwrap_or("");
             let arguments = params.get("arguments").cloned().unwrap_or(json!({}));
-            let answer = match call(session, name, &arguments) {
+            let called = if selected.contains(name) {
+                call(session, name, &arguments)
+            } else {
+                Err(format!("tool `{name}` is not enabled"))
+            };
+            let answer = match called {
                 Ok(answer) => answer,
                 Err(error) => ToolAnswer {
                     structured: empty_report(name, &session.dir, &error),
@@ -503,6 +666,11 @@ pub fn respond(session: &mut Session, message: &Value) -> Option<Value> {
 
 /// Server loop: reads messages on standard input, answers on standard output.
 pub fn serve(project: &Path) -> std::io::Result<()> {
+    serve_with_tools(project, ToolSet::ALL)
+}
+
+/// Serve only the selected tools, without changing their implementation.
+pub fn serve_with_tools(project: &Path, selected: ToolSet) -> std::io::Result<()> {
     let project = if project.is_absolute() {
         project.to_path_buf()
     } else {
@@ -540,7 +708,7 @@ pub fn serve(project: &Path) -> std::io::Result<()> {
             continue;
         }
         let answer = match serde_json::from_slice::<Value>(&line) {
-            Ok(message) => respond(&mut session, &message),
+            Ok(message) => respond_with_tools(&mut session, &message, selected),
             Err(_) => Some(json!({
                 "jsonrpc": "2.0",
                 "id": null,
@@ -610,7 +778,7 @@ mod tests {
             .iter()
             .map(|t| t["name"].as_str().unwrap())
             .collect();
-        assert_eq!(names, vec!["run", "scout"]);
+        assert_eq!(names, vec!["run", "scout", "diagnose"]);
         let _ = std::fs::remove_dir_all(&dir);
     }
 

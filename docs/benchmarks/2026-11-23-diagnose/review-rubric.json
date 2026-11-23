@@ -1,0 +1,15 @@
+{
+  "scope": "AI-assisted source-based qualitative review of diagnosis explanations, separate from patch-location proxy. Reviewers receive answers with condition names hidden; self-references in answers may reveal tools. No human-certified correctness claim and no project tests run.",
+  "labels": {
+    "supported": "Main explanation is supported by the pre-fix source and reported issue; no material contradiction identified. Minor omissions may remain.",
+    "mixed": "A useful part of the explanation is supported, but a material error or omission is identified.",
+    "insufficient": "The main explanation is missing, unsupported, or materially misdescribes the reported behavior."
+  },
+  "rules": [
+    "Evaluate all measured answers, including empty, unfinished and low-location-score answers.",
+    "Reference patch locations guide review but do not uniquely establish causality or make an alternative location incorrect.",
+    "Check actual code behavior, conditions/defaults and source responsibility; do not reward path overlap as explanation correctness.",
+    "Do not call a proposed fix validated; project code and tests were not executed.",
+    "Record uncertainty and concrete source evidence. Labels do not certify every detail or exact line reference."
+  ]
+}

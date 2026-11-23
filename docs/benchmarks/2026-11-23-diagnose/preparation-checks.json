@@ -1,0 +1,27 @@
+{
+  "cases": 30,
+  "repositories": 14,
+  "languages": {
+    "Rust": 14,
+    "JavaScript/TypeScript": 16
+  },
+  "source_bytes": 94007369,
+  "source_files": 15287,
+  "max_source_file_bytes": 400208,
+  "reference_path_count": {
+    "1": 24,
+    "3": 2,
+    "6": 1,
+    "2": 3
+  },
+  "regions": 107,
+  "insertion_contexts": 29,
+  "new_production_files_without_preimage": 0,
+  "public_credential_redactions": 0,
+  "all_tree_hashes_verified": true,
+  "all_reference_regions_verified": true,
+  "tasks_sha256": "9138e8009392cae17252bd7c83a28aa88f70b966fd95ac4b2d9562e5a100de5c",
+  "gold_sha256": "cc55e7f631378879d62ffb6c8aece56b756d74e72a26e11770b7cdd489eeeaa9",
+  "manifest_sha256": "d3dd6185969633d24614c53897588261403d64d81954050ee557398253d0b310",
+  "prepare_script_sha256": "e0b45c5fa620f28a8bd67a525335e1c0fae005ff34dc5efff23b01779afeac0e"
+}

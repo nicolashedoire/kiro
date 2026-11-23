@@ -10,12 +10,14 @@
 //!   `cut`, `ls`, `grep`, pipelines and `;` / `&&` / `||` lists) in-process, with no shell
 //!   and no program started, and returns what the system tools would return;
 //! - [`scout`] maps an area of the code in one call instead of a dozen searches;
-//! - [`mcp`] serves both to an agent over the Model Context Protocol.
+//! - [`diagnose`] gathers bounded source evidence from an issue or error report;
+//! - [`mcp`] serves the tools to an agent over the Model Context Protocol.
 //!
 //! Anything the engine does not cover is refused or handed to the regular shell, never
 //! approximated: one more hop is better than a different result.
 
 mod builtins;
+pub mod diagnose;
 pub mod engine;
 pub mod grep;
 mod limits;

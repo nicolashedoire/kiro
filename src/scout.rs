@@ -475,7 +475,7 @@ impl Scores {
     }
 }
 
-fn is_skipped(path: &str) -> bool {
+pub(crate) fn is_skipped(path: &str) -> bool {
     if path.split('/').any(|part| SKIPPED_DIRS.contains(&part)) {
         return true;
     }
@@ -496,7 +496,7 @@ struct Candidates {
 /// A bounded Git listing. Command-line configuration takes precedence over repository
 /// configuration: even a configured fsmonitor hook must never run during discovery.
 /// Use the system Git, not a program selected through the caller's PATH.
-fn git_files(dir: &Path, paths: &[String]) -> Result<Option<Vec<u8>>, String> {
+fn git_files(dir: &Path, paths: &[String], literal_paths: bool) -> Result<Option<Vec<u8>>, String> {
     let mut child = match Command::new("/usr/bin/git")
         .args([
             "-c",
@@ -520,7 +520,13 @@ fn git_files(dir: &Path, paths: &[String]) -> Result<Option<Vec<u8>>, String> {
             "--exclude-standard",
             "--",
         ])
-        .args(paths)
+        .args(paths.iter().map(|path| {
+            if literal_paths {
+                format!(":(literal){path}")
+            } else {
+                path.clone()
+            }
+        }))
         .env("GIT_CONFIG_NOSYSTEM", "1")
         .env("GIT_CONFIG_GLOBAL", "/dev/null")
         .env("GIT_OPTIONAL_LOCKS", "0")
@@ -581,9 +587,17 @@ fn git_files(dir: &Path, paths: &[String]) -> Result<Option<Vec<u8>>, String> {
 /// Tracked and untracked, non-ignored files in a repository; a filtered walk otherwise.
 /// Both paths are bounded, and report incomplete enumeration instead of claiming a full map.
 fn project_files(dir: &Path, paths: &[String]) -> Result<Candidates, String> {
+    project_files_impl(dir, paths, false)
+}
+
+fn project_files_impl(
+    dir: &Path,
+    paths: &[String],
+    literal_paths: bool,
+) -> Result<Candidates, String> {
     let mut files = Vec::new();
     let mut seen = HashSet::new();
-    if let Some(bytes) = git_files(dir, paths)? {
+    if let Some(bytes) = git_files(dir, paths, literal_paths)? {
         for name in bytes.split(|b| *b == 0).filter(|name| !name.is_empty()) {
             let name = String::from_utf8_lossy(name).into_owned();
             if seen.contains(&name) {
@@ -660,6 +674,12 @@ fn project_files(dir: &Path, paths: &[String]) -> Result<Candidates, String> {
     })
 }
 
+/// Internal discovery shared with diagnose, before it validates confinement. This only
+/// lists names; it does not open their contents. Keep Git ignore/discovery behavior equal.
+pub(crate) fn candidate_paths(dir: &Path, paths: &[String]) -> Result<(Vec<String>, bool), String> {
+    project_files_impl(dir, paths, true).map(|candidates| (candidates.paths, candidates.truncated))
+}
+
 enum FileSearch {
     /// A documented exclusion, such as generated content, binary data or a large file.
     Skipped,
@@ -677,6 +697,7 @@ fn search_file(
     terms: &RegexSet,
     remaining_input: &mut usize,
     syntax_budget: &mut SyntaxBudget,
+    syntax_enabled: bool,
 ) -> Result<FileSearch, ()> {
     if is_skipped(path) {
         return Ok(FileSearch::Skipped);
@@ -730,7 +751,11 @@ fn search_file(
         path: path.to_string(),
         content,
         hits,
-        syntax: syntax_budget.analyze(path, &bytes),
+        syntax: if syntax_enabled {
+            syntax_budget.analyze(path, &bytes)
+        } else {
+            syntax::Analysis::limited(syntax::language_name(path))
+        },
     })))
 }
 
@@ -1203,6 +1228,36 @@ pub fn scout_result(dir: &Path, request: &Request) -> Result<String, String> {
 /// to discover the candidate set is `Error`; read/resource failures during a scan are
 /// `Partial`. The reference limit never stops the scan or changes its completion status.
 pub fn scout_report(dir: &Path, request: &Request) -> ScoutReport {
+    scout_report_impl(dir, request, true, false, None)
+}
+
+/// Compact per-file evidence for the fixed diagnose plan, independent of the
+/// public per-line reference limit. Exact-file requests contain at most 128
+/// names/16 KiB; 60 fixed first-line slots per matching file stay bounded too.
+pub(crate) struct LexicalFileSummary {
+    pub path: String,
+    pub matching_lines: usize,
+    pub term_lines: [usize; MAX_TERMS],
+}
+
+/// Read exactly the caller's already validated file names, without parsing syntax or
+/// interpreting names as Git pathspecs. Diagnose parses only its final candidate files.
+pub(crate) fn scout_report_lexical(
+    dir: &Path,
+    request: &Request,
+) -> (ScoutReport, Vec<LexicalFileSummary>) {
+    let mut files = Vec::new();
+    let report = scout_report_impl(dir, request, false, true, Some(&mut files));
+    (report, files)
+}
+
+fn scout_report_impl(
+    dir: &Path,
+    request: &Request,
+    syntax_enabled: bool,
+    exact_files: bool,
+    mut file_summaries: Option<&mut Vec<LexicalFileSummary>>,
+) -> ScoutReport {
     let budget = request.budget.min(MAX_ANSWER_BYTES);
     let invalid = |reason: &str| ScoutReport::error(reason.to_string(), reason.to_string(), budget);
     if request.terms.len() > MAX_TERMS
@@ -1241,7 +1296,15 @@ pub fn scout_report(dir: &Path, request: &Request) -> ScoutReport {
     let Ok(preview) = RegexBuilder::new(&pattern).case_insensitive(true).build() else {
         return invalid("scout: unreadable terms");
     };
-    let candidates = match project_files(dir, &request.paths) {
+    let discovered = if exact_files {
+        Ok(Candidates {
+            paths: request.paths.clone(),
+            truncated: false,
+        })
+    } else {
+        project_files(dir, &request.paths)
+    };
+    let candidates = match discovered {
         Ok(candidates) => candidates,
         Err(reason) => {
             return ScoutReport::error(
@@ -1264,7 +1327,14 @@ pub fn scout_report(dir: &Path, request: &Request) -> ScoutReport {
     let mut retained = 0;
     let mut limited = candidates.truncated;
     for path in &candidates.paths {
-        let hit = match search_file(dir, path, &set, &mut remaining_input, &mut syntax_budget) {
+        let hit = match search_file(
+            dir,
+            path,
+            &set,
+            &mut remaining_input,
+            &mut syntax_budget,
+            syntax_enabled,
+        ) {
             Ok(FileSearch::Read(hit)) => {
                 counts.read += 1;
                 hit
@@ -1292,6 +1362,21 @@ pub fn scout_report(dir: &Path, request: &Request) -> ScoutReport {
         if let Some(hit) = hit {
             counts.matching_files += 1;
             counts.matching_lines += hit.hits.len();
+            if let Some(summaries) = file_summaries.as_mut() {
+                let mut term_lines = [0; MAX_TERMS];
+                for matched in &hit.hits {
+                    for (term, line) in term_lines.iter_mut().enumerate() {
+                        if *line == 0 && matched.terms & (1u64 << term) != 0 {
+                            *line = matched.line + 1;
+                        }
+                    }
+                }
+                summaries.push(LexicalFileSummary {
+                    path: hit.path.clone(),
+                    matching_lines: hit.hits.len(),
+                    term_lines,
+                });
+            }
             structure.add(
                 &hit,
                 MAX_METADATA_BYTES.saturating_sub(references.allocated_bytes()),
@@ -1401,6 +1486,53 @@ mod tests {
             budget: 4000,
         };
         scout(dir, &request)
+    }
+
+    #[test]
+    fn lexical_plan_helper_preserves_search_counts_and_direct_references() {
+        let dir = fixture("lexical-plan-helper");
+        let request = Request {
+            terms: vec!["retries".to_string(), "two retries".to_string()],
+            paths: Vec::new(),
+            budget: 0,
+        };
+        let ordinary = scout_report(&dir, &request);
+        let (paths, truncated) = candidate_paths(&dir, &request.paths).unwrap();
+        assert!(!truncated);
+        let (lexical, summaries) = scout_report_lexical(&dir, &Request { paths, ..request });
+        assert_eq!(ordinary.status, lexical.status);
+        assert_eq!(ordinary.counts.read, lexical.counts.read);
+        assert_eq!(ordinary.counts.skipped, lexical.counts.skipped);
+        assert_eq!(ordinary.counts.errors, lexical.counts.errors);
+        assert_eq!(
+            ordinary.counts.matching_files,
+            lexical.counts.matching_files
+        );
+        assert_eq!(
+            ordinary.counts.matching_lines,
+            lexical.counts.matching_lines
+        );
+        let references = |report: &ScoutReport| {
+            report
+                .matches
+                .iter()
+                .map(|hit| (hit.path.clone(), hit.line_number, hit.term_indices.clone()))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(references(&ordinary), references(&lexical));
+        assert_eq!(summaries.len(), ordinary.counts.matching_files);
+        assert_eq!(
+            summaries
+                .iter()
+                .map(|file| file.matching_lines)
+                .sum::<usize>(),
+            ordinary.counts.matching_lines
+        );
+        assert!(lexical
+            .structure
+            .iter()
+            .all(|file| file.definitions.is_empty()));
+        let _ = std::fs::remove_dir_all(dir);
     }
 
     #[test]

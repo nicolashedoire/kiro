@@ -1,0 +1,2884 @@
+{
+  "dataset": "SWE-bench Multilingual",
+  "task_repository": "https://github.com/SWE-bench/swe-bench-multilingual-tasks",
+  "task_repository_commit": "6e08cbcd763c869abd7aae4bcb9e1b3991180777",
+  "task_archive_url": "https://codeload.github.com/SWE-bench/swe-bench-multilingual-tasks/tar.gz/6e08cbcd763c869abd7aae4bcb9e1b3991180777",
+  "task_archive_sha256": "fdfa7ef2f86c599cc95d6fe5a56d23251cf5bdf146555eeb6391e29f97ca00e2",
+  "huggingface_reference_revision": "846e647b9f33c0b51b739d005d13d85493c9af09",
+  "selection_seed": "kiro-diagnose-2026-11-23-v1",
+  "selection": "Filter before measuring; within each eligible repository sort SHA256(seed + NUL + instance_id); round-robin across lexicographically sorted repositories until 30 cases. Never selected using Kiro/model outcomes.",
+  "planned_cases": 30,
+  "eligible_cases": 67,
+  "eligible_repositories": 14,
+  "selection_decisions": [
+    {
+      "id": "apache__druid-13704",
+      "repository": "apache/druid",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__druid-14092",
+      "repository": "apache/druid",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__druid-14136",
+      "repository": "apache/druid",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__druid-15402",
+      "repository": "apache/druid",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__druid-16875",
+      "repository": "apache/druid",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__lucene-11760",
+      "repository": "apache/lucene",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__lucene-12022",
+      "repository": "apache/lucene",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__lucene-12196",
+      "repository": "apache/lucene",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__lucene-12212",
+      "repository": "apache/lucene",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__lucene-12626",
+      "repository": "apache/lucene",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__lucene-13170",
+      "repository": "apache/lucene",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__lucene-13301",
+      "repository": "apache/lucene",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__lucene-13494",
+      "repository": "apache/lucene",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "apache__lucene-13704",
+      "repository": "apache/lucene",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "astral-sh__ruff-15309",
+      "repository": "astral-sh/ruff",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "astral-sh__ruff-15330",
+      "repository": "astral-sh/ruff",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "astral-sh__ruff-15356",
+      "repository": "astral-sh/ruff",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "astral-sh__ruff-15394",
+      "repository": "astral-sh/ruff",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "astral-sh__ruff-15443",
+      "repository": "astral-sh/ruff",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "astral-sh__ruff-15543",
+      "repository": "astral-sh/ruff",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "astral-sh__ruff-15626",
+      "repository": "astral-sh/ruff",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "axios__axios-4731",
+      "repository": "axios/axios",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "axios__axios-4738",
+      "repository": "axios/axios",
+      "eligible": false,
+      "reasons": [
+        "issue_contains_image_markup_text_only_protocol"
+      ],
+      "selected": false
+    },
+    {
+      "id": "axios__axios-5085",
+      "repository": "axios/axios",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "axios__axios-5316",
+      "repository": "axios/axios",
+      "eligible": false,
+      "reasons": [
+        "issue_contains_image_markup_text_only_protocol"
+      ],
+      "selected": false
+    },
+    {
+      "id": "axios__axios-5892",
+      "repository": "axios/axios",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "axios__axios-6539",
+      "repository": "axios/axios",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "babel__babel-13928",
+      "repository": "babel/babel",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "babel__babel-14532",
+      "repository": "babel/babel",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "babel__babel-15445",
+      "repository": "babel/babel",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "babel__babel-15649",
+      "repository": "babel/babel",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "babel__babel-16130",
+      "repository": "babel/babel",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "briannesbitt__carbon-2665",
+      "repository": "briannesbitt/carbon",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "briannesbitt__carbon-2752",
+      "repository": "briannesbitt/carbon",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "briannesbitt__carbon-2762",
+      "repository": "briannesbitt/carbon",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "briannesbitt__carbon-2813",
+      "repository": "briannesbitt/carbon",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "briannesbitt__carbon-2981",
+      "repository": "briannesbitt/carbon",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "briannesbitt__carbon-3005",
+      "repository": "briannesbitt/carbon",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "briannesbitt__carbon-3041",
+      "repository": "briannesbitt/carbon",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "briannesbitt__carbon-3073",
+      "repository": "briannesbitt/carbon",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "briannesbitt__carbon-3098",
+      "repository": "briannesbitt/carbon",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "briannesbitt__carbon-3103",
+      "repository": "briannesbitt/carbon",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "burntsushi__ripgrep-2209",
+      "repository": "burntsushi/ripgrep",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "burntsushi__ripgrep-2576",
+      "repository": "burntsushi/ripgrep",
+      "eligible": false,
+      "reasons": [
+        "issue_contains_image_markup_text_only_protocol"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-4774",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-4943",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-5404",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-5626",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-5761",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-5870",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-5995",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-6051",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-6115",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-6288",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-6345",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-6350",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-6370",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "caddyserver__caddy-6411",
+      "repository": "caddyserver/caddy",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "facebook__docusaurus-10130",
+      "repository": "facebook/docusaurus",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "facebook__docusaurus-10309",
+      "repository": "facebook/docusaurus",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "facebook__docusaurus-8927",
+      "repository": "facebook/docusaurus",
+      "eligible": false,
+      "reasons": [
+        "issue_contains_image_markup_text_only_protocol"
+      ],
+      "selected": false
+    },
+    {
+      "id": "facebook__docusaurus-9183",
+      "repository": "facebook/docusaurus",
+      "eligible": false,
+      "reasons": [
+        "feature_request_title_pattern"
+      ],
+      "selected": false
+    },
+    {
+      "id": "facebook__docusaurus-9897",
+      "repository": "facebook/docusaurus",
+      "eligible": false,
+      "reasons": [
+        "issue_contains_image_markup_text_only_protocol"
+      ],
+      "selected": false
+    },
+    {
+      "id": "faker-ruby__faker-2705",
+      "repository": "faker-ruby/faker",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "faker-ruby__faker-2970",
+      "repository": "faker-ruby/faker",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fastlane__fastlane-19207",
+      "repository": "fastlane/fastlane",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fastlane__fastlane-19304",
+      "repository": "fastlane/fastlane",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fastlane__fastlane-19765",
+      "repository": "fastlane/fastlane",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fastlane__fastlane-20642",
+      "repository": "fastlane/fastlane",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "issue_contains_image_markup_text_only_protocol",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fastlane__fastlane-20958",
+      "repository": "fastlane/fastlane",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fastlane__fastlane-20975",
+      "repository": "fastlane/fastlane",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fastlane__fastlane-21857",
+      "repository": "fastlane/fastlane",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-3328",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-3466",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "issue_contains_image_markup_text_only_protocol",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-3608",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-3616",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-3631",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-3640",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-3641",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-3917",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-4030",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-4311",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-4598",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fluent__fluentd-4655",
+      "repository": "fluent/fluentd",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fmtlib__fmt-1683",
+      "repository": "fmtlib/fmt",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fmtlib__fmt-2310",
+      "repository": "fmtlib/fmt",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fmtlib__fmt-2317",
+      "repository": "fmtlib/fmt",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fmtlib__fmt-2457",
+      "repository": "fmtlib/fmt",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fmtlib__fmt-3158",
+      "repository": "fmtlib/fmt",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fmtlib__fmt-3248",
+      "repository": "fmtlib/fmt",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fmtlib__fmt-3272",
+      "repository": "fmtlib/fmt",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fmtlib__fmt-3729",
+      "repository": "fmtlib/fmt",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fmtlib__fmt-3750",
+      "repository": "fmtlib/fmt",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fmtlib__fmt-3863",
+      "repository": "fmtlib/fmt",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "fmtlib__fmt-3901",
+      "repository": "fmtlib/fmt",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gin-gonic__gin-1805",
+      "repository": "gin-gonic/gin",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "issue_contains_image_markup_text_only_protocol",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gin-gonic__gin-1957",
+      "repository": "gin-gonic/gin",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gin-gonic__gin-2121",
+      "repository": "gin-gonic/gin",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gin-gonic__gin-2755",
+      "repository": "gin-gonic/gin",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gin-gonic__gin-3227",
+      "repository": "gin-gonic/gin",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gin-gonic__gin-3741",
+      "repository": "gin-gonic/gin",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gin-gonic__gin-3820",
+      "repository": "gin-gonic/gin",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gin-gonic__gin-4003",
+      "repository": "gin-gonic/gin",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gohugoio__hugo-12171",
+      "repository": "gohugoio/hugo",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gohugoio__hugo-12204",
+      "repository": "gohugoio/hugo",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "issue_contains_image_markup_text_only_protocol",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gohugoio__hugo-12343",
+      "repository": "gohugoio/hugo",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gohugoio__hugo-12448",
+      "repository": "gohugoio/hugo",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gohugoio__hugo-12562",
+      "repository": "gohugoio/hugo",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gohugoio__hugo-12579",
+      "repository": "gohugoio/hugo",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "gohugoio__hugo-12768",
+      "repository": "gohugoio/hugo",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "google__gson-1014",
+      "repository": "google/gson",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "google__gson-1093",
+      "repository": "google/gson",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "google__gson-1100",
+      "repository": "google/gson",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "google__gson-2024",
+      "repository": "google/gson",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "google__gson-2061",
+      "repository": "google/gson",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "google__gson-2134",
+      "repository": "google/gson",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "google__gson-2158",
+      "repository": "google/gson",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "google__gson-2311",
+      "repository": "google/gson",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "google__gson-2479",
+      "repository": "google/gson",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "hashicorp__terraform-34580",
+      "repository": "hashicorp/terraform",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "hashicorp__terraform-34814",
+      "repository": "hashicorp/terraform",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "hashicorp__terraform-34900",
+      "repository": "hashicorp/terraform",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "hashicorp__terraform-35543",
+      "repository": "hashicorp/terraform",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "hashicorp__terraform-35611",
+      "repository": "hashicorp/terraform",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "immutable-js__immutable-js-2005",
+      "repository": "immutable-js/immutable-js",
+      "eligible": false,
+      "reasons": [
+        "issue_contains_image_markup_text_only_protocol"
+      ],
+      "selected": false
+    },
+    {
+      "id": "immutable-js__immutable-js-2006",
+      "repository": "immutable-js/immutable-js",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "javaparser__javaparser-4538",
+      "repository": "javaparser/javaparser",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "javaparser__javaparser-4561",
+      "repository": "javaparser/javaparser",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jekyll__jekyll-8047",
+      "repository": "jekyll/jekyll",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jekyll__jekyll-8167",
+      "repository": "jekyll/jekyll",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jekyll__jekyll-8761",
+      "repository": "jekyll/jekyll",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jekyll__jekyll-8771",
+      "repository": "jekyll/jekyll",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jekyll__jekyll-9141",
+      "repository": "jekyll/jekyll",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jordansissel__fpm-1829",
+      "repository": "jordansissel/fpm",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jordansissel__fpm-1850",
+      "repository": "jordansissel/fpm",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jqlang__jq-2235",
+      "repository": "jqlang/jq",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jqlang__jq-2598",
+      "repository": "jqlang/jq",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jqlang__jq-2650",
+      "repository": "jqlang/jq",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jqlang__jq-2658",
+      "repository": "jqlang/jq",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jqlang__jq-2681",
+      "repository": "jqlang/jq",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jqlang__jq-2728",
+      "repository": "jqlang/jq",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jqlang__jq-2750",
+      "repository": "jqlang/jq",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jqlang__jq-2839",
+      "repository": "jqlang/jq",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "jqlang__jq-2919",
+      "repository": "jqlang/jq",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-46234",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-48573",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-48636",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-51195",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-51890",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-52451",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-52680",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-52684",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-52866",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-53206",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-53696",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "issue_contains_image_markup_text_only_protocol",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-53914",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "laravel__framework-53949",
+      "repository": "laravel/framework",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "micropython__micropython-10095",
+      "repository": "micropython/micropython",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "micropython__micropython-12158",
+      "repository": "micropython/micropython",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "micropython__micropython-13039",
+      "repository": "micropython/micropython",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "micropython__micropython-13569",
+      "repository": "micropython/micropython",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "micropython__micropython-15898",
+      "repository": "micropython/micropython",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "mrdoob__three.js-25687",
+      "repository": "mrdoob/three.js",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "mrdoob__three.js-26589",
+      "repository": "mrdoob/three.js",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "mrdoob__three.js-27395",
+      "repository": "mrdoob/three.js",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "nlohmann__json-4237",
+      "repository": "nlohmann/json",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "nushell__nushell-12901",
+      "repository": "nushell/nushell",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "nushell__nushell-12950",
+      "repository": "nushell/nushell",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "nushell__nushell-13246",
+      "repository": "nushell/nushell",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "nushell__nushell-13605",
+      "repository": "nushell/nushell",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "nushell__nushell-13831",
+      "repository": "nushell/nushell",
+      "eligible": false,
+      "reasons": [
+        "feature_request_title_pattern"
+      ],
+      "selected": false
+    },
+    {
+      "id": "php-cs-fixer__php-cs-fixer-7523",
+      "repository": "php-cs-fixer/php-cs-fixer",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "php-cs-fixer__php-cs-fixer-7635",
+      "repository": "php-cs-fixer/php-cs-fixer",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "php-cs-fixer__php-cs-fixer-7663",
+      "repository": "php-cs-fixer/php-cs-fixer",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "php-cs-fixer__php-cs-fixer-7875",
+      "repository": "php-cs-fixer/php-cs-fixer",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "php-cs-fixer__php-cs-fixer-7998",
+      "repository": "php-cs-fixer/php-cs-fixer",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "php-cs-fixer__php-cs-fixer-8064",
+      "repository": "php-cs-fixer/php-cs-fixer",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "php-cs-fixer__php-cs-fixer-8075",
+      "repository": "php-cs-fixer/php-cs-fixer",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "php-cs-fixer__php-cs-fixer-8256",
+      "repository": "php-cs-fixer/php-cs-fixer",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "php-cs-fixer__php-cs-fixer-8331",
+      "repository": "php-cs-fixer/php-cs-fixer",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "php-cs-fixer__php-cs-fixer-8367",
+      "repository": "php-cs-fixer/php-cs-fixer",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "phpoffice__phpspreadsheet-3463",
+      "repository": "phpoffice/phpspreadsheet",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "phpoffice__phpspreadsheet-3469",
+      "repository": "phpoffice/phpspreadsheet",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "phpoffice__phpspreadsheet-3570",
+      "repository": "phpoffice/phpspreadsheet",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "phpoffice__phpspreadsheet-3659",
+      "repository": "phpoffice/phpspreadsheet",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "phpoffice__phpspreadsheet-3903",
+      "repository": "phpoffice/phpspreadsheet",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "phpoffice__phpspreadsheet-3940",
+      "repository": "phpoffice/phpspreadsheet",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "phpoffice__phpspreadsheet-4114",
+      "repository": "phpoffice/phpspreadsheet",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "phpoffice__phpspreadsheet-4186",
+      "repository": "phpoffice/phpspreadsheet",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "phpoffice__phpspreadsheet-4214",
+      "repository": "phpoffice/phpspreadsheet",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "phpoffice__phpspreadsheet-4313",
+      "repository": "phpoffice/phpspreadsheet",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-2757",
+      "repository": "preactjs/preact",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-2896",
+      "repository": "preactjs/preact",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-2927",
+      "repository": "preactjs/preact",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-3010",
+      "repository": "preactjs/preact",
+      "eligible": false,
+      "reasons": [
+        "feature_request_title_pattern"
+      ],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-3062",
+      "repository": "preactjs/preact",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-3345",
+      "repository": "preactjs/preact",
+      "eligible": false,
+      "reasons": [
+        "issue_contains_image_markup_text_only_protocol"
+      ],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-3454",
+      "repository": "preactjs/preact",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-3562",
+      "repository": "preactjs/preact",
+      "eligible": false,
+      "reasons": [
+        "issue_contains_image_markup_text_only_protocol"
+      ],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-3567",
+      "repository": "preactjs/preact",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-3689",
+      "repository": "preactjs/preact",
+      "eligible": false,
+      "reasons": [
+        "feature_request_title_pattern"
+      ],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-3739",
+      "repository": "preactjs/preact",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "preactjs__preact-3763",
+      "repository": "preactjs/preact",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-4152",
+      "repository": "preactjs/preact",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-4182",
+      "repository": "preactjs/preact",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "preactjs__preact-4245",
+      "repository": "preactjs/preact",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-4316",
+      "repository": "preactjs/preact",
+      "eligible": false,
+      "reasons": [
+        "issue_contains_image_markup_text_only_protocol"
+      ],
+      "selected": false
+    },
+    {
+      "id": "preactjs__preact-4436",
+      "repository": "preactjs/preact",
+      "eligible": false,
+      "reasons": [
+        "feature_request_title_pattern"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-2792",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3009",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3042",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3052",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3215",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3312",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3326",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3350",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3371",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3422",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3479",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3486",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3571",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3594",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3602",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3674",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "projectlombok__lombok-3697",
+      "repository": "projectlombok/lombok",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "prometheus__prometheus-10633",
+      "repository": "prometheus/prometheus",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "prometheus__prometheus-10720",
+      "repository": "prometheus/prometheus",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope"
+      ],
+      "selected": false
+    },
+    {
+      "id": "prometheus__prometheus-11859",
+      "repository": "prometheus/prometheus",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "prometheus__prometheus-12874",
+      "repository": "prometheus/prometheus",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "prometheus__prometheus-13845",
+      "repository": "prometheus/prometheus",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "prometheus__prometheus-14861",
+      "repository": "prometheus/prometheus",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "prometheus__prometheus-15142",
+      "repository": "prometheus/prometheus",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "prometheus__prometheus-9248",
+      "repository": "prometheus/prometheus",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope"
+      ],
+      "selected": false
+    },
+    {
+      "id": "reactivex__rxjava-7597",
+      "repository": "reactivex/rxjava",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-10068",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-10095",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-10764",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-11279",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-11510",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-11631",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-11734",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-12272",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-12472",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-13115",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-13338",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "redis__redis-9733",
+      "repository": "redis/redis",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13362",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13375",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13393",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13396",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13424",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13431",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13479",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13503",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13560",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13579",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13627",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13653",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "feature_request_title_pattern",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13668",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13680",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13687",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "rubocop__rubocop-13705",
+      "repository": "rubocop/rubocop",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "sharkdp__bat-1892",
+      "repository": "sharkdp/bat",
+      "eligible": false,
+      "reasons": [
+        "feature_request_title_pattern"
+      ],
+      "selected": false
+    },
+    {
+      "id": "sharkdp__bat-2201",
+      "repository": "sharkdp/bat",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "sharkdp__bat-2260",
+      "repository": "sharkdp/bat",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "sharkdp__bat-2393",
+      "repository": "sharkdp/bat",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "sharkdp__bat-2650",
+      "repository": "sharkdp/bat",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "sharkdp__bat-2835",
+      "repository": "sharkdp/bat",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "sharkdp__bat-3108",
+      "repository": "sharkdp/bat",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "sharkdp__bat-562",
+      "repository": "sharkdp/bat",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__axum-1119",
+      "repository": "tokio-rs/axum",
+      "eligible": false,
+      "reasons": [
+        "feature_request_title_pattern"
+      ],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__axum-1730",
+      "repository": "tokio-rs/axum",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "tokio-rs__axum-1934",
+      "repository": "tokio-rs/axum",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__axum-2096",
+      "repository": "tokio-rs/axum",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__axum-682",
+      "repository": "tokio-rs/axum",
+      "eligible": false,
+      "reasons": [
+        "feature_request_title_pattern"
+      ],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__axum-691",
+      "repository": "tokio-rs/axum",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__axum-734",
+      "repository": "tokio-rs/axum",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "tokio-rs__tokio-4384",
+      "repository": "tokio-rs/tokio",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__tokio-4867",
+      "repository": "tokio-rs/tokio",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__tokio-4898",
+      "repository": "tokio-rs/tokio",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__tokio-6551",
+      "repository": "tokio-rs/tokio",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__tokio-6603",
+      "repository": "tokio-rs/tokio",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "tokio-rs__tokio-6724",
+      "repository": "tokio-rs/tokio",
+      "eligible": false,
+      "reasons": [
+        "feature_request_title_pattern"
+      ],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__tokio-6752",
+      "repository": "tokio-rs/tokio",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__tokio-6838",
+      "repository": "tokio-rs/tokio",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "tokio-rs__tokio-7139",
+      "repository": "tokio-rs/tokio",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "uutils__coreutils-6377",
+      "repository": "uutils/coreutils",
+      "eligible": false,
+      "reasons": [
+        "feature_request_title_pattern"
+      ],
+      "selected": false
+    },
+    {
+      "id": "uutils__coreutils-6575",
+      "repository": "uutils/coreutils",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "uutils__coreutils-6682",
+      "repository": "uutils/coreutils",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "uutils__coreutils-6690",
+      "repository": "uutils/coreutils",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "uutils__coreutils-6731",
+      "repository": "uutils/coreutils",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "valkey-io__valkey-1499",
+      "repository": "valkey-io/valkey",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "valkey-io__valkey-1842",
+      "repository": "valkey-io/valkey",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "valkey-io__valkey-790",
+      "repository": "valkey-io/valkey",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "valkey-io__valkey-928",
+      "repository": "valkey-io/valkey",
+      "eligible": false,
+      "reasons": [
+        "language_outside_rust_js_ts_scope",
+        "no_existing_production_source_reference"
+      ],
+      "selected": false
+    },
+    {
+      "id": "vuejs__core-11589",
+      "repository": "vuejs/core",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "vuejs__core-11739",
+      "repository": "vuejs/core",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "vuejs__core-11870",
+      "repository": "vuejs/core",
+      "eligible": true,
+      "reasons": [],
+      "selected": false
+    },
+    {
+      "id": "vuejs__core-11899",
+      "repository": "vuejs/core",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    },
+    {
+      "id": "vuejs__core-11915",
+      "repository": "vuejs/core",
+      "eligible": true,
+      "reasons": [],
+      "selected": true
+    }
+  ],
+  "source_projection": {
+    "extensions": [
+      ".cjs",
+      ".js",
+      ".jsx",
+      ".mjs",
+      ".rs",
+      ".ts",
+      ".tsx"
+    ],
+    "excluded_path_components": [
+      ".git",
+      ".github",
+      ".gitlab",
+      "__fixtures__",
+      "__snapshots__",
+      "__tests__",
+      "assets",
+      "bench",
+      "benches",
+      "benchmark",
+      "benchmarks",
+      "book",
+      "build",
+      "builds",
+      "coverage",
+      "dependencies",
+      "deps",
+      "dist",
+      "doc",
+      "docs",
+      "example",
+      "examples",
+      "fixture",
+      "fixtures",
+      "generated",
+      "node_modules",
+      "out",
+      "site-packages",
+      "snapshot",
+      "snapshots",
+      "spec",
+      "specs",
+      "static",
+      "target",
+      "temp",
+      "test",
+      "test-utils",
+      "testing",
+      "tests",
+      "testutils",
+      "third-party",
+      "third_party",
+      "tmp",
+      "vendor",
+      "vendors",
+      "website",
+      "websites"
+    ],
+    "excluded_test_basename_regex": "(?:^|[._-])(?:test|tests|spec|specs)(?:[._-]|$)",
+    "excluded_feature_title_regex": "^(?:\\[feature[^\\]]*\\]\\s*)?(?:add\\b|support\\b|allow\\b|consider removing\\b|use HTTP 308\\b|vectored IO\\b)|\\bimplement\\b",
+    "excluded_image_markup_regex": "!\\[[^\\]]*\\]\\(|<img\\b",
+    "extra_metadata_names": [
+      "Cargo.toml",
+      "Cargo.lock",
+      "package.json"
+    ],
+    "preserved": "Original source bytes, including comments and inline tests in production files. All files normalized to0644. No separate tests/docs/fixtures/.git/dependencies/build output.",
+    "symlinks": "Omitted; never followed.",
+    "limits": "Whole retained production projection, no outcome-based trimming to fit Scout limits. Bounded Scout may explicitly report partial scans."
+  },
+  "prompt_data": "Original issue text only plus fixed read-only diagnosis instructions. No hints, reference patch, added tests, FAIL_TO_PASS identifiers, or evaluation scripts supplied.",
+  "scoring_scope": "Reference patch locations are an imperfect proxy; multiple valid diagnoses may exist. No project execution and no claim of issue repair or test-validated correctness. Pure insertions use at most three old lines before and two after their anchor; new-only files are reported separately.",
+  "private_read_denial": "Benchmark subprocesses should deny all file reads to this dataset/private directory, which contains all archives/raw task data/reference patches."
+}

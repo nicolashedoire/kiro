@@ -37,7 +37,12 @@ agent already writes (`grep`, `sed -n`, `cat`, …) and removes what sits behind
   JavaScript/JSX and TypeScript/TSX, including multiline signatures and configuration
   bindings. Other files keep an
   explicitly marked lexical heuristic. Structured results include exact source ranges.
-- **An MCP server** that gives both to an agent such as Claude Code.
+- **`diagnose`: an experimental local investigation pipeline.** Supply an error, stack
+  trace or issue description. It extracts terms and source anchors, searches with Scout,
+  combines retrieval signals and reads bounded source excerpts in one call. It returns
+  evidence and explicit limits, without running a model or project code. A ranking is not
+  a proven cause or a validated fix. See [usage and limits](docs/diagnose.md).
+- **An MCP server** that gives these tools to an agent such as Claude Code.
 
 Three rules hold it together:
 
@@ -136,6 +141,9 @@ $ kiro run --stats "ls -la"
 $ kiro scout "retry" "max attempts" "backoff"
 SCOUT - 7 files mention these terms (412 text files read; 3 skipped; 0 read errors)
 …
+
+$ kiro diagnose --report /path/to/failing-test.log
+…
 ```
 
 `--stats` tells whether the command ran inside the engine and how long it took.
@@ -148,15 +156,16 @@ In the project where you want it:
 claude mcp add kiro -- kiro mcp
 ```
 
-To let the agent call it without a prompt each time, allow the two read-only tools in your
+To let the agent call it without a prompt each time, allow the read-only tools in your
 Claude Code settings:
 
 ```json
-{ "permissions": { "allow": ["mcp__kiro__run", "mcp__kiro__scout"] } }
+{ "permissions": { "allow": ["mcp__kiro__run", "mcp__kiro__scout", "mcp__kiro__diagnose"] } }
 ```
 
 Remove it with `claude mcp remove kiro`. Any other MCP client works the same way: the server
 speaks JSON-RPC over standard input and output (`kiro mcp --project DIR`).
+Use `kiro mcp --tools run,scout` to expose only those two tools; disabled tools cannot be called.
 
 ### What the agent sees
 
