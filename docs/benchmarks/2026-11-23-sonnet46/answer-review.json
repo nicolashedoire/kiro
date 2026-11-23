@@ -1,0 +1,558 @@
+{
+  "scope": "Non-blinded source-based qualitative review of all final answers; separate from location coverage. Not a statistical answer-correctness score.",
+  "rubric": "review-rubric.json",
+  "labels": {
+    "consistent": "No material contradiction of the requested behavior identified; minor omissions may remain.",
+    "mixed": "Requested flow mostly explained but a concrete error or important omission is present.",
+    "insufficient": "A requested responsibility is absent or substantially misdescribed."
+  },
+  "method": "Qualitative review by AI reviewers against the pinned source, with primary-agent reconciliation of material issues. Not blinded; no human-certified correctness claim. Labels do not grade exact line references or every possible statement.",
+  "runs": [
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "kiro",
+      "rep": 1,
+      "label": "consistent",
+      "notes": [
+        "The requested Scout classification, unreadable-to-Partial decision, complete negative result, CLI Result-to-exit mapping, compatibility scout() wrapper and zero-budget structured status preservation are correctly described.",
+        "The answer also discusses grep/run beyond the requested Scout flow. That extra scope is not penalized as a semantic failure; required Scout responsibilities are present.",
+        "It correctly distinguishes the internal ToolAnswer.is_error flag from the MCP wire key isError."
+      ],
+      "evidence_symbols": [
+        "scout::FileSearch",
+        "scout::search_file",
+        "scout::scout_report",
+        "scout::scout_result",
+        "scout::scout",
+        "main scout branch",
+        "mcp::call scout branch",
+        "mcp::respond tools/call"
+      ]
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "kiro",
+      "rep": 2,
+      "label": "mixed",
+      "notes": [
+        "The main Scout unreadable-versus-negative flow, CLI Ok/Err mapping, direct MCP scout_report call and zero-budget status preservation are correct.",
+        "The answer identifies scout_result() as the compatibility wrapper and describes its Partial/Error collapse, but omits scout(), the explicitly requested text-only compatibility entry point that discards the complete-versus-incomplete Result status entirely.",
+        "Its additional grep explanation claims ordinary unreadable-file errors propagate as Err. Ordinary ReadError::Io is recorded by report() and can produce Ok(Output { code: 2 }); refusals/unrepresentable cases are different."
+      ],
+      "evidence_symbols": [
+        "scout::FileSearch",
+        "scout::search_file",
+        "scout::scout_report",
+        "scout::scout_result",
+        "scout::scout",
+        "main scout branch",
+        "mcp::call scout branch",
+        "mcp::respond tools/call",
+        "grep::Search::file",
+        "grep::Search::report",
+        "grep::run"
+      ]
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "kiro",
+      "rep": 3,
+      "label": "mixed",
+      "notes": [
+        "The central Scout flow and compatibility scout() wrapper are correctly identified, including CLI Ok-to-0 and Err-to-1.",
+        "The response explicitly says the MCP server emits an is_error:true content block. The wire key is isError at the tool result level; is_error is internal to ToolAnswer.",
+        "It incorrectly says MCP run translates completed grep exit code 2 into is_error:true. A covered native command retains its nonzero exit_code without making run a refused tool call.",
+        "For an exactly zero text budget, bounded_answer returns the empty string, not an alternative surviving truncation sentinel as stated in the scout.rs reason. The summary does correctly preserve status/counts independently of display text."
+      ],
+      "evidence_symbols": [
+        "scout::FileSearch",
+        "scout::search_file",
+        "scout::scout_report",
+        "scout::scout_result",
+        "scout::scout",
+        "main scout branch",
+        "mcp::call scout branch",
+        "mcp::respond tools/call",
+        "scout::bounded_answer",
+        "mcp::run_one",
+        "mcp::call run branch"
+      ]
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "kiro",
+      "rep": 4,
+      "label": "consistent",
+      "notes": [
+        "The requested Scout candidate classification, Partial versus Complete decision, CLI exit0/1, direct MCP report-to-isError mapping, text-only scout() compatibility shim and empty zero-budget text are correctly explained.",
+        "It correctly distinguishes the internal is_error flag from the JSON-RPC result key isError. Additional grep/limits material expands the requested scope without a material contradiction of the Scout flow."
+      ],
+      "evidence_symbols": [
+        "scout::FileSearch",
+        "scout::search_file",
+        "scout::scout_report",
+        "scout::scout_result",
+        "scout::scout",
+        "main scout branch",
+        "mcp::call scout branch",
+        "mcp::respond tools/call"
+      ]
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "kiro",
+      "rep": 5,
+      "label": "mixed",
+      "notes": [
+        "The main Scout candidate classification, incomplete-status construction, CLI exit0/1, direct MCP report call and independent zero-budget structured status are correctly described.",
+        "The explicitly requested status-discarding compatibility entry point is misidentified: the response claims a compatibility path scout -> empty_report handles pre-scan errors. The real scout() shim in scout.rs calls scout_result().unwrap_or_else(|text| text) and discards Ok/Err. MCP empty_report is a different fallback used by respond when call returns Err.",
+        "Extra grep discussion is not treated as a failure of the requested Scout flow."
+      ],
+      "evidence_symbols": [
+        "scout::FileSearch",
+        "scout::search_file",
+        "scout::scout_report",
+        "scout::scout_result",
+        "scout::scout",
+        "main scout branch",
+        "mcp::call scout branch",
+        "mcp::respond tools/call",
+        "mcp::empty_report",
+        "mcp::respond tools/call"
+      ]
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "terminal",
+      "rep": 1,
+      "label": "mixed",
+      "notes": [
+        "The requested unreadable-versus-complete-negative flow, CLI exit codes, compatibility wrapper and zero-budget status preservation are explained correctly.",
+        "The answer explicitly says that the MCP protocol uses is_error. The Rust ToolAnswer field is is_error, but respond serializes the wire key as isError; this is a concrete protocol-key error.",
+        "The phrase printed text is identical is ambiguous because both CLI match arms print their answer, while complete and incomplete answer strings differ. The preceding explanation correctly recognizes the incomplete prefix, so this wording alone is not treated as a material error."
+      ],
+      "evidence_symbols": [
+        "scout::FileSearch",
+        "scout::search_file",
+        "scout::scout_report",
+        "scout::scout_result",
+        "scout::scout",
+        "main scout branch",
+        "mcp::call scout branch / ToolAnswer.is_error",
+        "mcp::respond tools/call / isError"
+      ]
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "terminal",
+      "rep": 2,
+      "label": "consistent",
+      "notes": [
+        "The requested Scout classification, full report versus Result adapter, CLI exit 0/1, scout() status-discarding shim, MCP isError and empty zero-budget text are correctly explained.",
+        "The extra grep/limits discussion is outside the requested minimal scope, but it correctly distinguishes a completed nonzero grep exit from a refused MCP run. No material contradiction of the requested Scout behavior identified."
+      ],
+      "evidence_symbols": [
+        "scout::FileSearch",
+        "scout::search_file",
+        "scout::scout_report",
+        "scout::scout_result",
+        "scout::scout",
+        "main scout branch",
+        "mcp::call scout branch",
+        "mcp::respond tools/call",
+        "mcp::run_one",
+        "mcp::call run branch"
+      ]
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "terminal",
+      "rep": 3,
+      "label": "insufficient",
+      "notes": [
+        "The Scout unreadable classification, Partial versus Complete status and text-only scout() wrapper are substantially correct.",
+        "A requested front-end responsibility is substantially misdescribed: the summary says both search statuses reach the CLI through engine.rs -> main.rs using Reply::code. Scout does not pass through engine::Reply: the CLI directly calls scout_result() and maps Ok/Err to exit0/1. The answer gives no correct dedicated Scout CLI-front-end explanation in its file list.",
+        "It additionally claims MCP run raises isError for exit_code != 0; native completed grep exit2 is only a per-command exit_code, not a refused MCP call.",
+        "The absence of src/main.rs from the parsed files list is a separate location-coverage failure. The insufficient label is based on the wrong requested CLI behavior, not on that path metric alone."
+      ],
+      "evidence_symbols": [
+        "scout::FileSearch",
+        "scout::search_file",
+        "scout::scout_report",
+        "scout::scout_result",
+        "scout::scout",
+        "main scout branch",
+        "mcp::call scout branch",
+        "mcp::respond tools/call",
+        "engine::run",
+        "mcp::run_one",
+        "mcp::call run branch"
+      ]
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "terminal",
+      "rep": 4,
+      "label": "consistent",
+      "notes": [
+        "The core requested Scout flow is correct: unreadable candidates increment errors and force Partial; complete no-match remains Complete; scout_result and CLI preserve the Result distinction, while scout() discards it; MCP sets isError for non-Complete.",
+        "The answer explicitly states that zero-budget complete negative results retain Ok/isError:false and that native completed grep exit codes are separate from MCP refusal.",
+        "Minor imprecise extra wording: run_one has no Scout display-budget argument; its claim that both functions respect that budget is not source-exact. The phrase identical text means retaining either Result string, not equality of complete/incomplete messages. These do not change the correctly described requested Scout outcomes."
+      ],
+      "evidence_symbols": [
+        "scout::FileSearch",
+        "scout::search_file",
+        "scout::scout_report",
+        "scout::scout_result",
+        "scout::scout",
+        "main scout branch",
+        "mcp::call scout branch",
+        "mcp::respond tools/call",
+        "mcp::run_one",
+        "mcp::call run branch"
+      ]
+    },
+    {
+      "task_id": "kiro-incomplete-search-status",
+      "condition": "terminal",
+      "rep": 5,
+      "label": "mixed",
+      "notes": [
+        "The requested Scout unreadable-versus-negative flow, scout_result() result mapping, MCP isError handling and scout() status-discarding shim are mostly correct. It also correctly distinguishes completed grep exit2 from an MCP refusal.",
+        "The main.rs reason incorrectly attributes an unwrap_or_else compatibility idiom and discarding of reason text to the CLI. The CLI matches Ok/Err directly and prints either answer; scout() is the separate wrapper that drops only the Result status while preserving text.",
+        "The prompt explicitly asks what must remain true when the answer-size budget is zero, but this answer does not explain that invariant or the empty text versus surviving structured status/counts distinction. This is an important omission rather than an invented zero-budget marker."
+      ],
+      "evidence_symbols": [
+        "scout::FileSearch",
+        "scout::search_file",
+        "scout::scout_report",
+        "scout::scout_result",
+        "scout::scout",
+        "main scout branch",
+        "mcp::call scout branch",
+        "mcp::respond tools/call",
+        "scout::bounded_answer",
+        "mcp::run_one",
+        "mcp::call run branch"
+      ]
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "kiro",
+      "rep": 1,
+      "label": "mixed",
+      "notes": [
+        "The answer correctly connects closing state, route draining, preClose and capability/default selection, but describes idle mode as calling closeIdleConnections without the listening && options.serverFactory guard. fastify.js invokes that explicit idle call only for a listening custom server; server.close is also conditional on !serverFactory || listening."
+      ],
+      "evidence_symbols": [
+        "fastify.js:408-451 onClose/preClose/listening/serverFactory guards",
+        "lib/server.js:126-146 createServer capabilities/default/keepAliveConnections",
+        "lib/route.js:110,121,488-523 return503OnClosing/closing/request gate"
+      ]
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "kiro",
+      "rep": 2,
+      "label": "mixed",
+      "notes": [
+        "The answer correctly connects closing state, route draining, preClose and capability/default selection, but describes idle mode as calling closeIdleConnections without the listening && options.serverFactory guard. fastify.js invokes that explicit idle call only for a listening custom server; server.close is also conditional on !serverFactory || listening.",
+        "It additionally attributes creation of the real/noop keepAliveConnections container to fastify.js; the allocation decision is implemented in lib/server.js:138, while fastify.js only stores the returned container."
+      ],
+      "evidence_symbols": [
+        "fastify.js:408-451 onClose/preClose/listening/serverFactory guards",
+        "lib/server.js:126-146 createServer capabilities/default/keepAliveConnections",
+        "lib/route.js:110,121,488-523 return503OnClosing/closing/request gate"
+      ]
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "kiro",
+      "rep": 3,
+      "label": "mixed",
+      "notes": [
+        "The requested closing/draining/connection flow is mostly explained, but explicit idle closing is presented as a consequence of idle mode without the listening && options.serverFactory guard. In the pinned source that call is only made for a listening custom server; server.close is also guarded by !serverFactory || listening.",
+        "It also attributes the real/noop keepAliveConnections construction decision to fastify.js. The allocation is in lib/server.js:138; fastify.js only stores the returned container."
+      ],
+      "evidence_symbols": [
+        "fastify.js:408-451 onClose/preClose/listening/serverFactory guards",
+        "lib/server.js:126-146 createServer capabilities/default/keepAliveConnections",
+        "lib/route.js:110,121,488-523 return503OnClosing/closing/request gate"
+      ]
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "kiro",
+      "rep": 4,
+      "label": "mixed",
+      "notes": [
+        "The requested closing/draining/connection flow is mostly explained, but explicit idle closing is presented as a consequence of idle mode without the listening && options.serverFactory guard. In the pinned source that call is only made for a listening custom server; server.close is also guarded by !serverFactory || listening."
+      ],
+      "evidence_symbols": [
+        "fastify.js:408-451 onClose/preClose/listening/serverFactory guards",
+        "lib/server.js:126-146 createServer capabilities/default/keepAliveConnections",
+        "lib/route.js:110,121,488-523 return503OnClosing/closing/request gate"
+      ]
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "kiro",
+      "rep": 5,
+      "label": "mixed",
+      "notes": [
+        "The requested closing/draining/connection flow is mostly explained, but explicit idle closing is presented as a consequence of idle mode without the listening && options.serverFactory guard. In the pinned source that call is only made for a listening custom server; server.close is also guarded by !serverFactory || listening."
+      ],
+      "evidence_symbols": [
+        "fastify.js:408-451 onClose/preClose/listening/serverFactory guards",
+        "lib/server.js:126-146 createServer capabilities/default/keepAliveConnections",
+        "lib/route.js:110,121,488-523 return503OnClosing/closing/request gate"
+      ]
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "terminal",
+      "rep": 1,
+      "label": "mixed",
+      "notes": [
+        "The answer correctly connects closing state, route draining, preClose and capability/default selection, but describes idle mode as calling closeIdleConnections without the listening && options.serverFactory guard. fastify.js invokes that explicit idle call only for a listening custom server; server.close is also conditional on !serverFactory || listening."
+      ],
+      "evidence_symbols": [
+        "fastify.js:408-451 onClose/preClose/listening/serverFactory guards",
+        "lib/server.js:126-146 createServer capabilities/default/keepAliveConnections",
+        "lib/route.js:110,121,488-523 return503OnClosing/closing/request gate"
+      ]
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "terminal",
+      "rep": 2,
+      "label": "mixed",
+      "notes": [
+        "The answer correctly connects closing state, route draining, preClose and capability/default selection, but describes idle mode as calling closeIdleConnections without the listening && options.serverFactory guard. fastify.js invokes that explicit idle call only for a listening custom server; server.close is also conditional on !serverFactory || listening."
+      ],
+      "evidence_symbols": [
+        "fastify.js:408-451 onClose/preClose/listening/serverFactory guards",
+        "lib/server.js:126-146 createServer capabilities/default/keepAliveConnections",
+        "lib/route.js:110,121,488-523 return503OnClosing/closing/request gate"
+      ]
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "terminal",
+      "rep": 3,
+      "label": "mixed",
+      "notes": [
+        "The answer correctly includes the custom serverFactory condition for the explicit idle call and explains the main draining policy. However, it describes non-boolean forceCloseConnections as auto-defaulting without mentioning the preceding rejection of an explicit unsupported idle request. That case throws FST_ERR_FORCE_CLOSE_CONNECTIONS_IDLE_NOT_AVAILABLE, rather than choosing false.",
+        "The listening guard around connection actions and the serverFactory/listening condition for server.close are not described. These omissions are secondary to the unsupported-idle behavior above."
+      ],
+      "evidence_symbols": [
+        "fastify.js:408-451 onClose/preClose/listening/serverFactory guards",
+        "lib/server.js:126-146 createServer capabilities/default/keepAliveConnections",
+        "lib/route.js:110,121,488-523 return503OnClosing/closing/request gate"
+      ]
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "terminal",
+      "rep": 4,
+      "label": "mixed",
+      "notes": [
+        "The requested closing/draining/connection flow is mostly explained, but explicit idle closing is presented as a consequence of idle mode without the listening && options.serverFactory guard. In the pinned source that call is only made for a listening custom server; server.close is also guarded by !serverFactory || listening."
+      ],
+      "evidence_symbols": [
+        "fastify.js:408-451 onClose/preClose/listening/serverFactory guards",
+        "lib/server.js:126-146 createServer capabilities/default/keepAliveConnections",
+        "lib/route.js:110,121,488-523 return503OnClosing/closing/request gate"
+      ]
+    },
+    {
+      "task_id": "shutdown-drain",
+      "condition": "terminal",
+      "rep": 5,
+      "label": "mixed",
+      "notes": [
+        "The requested closing/draining/connection flow is mostly explained, but explicit idle closing is presented as a consequence of idle mode without the listening && options.serverFactory guard. In the pinned source that call is only made for a listening custom server; server.close is also guarded by !serverFactory || listening.",
+        "It does not describe the effective default forceCloseConnections choice (idle when supported, false otherwise), although capability checks and the legacy Set condition are identified."
+      ],
+      "evidence_symbols": [
+        "fastify.js:408-451 onClose/preClose/listening/serverFactory guards",
+        "lib/server.js:126-146 createServer capabilities/default/keepAliveConnections",
+        "lib/route.js:110,121,488-523 return503OnClosing/closing/request gate"
+      ]
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "kiro",
+      "rep": 1,
+      "label": "mixed",
+      "notes": [
+        "Priorité route → instance → défaut, attachValidation et valeurs par défaut via || correctement décrits.",
+        "Affirme à tort que validateSchemaErrorFormatter impose un contrat d’arité et de retour : le code vérifie que la valeur est une fonction et refuse AsyncFunction, sans vérifier ni arité ni valeur retournée. Le cœur du flux demandé reste correctement expliqué."
+      ],
+      "evidence_symbols": [
+        "fastify.js:setSchemaErrorFormatter:766-770",
+        "fastify.js:validateSchemaErrorFormatter:1020-1025",
+        "lib/context.js:Context:68-73",
+        "lib/validation.js:wrapValidationError:508-521",
+        "lib/handle-request.js:validationCompleted:126-146"
+      ]
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "kiro",
+      "rep": 2,
+      "label": "consistent",
+      "notes": [
+        "Les deux branches Error déjà construit / tableau brut sont distinguées, les status/code sont présentés comme des valeurs par défaut, et la branche attachValidation est correcte.",
+        "La priorité route → instance → défaut et le setter public validé sont correctement identifiés. Le binding du setter n’est pas détaillé ; omission mineure sans contradiction du flux demandé."
+      ],
+      "evidence_symbols": [
+        "fastify.js:setSchemaErrorFormatter:766-770",
+        "lib/errors.js:FST_ERR_VALIDATION:56-60",
+        "lib/context.js:Context:68-73",
+        "lib/route.js:route:293-295,388-391",
+        "lib/validation.js:wrapValidationError:508-521",
+        "lib/handle-request.js:validationCompleted:126-146"
+      ]
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "kiro",
+      "rep": 3,
+      "label": "mixed",
+      "notes": [
+        "Priorité des formatters et comportement attachValidation corrects ; les status/code sont d’abord présentés comme des defaults qui préservent les valeurs existantes.",
+        "Affirme explicitement que la branche result instanceof Error «then sets validation and validationContext». Cette branche ne renseigne pas result.validation : elle conserve l’Error et ne complète que statusCode, code et validationContext via ||. error.validation=result n’est ajouté que dans la branche qui appelle le formatter sur le résultat brut."
+      ],
+      "evidence_symbols": [
+        "lib/validation.js:wrapValidationError:508-521",
+        "fastify.js:setSchemaErrorFormatter:766-770",
+        "lib/context.js:Context:68-73",
+        "lib/route.js:route:293-295,388-391",
+        "lib/validation.js:wrapValidationError:508-521",
+        "lib/handle-request.js:validationCompleted:126-146"
+      ]
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "kiro",
+      "rep": 4,
+      "label": "mixed",
+      "notes": [
+        "Les raisons par fichier expliquent correctement les fallbacks || et distinguent l’Error existante du résultat brut.",
+        "Le résumé contredit toutefois ce détail en affirmant que wrapValidationError «unconditionally stamps statusCode = 400, code = FST_ERR_VALIDATION». Les valeurs existantes truthy sont conservées par ||, y compris celles d’un formatter personnalisé. Le flux général et attachValidation restent corrects, d’où mixed plutôt que insufficient."
+      ],
+      "evidence_symbols": [
+        "lib/validation.js:wrapValidationError:508-521",
+        "lib/context.js:Context:68-73",
+        "lib/route.js:route:293-295,388-391",
+        "lib/validation.js:wrapValidationError:508-521",
+        "lib/handle-request.js:validationCompleted:126-146"
+      ]
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "kiro",
+      "rep": 5,
+      "label": "consistent",
+      "notes": [
+        "Les deux branches de normalisation sont correctement distinguées, avec || sur statusCode/code et validationContext dans la branche Error existante.",
+        "Priorité des formatters, setter sync validé/bound et décision attachValidation correcte pour les options booléennes demandées. L’expression «falsy» est une simplification : le code compare strictement à false après normalisation des options ; aucun cas non booléen n’était demandé."
+      ],
+      "evidence_symbols": [
+        "fastify.js:setSchemaErrorFormatter:766-770",
+        "fastify.js:validateSchemaErrorFormatter:1020-1025",
+        "lib/context.js:Context:68-73",
+        "lib/route.js:route:293-295,388-391",
+        "lib/validation.js:wrapValidationError:508-521",
+        "lib/handle-request.js:validationCompleted:126-146"
+      ]
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "terminal",
+      "rep": 1,
+      "label": "consistent",
+      "notes": [
+        "Aucune contradiction matérielle identifiée sur le flux demandé : priorité route/instance/défaut, normalisation et branche attachValidation sont décrites.",
+        "Les affectations sont dites inconditionnelles mais la formule || est reproduite et la garantie 400/FST_ERR_VALIDATION est explicitement limitée aux champs omis par le formatter ; cela ne prétend pas écraser des valeurs personnalisées truthy. Validation/binding du setter peu détaillés, omission mineure plutôt qu’erreur majeure."
+      ],
+      "evidence_symbols": [
+        "fastify.js:setSchemaErrorFormatter:766-770",
+        "lib/context.js:Context:68-73",
+        "lib/route.js:route:293-295,388-391",
+        "lib/validation.js:wrapValidationError:508-521",
+        "lib/handle-request.js:validationCompleted:126-146"
+      ]
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "terminal",
+      "rep": 2,
+      "label": "consistent",
+      "notes": [
+        "Priorité du formatter, API publique, défaut attachValidation=false et continuation/arrêt correctement expliqués.",
+        "La normalisation est décrite avec la condition «if absent / if not already set» ; aucune affirmation d’écrasement systématique des status/code personnalisés. Les positions de lignes approximatives ne correspondent pas toutes au snapshot, mais les symboles et responsabilités demandés sont corrects."
+      ],
+      "evidence_symbols": [
+        "fastify.js:setSchemaErrorFormatter:766-770",
+        "lib/context.js:Context:68-73",
+        "lib/route.js:route:293-295,388-391",
+        "lib/validation.js:wrapValidationError:508-521",
+        "lib/handle-request.js:validationCompleted:126-146"
+      ]
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "terminal",
+      "rep": 3,
+      "label": "consistent",
+      "notes": [
+        "Aucune contradiction matérielle sur les trois responsabilités demandées : formatter route/instance/default, status/code seulement si non déjà présents, attachValidation=false qui stoppe avant preHandler.",
+        "Le setter est validé, bound et soumis à la garde de démarrage. Plusieurs numéros de ligne annoncés pour wrapValidationError et validationCompleted sont inexacts dans ce snapshot ; les fonctions et fichiers sont néanmoins identifiés correctement."
+      ],
+      "evidence_symbols": [
+        "fastify.js:setSchemaErrorFormatter:766-770",
+        "fastify.js:validateSchemaErrorFormatter:1020-1025",
+        "lib/context.js:Context:68-73",
+        "lib/route.js:route:293-295,388-391",
+        "lib/validation.js:wrapValidationError:508-521",
+        "lib/handle-request.js:validationCompleted:126-146"
+      ]
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "terminal",
+      "rep": 4,
+      "label": "consistent",
+      "notes": [
+        "Le détail reproduit les affectations statusCode || 400 et code || FST_ERR_VALIDATION, ainsi que la priorité formatter et le défaut attachValidation=false.",
+        "L’arrêt immédiat ou l’attachement à request.validationError suivi de preHandler/handler est correctement décrit. Les détails de validation du setter sont omis sans inventer de contrat supplémentaire."
+      ],
+      "evidence_symbols": [
+        "fastify.js:setSchemaErrorFormatter:766-770",
+        "lib/context.js:Context:68-73",
+        "lib/route.js:route:293-295,388-391",
+        "lib/validation.js:wrapValidationError:508-521",
+        "lib/handle-request.js:validationCompleted:126-146"
+      ]
+    },
+    {
+      "task_id": "validation-flow",
+      "condition": "terminal",
+      "rep": 5,
+      "label": "consistent",
+      "notes": [
+        "Aucune contradiction matérielle identifiée : route/instance/default, setter public, fallbacks sur statusCode/code et arrêt/continuation attachValidation correctement expliqués.",
+        "La formule || est donnée explicitement et les champs déjà renseignés sont conservés dans la description. Binding/validation du setter moins détaillés et positions de lignes approximatives, sans erreur sur le comportement demandé."
+      ],
+      "evidence_symbols": [
+        "fastify.js:setSchemaErrorFormatter:766-770",
+        "lib/context.js:Context:68-73",
+        "lib/route.js:route:293-295,388-391",
+        "lib/validation.js:wrapValidationError:508-521",
+        "lib/handle-request.js:validationCompleted:126-146"
+      ]
+    }
+  ]
+}

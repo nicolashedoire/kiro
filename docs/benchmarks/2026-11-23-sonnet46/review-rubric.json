@@ -1,0 +1,28 @@
+{
+  "scope": "Non-blinded source-based qualitative review of all final answers; separate from location coverage. Not a statistical answer-correctness score.",
+  "labels": {
+    "consistent": "No material contradiction of the requested behavior identified; minor omissions may remain.",
+    "mixed": "Requested flow mostly explained but a concrete error or important omission is present.",
+    "insufficient": "A requested responsibility is absent or substantially misdescribed."
+  },
+  "tasks": {
+    "kiro-incomplete-search-status": [
+      "Unreadable candidates differ from documented skipped files and completed negative reads.",
+      "Read/resource failures make lexical scan Partial; invalid input/discovery can be Error; complete no-match is Complete.",
+      "CLI scout_result converts Complete to exit 0 and other statuses to exit 1; scout compatibility wrapper drops status.",
+      "MCP calls scout_report and sets isError from top-level lexical status, while structured status/counts/references survive budget0.",
+      "Zero-budget text is empty, not a surviving truncated marker. Do not invent a CLI --budget option or confuse syntax/display incompleteness with lexical failure."
+    ],
+    "validation-flow": [
+      "Formatter priority route, then instance, then default; public customization validated and bound.",
+      "attachValidation defaults false: error stops request; true attaches request.validationError and continues preHandler/handler.",
+      "Default status400 and code FST_ERR_VALIDATION are fallbacks via ||, not unconditional overwrites; validation/context metadata retained."
+    ],
+    "shutdown-drain": [
+      "Closing flag and route closing precede preClose; connection handling and server.close follow with relevant guards.",
+      "HTTP1 Connection: close while draining;503 only if return503OnClosing, default true; false continues.",
+      "Capability detection selects idle default if supported, otherwise false; unavailable explicit idle rejected.",
+      "Force close uses closeAllConnections if available, otherwise tracked sockets; Set only for forced legacy fallback. Respect listening/serverFactory guards rather than claiming every branch unconditional."
+    ]
+  }
+}

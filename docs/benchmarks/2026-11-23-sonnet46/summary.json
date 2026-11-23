@@ -1,0 +1,271 @@
+{
+  "scope": "Descriptive aggregates of all 30 measured sessions; no statistical significance or semantic-correctness claim.",
+  "results": "results.json",
+  "conditions": {
+    "terminal": {
+      "sessions": 15,
+      "finished": 15,
+      "required_path_coverage": 14,
+      "metrics": {
+        "wall_seconds": {
+          "median": 47.282141250005225,
+          "mean": 53.127729344399995,
+          "sum": 796.9159401659999
+        },
+        "turns": {
+          "median": 12,
+          "mean": 13.266666666666667,
+          "sum": 199
+        },
+        "tokens": {
+          "median": 174482,
+          "mean": 205673.13333333333,
+          "sum": 3085097
+        },
+        "cost_usd": {
+          "median": 0.17554730000000002,
+          "mean": 0.20182691333333333,
+          "sum": 3.0274037000000003
+        }
+      },
+      "tool_calls": {
+        "Bash": 184
+      }
+    },
+    "kiro": {
+      "sessions": 15,
+      "finished": 15,
+      "required_path_coverage": 15,
+      "metrics": {
+        "wall_seconds": {
+          "median": 45.055229957994015,
+          "mean": 48.38313339153392,
+          "sum": 725.7470008730088
+        },
+        "turns": {
+          "median": 7,
+          "mean": 7.8,
+          "sum": 117
+        },
+        "tokens": {
+          "median": 148946,
+          "mean": 167322.53333333333,
+          "sum": 2509838
+        },
+        "cost_usd": {
+          "median": 0.18506039999999999,
+          "mean": 0.21131114666666664,
+          "sum": 3.1696671999999997
+        }
+      },
+      "tool_calls": {
+        "run": 88,
+        "scout": 9,
+        "Bash": 5
+      }
+    }
+  },
+  "tasks": {
+    "kiro-incomplete-search-status": {
+      "terminal": {
+        "sessions": 5,
+        "finished": 5,
+        "required_path_coverage": 4,
+        "metrics": {
+          "wall_seconds": {
+            "median": 73.25712875000318,
+            "mean": 72.16180329980125,
+            "sum": 360.80901649900625
+          },
+          "turns": {
+            "median": 18,
+            "mean": 19.2,
+            "sum": 96
+          },
+          "tokens": {
+            "median": 251331,
+            "mean": 328666.6,
+            "sum": 1643333
+          },
+          "cost_usd": {
+            "median": 0.27781520000000004,
+            "mean": 0.28062322,
+            "sum": 1.4031161
+          }
+        },
+        "tool_calls": {
+          "Bash": 91
+        }
+      },
+      "kiro": {
+        "sessions": 5,
+        "finished": 5,
+        "required_path_coverage": 5,
+        "metrics": {
+          "wall_seconds": {
+            "median": 56.647364457996446,
+            "mean": 60.7988559164005,
+            "sum": 303.9942795820025
+          },
+          "turns": {
+            "median": 11,
+            "mean": 10.6,
+            "sum": 53
+          },
+          "tokens": {
+            "median": 269258,
+            "mean": 246927,
+            "sum": 1234635
+          },
+          "cost_usd": {
+            "median": 0.29561509999999996,
+            "mean": 0.28961644,
+            "sum": 1.4480822
+          }
+        },
+        "tool_calls": {
+          "run": 38,
+          "Bash": 5,
+          "scout": 5
+        }
+      }
+    },
+    "validation-flow": {
+      "terminal": {
+        "sessions": 5,
+        "finished": 5,
+        "required_path_coverage": 5,
+        "metrics": {
+          "wall_seconds": {
+            "median": 40.57291695800086,
+            "mean": 42.903752574999814,
+            "sum": 214.51876287499908
+          },
+          "turns": {
+            "median": 9,
+            "mean": 10.4,
+            "sum": 52
+          },
+          "tokens": {
+            "median": 110974,
+            "mean": 134081,
+            "sum": 670405
+          },
+          "cost_usd": {
+            "median": 0.17554730000000002,
+            "mean": 0.18488372,
+            "sum": 0.9244186000000001
+          }
+        },
+        "tool_calls": {
+          "Bash": 47
+        }
+      },
+      "kiro": {
+        "sessions": 5,
+        "finished": 5,
+        "required_path_coverage": 5,
+        "metrics": {
+          "wall_seconds": {
+            "median": 41.0266505000036,
+            "mean": 40.20399726680189,
+            "sum": 201.01998633400945
+          },
+          "turns": {
+            "median": 7,
+            "mean": 6.2,
+            "sum": 31
+          },
+          "tokens": {
+            "median": 130601,
+            "mean": 124150.2,
+            "sum": 620751
+          },
+          "cost_usd": {
+            "median": 0.16532629999999998,
+            "mean": 0.17407751999999999,
+            "sum": 0.8703875999999999
+          }
+        },
+        "tool_calls": {
+          "run": 23,
+          "scout": 3
+        }
+      }
+    },
+    "shutdown-drain": {
+      "terminal": {
+        "sessions": 5,
+        "finished": 5,
+        "required_path_coverage": 5,
+        "metrics": {
+          "wall_seconds": {
+            "median": 45.02079112499632,
+            "mean": 44.31763215839892,
+            "sum": 221.5881607919946
+          },
+          "turns": {
+            "median": 10,
+            "mean": 10.2,
+            "sum": 51
+          },
+          "tokens": {
+            "median": 159231,
+            "mean": 154271.8,
+            "sum": 771359
+          },
+          "cost_usd": {
+            "median": 0.1339089,
+            "mean": 0.13997379999999998,
+            "sum": 0.699869
+          }
+        },
+        "tool_calls": {
+          "Bash": 46
+        }
+      },
+      "kiro": {
+        "sessions": 5,
+        "finished": 5,
+        "required_path_coverage": 5,
+        "metrics": {
+          "wall_seconds": {
+            "median": 45.055229957994015,
+            "mean": 44.146546991399376,
+            "sum": 220.73273495699686
+          },
+          "turns": {
+            "median": 7,
+            "mean": 6.6,
+            "sum": 33
+          },
+          "tokens": {
+            "median": 131807,
+            "mean": 130890.4,
+            "sum": 654452
+          },
+          "cost_usd": {
+            "median": 0.17184349999999998,
+            "mean": 0.17023948,
+            "sum": 0.8511974
+          }
+        },
+        "tool_calls": {
+          "run": 27,
+          "scout": 1
+        }
+      }
+    }
+  },
+  "qualitative_review_counts": {
+    "terminal": {
+      "mixed": 7,
+      "consistent": 7,
+      "insufficient": 1
+    },
+    "kiro": {
+      "consistent": 4,
+      "mixed": 11
+    }
+  }
+}

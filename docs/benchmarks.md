@@ -5,15 +5,24 @@ behaviour. They do not establish a universal speedup or a semantic correctness s
 
 ## Current live comparison
 
-A new experiment on 21 November 2026 ran **30 real Claude Sonnet 4.6 sessions** on two public
-repositories with Kiro source `3c17a2e`: three tasks, five repetitions per condition. Median
-full-session wall time was 53.05 s with the system terminal and 36.39 s with Kiro MCP added.
-Required-path coverage was 15/15 versus 14/15; this is not semantic correctness. Every run
-is included, and manual source-based review identified explanation errors in both conditions.
+A new experiment on 23 November 2026 ran **30 real Claude Sonnet 4.6 sessions** on
+production-only subsets of two public repositories with Kiro source `55d26e9`, including
+Tree-sitter and its subsequent fixes: three tasks, five repetitions per condition. Median
+full-session wall time was **47.28 s with Bash alone and 45.06 s with Kiro MCP added**
+(4.7% lower in this sample). Median model turns were 12 versus 7. Total reported model
+cost was $3.03 versus $3.17, so fewer turns did not make this campaign cheaper.
 
-[View the charts, exact setup, pinned tasks and per-session data](benchmarks/2026-11-21-sonnet46/README.md).
-This is separate from both the command-only fixture below and the older private-corpus
-measurements retained at the end of this document.
+All 30 sessions finished. Required-path coverage was 14/15 versus 15/15; this is not semantic
+correctness. Every run is included, and source-based review identified explanation errors
+in both conditions. Kiro was available at initialization in every Kiro session. The
+baseline has Bash only, not Claude Code's native Read/Grep tools. Both configurations may
+batch commands, and Kiro sessions may fall back to Bash.
+
+[View the charts, exact setup, pinned tasks, answer review and per-session data](benchmarks/2026-11-23-sonnet46/README.md).
+The [21 November campaign](benchmarks/2026-11-21-sonnet46/README.md) remains an archive:
+different dataset scope and MCP initialization prevent a causal version-to-version
+comparison. Both live campaigns are separate from the command fixture below and the older
+private-corpus measurements at the end of this document.
 
 ## Reproduce the public command fixture
 
@@ -138,7 +147,7 @@ writing commands through its safety filter. Its grep compatibility probe could a
 a process despite the reported zero-process count. The previous RTK table and coverage
 percentages are therefore not a baseline for the current runner.
 
-A future performance claim needs public input data, the exact commit and model identifiers,
-per-run traces, distributions rather than just means, an equivalent optimized baseline,
-and a correctness assessment separate from path mentions. No paid live experiment was
-rerun as part of these corrections.
+These older private-corpus figures have not been reproduced. The public live campaigns
+above publish pinned inputs, final answers, measurements and distributions, with source-based
+review separate from path coverage. Broader performance claims still need more tasks and
+an additional baseline using optimized native file-reading tools.

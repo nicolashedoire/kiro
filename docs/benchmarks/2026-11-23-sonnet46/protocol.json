@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-23",
+  "defined_at_utc": "2026-11-23T15:46:41.849827+00:00",
+  "model": "claude-sonnet-4-6",
+  "effort": "medium",
+  "kiro_commit": "55d26e934589e7c15d69c882d5f956493878dca5",
+  "claude_code_version": "2.1.173 (Claude Code)",
+  "environment": {
+    "os": "macOS",
+    "macos_version": "15.1.1",
+    "architecture": "arm64",
+    "cpu": "Apple M4 Pro"
+  },
+  "planned_sessions": 30,
+  "tasks": 3,
+  "conditions": [
+    "terminal",
+    "kiro"
+  ],
+  "repetitions_per_task_condition": 5,
+  "max_parallel": 4,
+  "timeout_seconds": 480,
+  "max_budget_usd_per_session": 3,
+  "schedule_seed": 20261123,
+  "runner_sha256": "6949a2ce8ebb5c59cabad84ce479ecddc526917b416f29a84be10930b531a76b",
+  "tasks_sha256": "58e026ee98c050bbf1693ba37d895582091390ac241e5e5ebc638a3599e87a17",
+  "review_rubric_sha256": "0577bec940ca43d2c7f9c7d1fedbf2e0e73a92ce739cf8828e2a9d2368bc5c3a",
+  "binary_sha256": "a8eb3a2f259fe8b5c2fd4c3725a136edd60fa6a106ed856d327b7c423340f133",
+  "dataset_fingerprints": {
+    "kiro": "967a683dc9773e28f03ed8287201e415066d735a47c79ccfe1c3705fc47f824d",
+    "fastify": "67a8f84a0bd7b88d57eb00c316ff25d8be024249c8f64435c9e2f04cbbfabb97"
+  },
+  "initialization_environment": {
+    "MCP_CONNECTION_NONBLOCKING": "0",
+    "ENABLE_TOOL_SEARCH": "false"
+  },
+  "mcp_always_load": true,
+  "preflight": {
+    "authentication_smoke_success": true,
+    "excluded_auth_smoke_calls": 1,
+    "excluded_tool_check_sessions": 4,
+    "last_tool_check_tools_ready": true,
+    "project_write_denial_checked": true
+  },
+  "protocol_change_from_2026_11_21": "Production-only datasets avoid published-answer contamination; current Kiro source and explicit MCP eager initialization. Separate experiments, no causal version-to-version claim."
+}

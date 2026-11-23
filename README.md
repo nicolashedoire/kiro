@@ -53,28 +53,37 @@ Three rules hold it together:
 
 ## Results
 
-**Real AI sessions, measured on 21 November 2026.** Thirty fresh Claude Sonnet 4.6 sessions
-on three source-investigation tasks across Kiro and Fastify, five repetitions per setup
-and task. The same model/prompt used either the system terminal or the terminal plus Kiro MCP.
+**Real AI sessions, measured on 23 November 2026, with Kiro `55d26e9`.** Thirty fresh Claude
+Sonnet 4.6 sessions on three source-investigation tasks across Kiro and Fastify, five
+repetitions per setup and task. The same primary model and prompt used Bash alone or Bash
+plus Kiro MCP. Both configurations could batch commands; Kiro sessions could fall back to Bash.
 
-![Measured end-to-end AI benchmark](assets/benchmarks/ai-benchmark-overview.png)
+![Measured end-to-end AI benchmark](assets/benchmarks/2026-11-23-sonnet46/ai-benchmark-overview.png)
 
-Median elapsed time was **53.0 s with the terminal, 36.4 s with Kiro MCP** (31.4% lower in
-this sample). All required paths were returned in **15/15 terminal sessions and 14/15 Kiro
-sessions**. Path coverage is not a semantic-correctness score; manual review found explanation
-errors in both conditions. All sessions remain included. These results do not establish a
-universal speedup or remove the tool's experimental limitations.
+Median elapsed time was **47.3 s with the terminal, 45.1 s with Kiro MCP** (4.7% lower in
+this sample). Median model turns fell from **12 to 7**, while total reported model cost
+rose from **$3.03 to $3.17** across 15 sessions per setup. The clearest time difference was
+on the small Kiro self-test; both Fastify tasks had similar median times.
+
+All 30 sessions finished. All required paths were returned in **14/15 terminal sessions
+and 15/15 Kiro sessions**. Path coverage does not grade explanations: source-based review
+found concrete errors in both configurations and does not establish better answer quality
+with Kiro. Every measured session is included. This is a small exploratory comparison with
+a Bash-only baseline, not evidence of a universal speedup.
 
 <details>
 <summary>See every task, session and reported model usage</summary>
 
-![Per-task AI session times](assets/benchmarks/ai-benchmark-tasks.png)
+![Per-task AI session times](assets/benchmarks/2026-11-23-sonnet46/ai-benchmark-tasks.png)
 
-![Reported model turns, tokens and cost](assets/benchmarks/ai-benchmark-effort.png)
+![Reported model turns, tokens and cost](assets/benchmarks/2026-11-23-sonnet46/ai-benchmark-effort.png)
 
 </details>
 
-[Method, pinned datasets, prompts, per-session data and reproduction scripts](docs/benchmarks/2026-11-21-sonnet46/README.md).
+[Method, pinned production-only datasets, prompts, answer review and reproduction scripts](docs/benchmarks/2026-11-23-sonnet46/README.md).
+The [21 November experiment](docs/benchmarks/2026-11-21-sonnet46/README.md) is archived
+separately. Dataset scope and MCP initialization changed, so the two campaigns do not
+measure a causal speed or quality change from upgrading Kiro or adding Tree-sitter.
 
 The repository includes differential tests and a public, temporary benchmark fixture:
 
@@ -253,12 +262,14 @@ explicit lexical heuristic, while ambiguous declarations never acquire a guessed
   omissions are explicitly flagged. Syntax work is separately bounded to 256 matching
   supported files, 4 MiB of source, two seconds of cooperative analysis time and 2 MiB of
   retained scopes per call. Reaching a syntax limit preserves the lexical results.
-- **Small evidence.** The historical live comparison is one code base, three search tasks,
-  one model and five sessions per cell. No current general speedup is claimed.
+- **Small evidence.** The current live comparison uses three source-investigation tasks,
+  one primary model and five sessions per cell on production-only subsets of Kiro and
+  Fastify. The baseline uses Bash only. No general speed or answer-quality gain is established.
 - **A text search.** `scout` finds words. Code that does the same thing without the words is
   not listed. Syntax ranges describe declarations, not resolved symbol references or a
   semantic call graph. Partial, unsupported, non-UTF-8 and limited analyses use an explicit
-  heuristic fallback. Current AI-session figures predate the Tree-sitter integration.
+  heuristic fallback. The current AI-session experiment includes Tree-sitter, but compares
+  complete tool configurations rather than isolating the parser's contribution.
 - **Coverage.** The supported subset is deliberately conservative. Other commands still
   need the regular shell; historical coverage figures do not describe the current version.
 

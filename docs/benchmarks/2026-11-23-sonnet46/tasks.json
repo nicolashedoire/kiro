@@ -1,0 +1,104 @@
+[
+  {
+    "id": "kiro-incomplete-search-status",
+    "title": "Trace incomplete-search status propagation",
+    "prompt": "Investigate how this project distinguishes a search that encounters an unreadable candidate from a complete search with no matches, and how that distinction reaches both the command-line exit status and the MCP error indicator. Identify the production implementation files responsible for classifying candidate outcomes, constructing complete versus incomplete search results, and translating that status for the two front ends, including any compatibility entry point that discards status. Focus on status classification and propagation rather than generic low-level filesystem I/O helpers. Explain why each file matters and what must remain true when the answer-size budget is zero. This is a read-only investigation: do not modify files or run builds or tests. Exclude tests, examples, and documentation from your answer. Return only valid JSON with this shape: {\"files\":[{\"path\":\"repository-relative path\",\"reason\":\"specific role in the behavior\"}],\"summary\":\"brief explanation of the status propagation\"}.",
+    "expected_paths": [
+      "src/scout.rs",
+      "src/main.rs",
+      "src/mcp.rs"
+    ],
+    "ground_truth": [
+      {
+        "path": "src/scout.rs",
+        "symbol": "FileSearch; search_file; scout_report; scout_result; scout",
+        "reason": "Classifies unreadable candidates separately from successful reads and documented exclusions. scout_report exposes Partial for read/resource failures, Complete for a finished eligible scan including no matches, and Error for invalid input or discovery failure. scout_result adapts Complete to Ok(text) and all other statuses to Err(text); scout retains text but discards status. A zero display budget empties text while status, reason, counts and bounded references remain independent."
+      },
+      {
+        "path": "src/main.rs",
+        "symbol": "main, scout command branch",
+        "reason": "Calls scout_result and exposes Ok as CLI exit status 0 and Err as exit status 1 while printing either complete or partial answer text."
+      },
+      {
+        "path": "src/mcp.rs",
+        "symbol": "call, scout tool branch; respond, tools/call branch; empty_report",
+        "reason": "Calls scout_report directly, serializes schema_version 2 status/reason/counts/matches/structure, and sets isError when report.status is not Complete. respond preserves that flag in the MCP tool result. A zero text budget does not erase the structured status. Syntax analysis or display truncation alone do not make a completed lexical scan fail."
+      }
+    ],
+    "repository": "https://github.com/nicolashedoire/kiro",
+    "source_commit": "55d26e934589e7c15d69c882d5f956493878dca5",
+    "dataset": "kiro"
+  },
+  {
+    "id": "validation-flow",
+    "title": "Request validation policy and formatter selection",
+    "prompt": "Inspect this Fastify checkout without modifying files, installing dependencies, starting servers or running tests. I need to understand the production implementation of request-body schema validation failures before response serialization. Find the minimal set of production source files directly responsible for: (1) choosing a route-level, instance-level or default schemaErrorFormatter, including the public instance customization entry point; (2) normalizing a validation failure to its default HTTP status and error code while retaining validation metadata; and (3) deciding whether attachValidation stops the request or attaches the error and continues to preHandler and the route handler. Explain the default behavior and where each decision is implemented. Exclude tests, documentation, generated validators, symbol declarations and generic reply/error-serialization plumbing. Do not infer behavior from names alone: verify it in source. Return only valid JSON with this shape: {\"files\":[{\"path\":\"repository-relative production path\",\"reason\":\"relevant functions and their verified responsibility\"}],\"summary\":\"a concise explanation of the flow and defaults\"}.",
+    "expected_paths": [
+      "fastify.js",
+      "lib/route.js",
+      "lib/context.js",
+      "lib/validation.js",
+      "lib/handle-request.js"
+    ],
+    "ground_truth": [
+      {
+        "path": "fastify.js",
+        "symbol": "fastify; setSchemaErrorFormatter; validateSchemaErrorFormatter",
+        "reason": "Lines 371-374 bind the constructor-level schemaErrorFormatter; lines 766-769 expose the instance setter with startup and formatter validation; lines 1020-1025 reject invalid or async formatter functions."
+      },
+      {
+        "path": "lib/route.js",
+        "symbol": "route / route-registration continuation",
+        "reason": "Lines 293-295 default attachValidation to false; lines 388-391 set the final route context attachValidation and choose route formatter before instance formatter/context fallback."
+      },
+      {
+        "path": "lib/context.js",
+        "symbol": "Context; defaultSchemaErrorFormatter",
+        "reason": "Lines 68-73 store attachValidation and choose route/instance/default formatter for the route context; lines 85-93 build the default FST_ERR_VALIDATION message from validator errors."
+      },
+      {
+        "path": "lib/validation.js",
+        "symbol": "validate; wrapValidationError",
+        "reason": "Lines 421-437 validate request body and support synchronous or async validation; lines 508-521 assign default statusCode 400/code FST_ERR_VALIDATION and preserve validation context/details."
+      },
+      {
+        "path": "lib/handle-request.js",
+        "symbol": "preValidationCallback; validationCompleted; preHandlerCallback",
+        "reason": "Lines 115-125 resolve validation including promises; lines 126-146 send the error and stop when attachValidation is false, otherwise attach request.validationError and continue to preHandler/handler."
+      }
+    ],
+    "repository": "https://github.com/fastify/fastify",
+    "source_commit": "6de5abedb24424f0e8fa3612035d212d580f8d90",
+    "dataset": "fastify"
+  },
+  {
+    "id": "shutdown-drain",
+    "title": "Graceful shutdown, load shedding and persistent connections",
+    "prompt": "Inspect this Fastify checkout without modifying files, installing dependencies, starting servers or running tests. Trace the production implementation of graceful shutdown for HTTP/1. Identify the minimal set of files that directly own these decisions: (1) marking the application/routes as closing and invoking preClose before closing the server; (2) deciding whether an already pipelined or keep-alive request receives HTTP 503 and Connection: close during draining, including the default and effect of return503OnClosing; and (3) selecting and performing idle versus forced connection closing, including capability detection and the legacy tracked-socket fallback when closeAllConnections is unavailable. Explain how the decisions connect. Exclude tests, documentation, generated configuration validators, symbol declarations and the internals of generic hook runners. Verify the behavior in source rather than guessing from names. Return only valid JSON with this shape: {\"files\":[{\"path\":\"repository-relative production path\",\"reason\":\"relevant functions and their verified responsibility\"}],\"summary\":\"a concise explanation of shutdown order, draining policy and connection handling\"}.",
+    "expected_paths": [
+      "fastify.js",
+      "lib/route.js",
+      "lib/server.js"
+    ],
+    "ground_truth": [
+      {
+        "path": "fastify.js",
+        "symbol": "fastify / preReady onClose callback",
+        "reason": "Lines 408-412 set closing state, close route admission and invoke preClose; lines 415-428 call closeIdleConnections or closeAllConnections or destroy the tracked legacy sockets; lines 436-448 close the server to stop accepting new connections."
+      },
+      {
+        "path": "lib/route.js",
+        "symbol": "buildRouting.setup; closeRoutes; routeHandler",
+        "reason": "Lines 110-121 default return503OnClosing to true and expose the closing flag; lines 488-511 set Connection: close for HTTP/1 and return 503 early when configured; lines 514-522 track keep-alive sockets for the legacy shutdown fallback."
+      },
+      {
+        "path": "lib/server.js",
+        "symbol": "createServer",
+        "reason": "Lines 126-138 detect closeAllConnections/closeIdleConnections capabilities, reject unsupported explicit idle mode, choose idle default where available and allocate a real tracking Set only for forced legacy closing; lines 140-146 return these capabilities and tracking state to the application."
+      }
+    ],
+    "repository": "https://github.com/fastify/fastify",
+    "source_commit": "6de5abedb24424f0e8fa3612035d212d580f8d90",
+    "dataset": "fastify"
+  }
+]

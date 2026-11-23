@@ -1,0 +1,245 @@
+{
+  "kiro": {
+    "commit": "55d26e934589e7c15d69c882d5f956493878dca5",
+    "projection": "Production source and package metadata only; no docs, tests, examples, .git, benchmarks or previous answers.",
+    "tree_sha256": "967a683dc9773e28f03ed8287201e415066d735a47c79ccfe1c3705fc47f824d",
+    "file_count": 12,
+    "files": [
+      {
+        "path": "Cargo.lock",
+        "bytes": 7775,
+        "sha256": "97bfe8c674701073a21a4a7ae7540d48813c871237c438f9418380cf18e20271"
+      },
+      {
+        "path": "Cargo.toml",
+        "bytes": 622,
+        "sha256": "847f4461c924f6bd5ff3d7aa30981733e0955ee2e1ee111cf99edebe7add39ad"
+      },
+      {
+        "path": "src/builtins.rs",
+        "bytes": 26581,
+        "sha256": "43cf1000b300876bf4d70dc27cad760f3cffd1ca1ce2350c1ff51712b823e711"
+      },
+      {
+        "path": "src/engine.rs",
+        "bytes": 20886,
+        "sha256": "36e9b36deb3eb48bc7981f56a449869110aa8093c1de0e3885cda7068763fa84"
+      },
+      {
+        "path": "src/grep.rs",
+        "bytes": 53928,
+        "sha256": "85692fddc513bd31bd8b1800d10136f60d1f62d5788959775fa06d42e8d5ede0"
+      },
+      {
+        "path": "src/lib.rs",
+        "bytes": 1108,
+        "sha256": "0e82675821c6962e4e0875925d640a2aa6d399460d7edb949ef0ea4891fb81d9"
+      },
+      {
+        "path": "src/limits.rs",
+        "bytes": 2890,
+        "sha256": "e19cced1d1799b20428fb2f03b9406cc310e26ebca27107f80f711d67e252b26"
+      },
+      {
+        "path": "src/main.rs",
+        "bytes": 4677,
+        "sha256": "e9a331a160b893fd4299d009acae2e2ef0e99ec408cc618656401f9df3f3f534"
+      },
+      {
+        "path": "src/mcp.rs",
+        "bytes": 31082,
+        "sha256": "e978cb65999564ab739386e098544c132b07a867aab6250b50ef6c56c1cd51c1"
+      },
+      {
+        "path": "src/scout.rs",
+        "bytes": 50658,
+        "sha256": "dbf174d6e49eb94bc8c11ad9db7af0a2d8e989f866a12a5cf1e263ded6c42e1c"
+      },
+      {
+        "path": "src/shell.rs",
+        "bytes": 14737,
+        "sha256": "dcac6806dbb67eaf454980a543fb95762c80bdb1767fa19e0757c4aa17030191"
+      },
+      {
+        "path": "src/syntax.rs",
+        "bytes": 35791,
+        "sha256": "36f211fb544c35724d46f059640b697d808856596d10dc5b63830c51dc16c224"
+      }
+    ],
+    "hash_scope": "Sorted relative file names, kind, permission mode and contents, each length-framed; same algorithm as session runner."
+  },
+  "fastify": {
+    "commit": "6de5abedb24424f0e8fa3612035d212d580f8d90",
+    "projection": "Production source and package metadata only; no docs, tests, examples, .git, benchmarks or previous answers.",
+    "tree_sha256": "67a8f84a0bd7b88d57eb00c316ff25d8be024249c8f64435c9e2f04cbbfabb97",
+    "file_count": 33,
+    "files": [
+      {
+        "path": "fastify.js",
+        "bytes": 34849,
+        "sha256": "b457619c7918e14942cab4bb1aac8fe9977a08db99c62299276e46447b1928b0"
+      },
+      {
+        "path": "lib/config-validator.js",
+        "bytes": 31914,
+        "sha256": "ebb8a69d00399315492e67fe3588c65fca047ee784f931d13f7f5970b30285ed"
+      },
+      {
+        "path": "lib/content-type-parser.js",
+        "bytes": 13327,
+        "sha256": "6b005fc3fe19c26951757461929e587e166b2f92125826e47f7eb9fc1419e2df"
+      },
+      {
+        "path": "lib/content-type.js",
+        "bytes": 7032,
+        "sha256": "9f1d4fe80f7430b843169ee4a8b2737f8c03271399016f310c2971bd8a236901"
+      },
+      {
+        "path": "lib/context.js",
+        "bytes": 2524,
+        "sha256": "5666208784105108630aa6693cf783fa7093591fcd93a291e572277d6c1bf9e1"
+      },
+      {
+        "path": "lib/decorate.js",
+        "bytes": 4148,
+        "sha256": "d2b77abf8bbbb61286548a3188eb48f8d03a10308160b09e304c66d8e9fa6904"
+      },
+      {
+        "path": "lib/error-handler.js",
+        "bytes": 5527,
+        "sha256": "26e415b169e4c0ad1172b271c8925fd9910956f1d0ccec5c925a5401cc806a56"
+      },
+      {
+        "path": "lib/error-serializer.js",
+        "bytes": 4095,
+        "sha256": "086d2389e9d108f793c2102cfc2e639a1fe1fd200245602d31832328c92f8568"
+      },
+      {
+        "path": "lib/error-status.js",
+        "bytes": 440,
+        "sha256": "4e0ac99c6510ed858dd0c08114de273653dc3ad7d579ff087391f3987aaf28bf"
+      },
+      {
+        "path": "lib/errors.js",
+        "bytes": 16436,
+        "sha256": "20b2a8650e97e0645805d9ee6eabf40b56638513cf0246155a2e6b6cddcdf5c5"
+      },
+      {
+        "path": "lib/four-oh-four.js",
+        "bytes": 6193,
+        "sha256": "65877583e3ade09a818a762ff76d829ca431450f7d46bdbd692f56b341add44f"
+      },
+      {
+        "path": "lib/handle-request.js",
+        "bytes": 5929,
+        "sha256": "14f3c8b213ab287131f54b03710a5c4afaad59a267b1580f9f694667cfc952dc"
+      },
+      {
+        "path": "lib/head-route.js",
+        "bytes": 1109,
+        "sha256": "442e4f45ee8bbd57325f0daa4a968cfe9bbd4d1ed087b43b615eaabcc2efb23b"
+      },
+      {
+        "path": "lib/hooks.js",
+        "bytes": 9210,
+        "sha256": "02b428780d90101e5329e693121ebaf8bfe4a88f506ed1ae0d63687a774d5d67"
+      },
+      {
+        "path": "lib/initial-config-validation.js",
+        "bytes": 1008,
+        "sha256": "14426e4b89d806cf924fd412ea267b27801d1bb61c6ac9ebdc94be5866f1c82f"
+      },
+      {
+        "path": "lib/log-controller.js",
+        "bytes": 6031,
+        "sha256": "b8a7659984a16a8a3cc6ec72be4be8085d2018ed7de85abfc2ffbff509c6adb8"
+      },
+      {
+        "path": "lib/logger-factory.js",
+        "bytes": 4856,
+        "sha256": "43a7fa4ae7590921f3a8ef8b25fe0465cf0a7dd4ac253b935873f3ff76240c6c"
+      },
+      {
+        "path": "lib/logger-pino.js",
+        "bytes": 1642,
+        "sha256": "51ecedc135fa6a9cd44e66c1edb032f41b633e83f146f502e483d31b77e3e881"
+      },
+      {
+        "path": "lib/noop-set.js",
+        "bytes": 171,
+        "sha256": "d55aa7e5cb106bdf2a2eeb9bc6d38361481e284aa499e0a1dab191656e3a4c67"
+      },
+      {
+        "path": "lib/plugin-override.js",
+        "bytes": 3207,
+        "sha256": "1718ff0f184e29bf57a15494c84406943f4e8dd35800447514b129910b7deb21"
+      },
+      {
+        "path": "lib/plugin-utils.js",
+        "bytes": 4689,
+        "sha256": "ce48d076b27d298042e5050a473165fd82225e0f0a1132765df10439c49cf516"
+      },
+      {
+        "path": "lib/reply.js",
+        "bytes": 31363,
+        "sha256": "18bc43e076666340be9a34e2e2697521c48b933e64ad5d08676a8fea44725fae"
+      },
+      {
+        "path": "lib/req-id-gen-factory.js",
+        "bytes": 1504,
+        "sha256": "87d0a1ed81f313ba12d57c90efbfbac721651f2b0852405e5d1e9cf53c59b373"
+      },
+      {
+        "path": "lib/request.js",
+        "bytes": 11063,
+        "sha256": "c0c5972302ccb3758850c9df7dae6be1f7079e455c24a8b8bfec627c5276037b"
+      },
+      {
+        "path": "lib/route.js",
+        "bytes": 24966,
+        "sha256": "35d66c66e91f1ef8f4e059079e34fc532e7681e52d1d4e7a6ad71844544b2eac"
+      },
+      {
+        "path": "lib/schema-controller.js",
+        "bytes": 5869,
+        "sha256": "3be70596efc88bf028022cf9d4a77dfef31c2970f608a21d346a6a438c576559"
+      },
+      {
+        "path": "lib/schemas.js",
+        "bytes": 7427,
+        "sha256": "dbcccc5f2ecbde3c66143019c524749ac5cfeec042f1f6dafd777394c8373ff9"
+      },
+      {
+        "path": "lib/server.js",
+        "bytes": 14184,
+        "sha256": "c43b6db5ae74e51a24996a0819f93985620e67d1155a58936c34e642d9a4ce3a"
+      },
+      {
+        "path": "lib/symbols.js",
+        "bytes": 3545,
+        "sha256": "bddfadc6be13b7c28869ac052d499b0f400c6dacddc667500e3097cd7e6a4a6c"
+      },
+      {
+        "path": "lib/validation.js",
+        "bytes": 19835,
+        "sha256": "1c207663eb918d8143df874937ac76ff2c396b8e57fe6c17b9de34885a8347cf"
+      },
+      {
+        "path": "lib/warnings.js",
+        "bytes": 2197,
+        "sha256": "b0437ff744c5bfb820b9902d4763c28f2a988032f960fd1864aaa5a5a4da89cd"
+      },
+      {
+        "path": "lib/wrap-thenable.js",
+        "bytes": 2399,
+        "sha256": "23e41424f4a19f947c0fe58cb21ee3fa97d15917d7d6dc668f375d71d8bf786b"
+      },
+      {
+        "path": "package.json",
+        "bytes": 7154,
+        "sha256": "2606b1c15dcfb137c62ae6022324eabe898d3c886534860000d526157e29d3b2"
+      }
+    ],
+    "hash_scope": "Sorted relative file names, kind, permission mode and contents, each length-framed; same algorithm as session runner."
+  }
+}
